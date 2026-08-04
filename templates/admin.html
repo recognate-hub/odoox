@@ -217,9 +217,10 @@
                     </div>
                     
                     {% if workspace %}
-                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap;">
                         <button onclick="downloadClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Download JSON</button>
                         <button onclick="copyClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Copy Snippet</button>
+                        <button onclick="copyDirectUrl()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Copy Direct URL</button>
                     </div>
                     {% endif %}
                 </div>
@@ -309,6 +310,18 @@
                 alert("Config snippet copied to clipboard!");
             } catch (err) {
                 alert("Failed to copy config. Please copy manually.");
+            }
+        }
+
+        async function copyDirectUrl() {
+            const url = "{{ connection_url }}";
+            const token = "{{ token }}";
+            const directUrl = `${url}?token=${token}`;
+            try {
+                await navigator.clipboard.writeText(directUrl);
+                alert("Direct URL copied to clipboard!");
+            } catch (err) {
+                alert("Failed to copy URL. Please copy manually.");
             }
         }
     </script>
