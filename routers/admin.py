@@ -122,14 +122,16 @@ def save_config(
     existing = supabase.table("user_workspaces").select("*").eq("user_id", user_id).execute()
     
     if odoo_password == "********" and existing.data:
-        odoo_password = existing.data[0].get("odoo_password")
+        final_password = existing.data[0].get("odoo_password")
+    else:
+        final_password = encrypt(odoo_password) if odoo_password else odoo_password
         
     payload = {
         "user_id": user_id,
         "odoo_url": odoo_url,
         "odoo_db": odoo_db,
         "odoo_username": odoo_username,
-        "odoo_password": encrypt(odoo_password) if odoo_password else odoo_password
+        "odoo_password": final_password
     }
     
     try:
