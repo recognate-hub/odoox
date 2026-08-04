@@ -1,5 +1,5 @@
 # Stage 1: Build environment
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Install Poetry
 ENV POETRY_HOME=/opt/poetry \
@@ -21,8 +21,8 @@ WORKDIR /app
 # Copy dependency definitions
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --only main --no-root --no-interaction --no-ansi
+# Re-sync lock file for this Poetry version, then install
+RUN poetry lock --no-update && poetry install --only main --no-root --no-interaction --no-ansi
 
 # Stage 2: Runtime environment
 FROM python:3.12-slim
