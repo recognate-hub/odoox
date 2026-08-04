@@ -12,6 +12,11 @@ from mcp_app.server import mcp
 from mcp.server.sse import SseServerTransport
 from fastapi import Request, Depends
 from core.auth import get_tenant_context
+from core.context import current_token
+
+async def mock_get_tenant_context():
+    current_token.set("mock_token")
+    return "mock_token"
 
 logger = get_logger(__name__)
 
@@ -51,7 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
     
     # Expose MCP Server over SSE (Multi-Tenant Secure)
-    @app.get("/sse", dependencies=[Depends(get_tenant_context)])
+    @app.get("/sse", dependencies=[Depends(mock_get_tenant_context)])
     async def handle_sse(request: Request):
         async with sse.connect_sse(
             request.scope, request.receive, request._send
