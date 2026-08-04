@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.settings import get_settings
 from routers.health import router as health_router
 from routers.admin import router as admin_router
+from routers.oauth import router as oauth_router
 from core.logger import get_logger
 from mcp_app.server import mcp
 from mcp.server.sse import SseServerTransport
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     # Include standard REST routers
     app.include_router(health_router, tags=["Health"])
     app.include_router(admin_router, tags=["Admin"])
+    app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
     
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get("/sse", dependencies=[Depends(get_tenant_context)])
