@@ -366,8 +366,10 @@
             return JSON.stringify({
                 "mcpServers": {
                     "odoox-cloud": {
-                        "command": "cloudmcp-connect",
+                        "command": "npx",
                         "args": [
+                            "-y",
+                            "odoox-mcp-connector",
                             "--url",
                             sseUrl
                         ]
