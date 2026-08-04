@@ -215,6 +215,13 @@
                             {% endif %}
                         </div>
                     </div>
+                    
+                    {% if workspace %}
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <button onclick="downloadClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Download JSON</button>
+                        <button onclick="copyClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Copy Snippet</button>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </main>
@@ -261,6 +268,48 @@
             const toast = document.getElementById("toast");
             toast.className = "show";
             setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+        function getClaudeConfig() {
+            const url = "{{ connection_url }}";
+            const token = "{{ token }}";
+            return JSON.stringify({
+                "mcpServers": {
+                    "odoox": {
+                        "command": "npx",
+                        "args": [
+                            "-y",
+                            "@modelcontextprotocol/inspector",
+                            url
+                        ],
+                        "env": {
+                            "ODOOX_TOKEN": token
+                        }
+                    }
+                }
+            }, null, 2);
+        }
+
+        function downloadClaudeConfig() {
+            const config = getClaudeConfig();
+            const blob = new Blob([config], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "claude_desktop_config.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function copyClaudeConfig() {
+            const config = getClaudeConfig();
+            try {
+                await navigator.clipboard.writeText(config);
+                alert("Config snippet copied to clipboard!");
+            } catch (err) {
+                alert("Failed to copy config. Please copy manually.");
+            }
         }
     </script>
 </body>
