@@ -59,12 +59,20 @@ def create_app() -> FastAPI:
             await mcp._mcp_server.run(
                 streams[0], streams[1], mcp._mcp_server.create_initialization_options()
             )
+        return NoOpResponse()
+
+    from starlette.responses import Response
+
+    class NoOpResponse(Response):
+        async def __call__(self, scope, receive, send):
+            pass
 
     @app.post("/messages")
     async def handle_messages(request: Request):
         await sse.handle_post_message(
             request.scope, request.receive, request._send
         )
+        return NoOpResponse()
 
     return app
 
