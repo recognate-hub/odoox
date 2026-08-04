@@ -5,7 +5,7 @@ description = "AI-Powered Odoo CRM Integration via MCP + Claude"
 authors = [
     {name = "Antigravity",email = "antigravity@google.com"}
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 dependencies = [
     "pydantic (>=2.13.4,<3.0.0)",
     "pydantic-settings (>=2.14.2,<3.0.0)",
