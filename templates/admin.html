@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ODOOX</title>
+    <title>Workspace — ODOOX by RECOGNATE</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         .dashboard-layout {
@@ -11,50 +11,91 @@
             min-height: 100vh;
         }
         
-        /* Sidebar */
+        /* === Sidebar === */
         .sidebar {
             width: 280px;
             padding: 2rem;
             display: flex;
             flex-direction: column;
+            background: rgba(255, 255, 255, 0.02);
+            border-right: 1px solid var(--border-subtle);
+            backdrop-filter: blur(10px);
         }
         .sidebar-brand {
-            font-size: 1.75rem;
-            font-weight: 800;
             margin-bottom: 3rem;
-            color: var(--brand-primary);
-            text-align: center;
         }
+        .brand-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .brand-sub {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.25rem;
+        }
+        
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 1rem 1.5rem;
+            gap: 0.75rem;
+            padding: 0.85rem 1.25rem;
             color: var(--text-secondary);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            border-radius: var(--radius-md);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all var(--duration-fast);
         }
         .nav-link:hover {
-            color: var(--brand-primary);
+            color: var(--text-primary);
+            background: var(--bg-glass);
         }
         .nav-link.active {
-            color: var(--brand-primary);
-            box-shadow: var(--shadow-pressed);
+            color: var(--brand-light);
+            background: var(--brand-glow);
+            font-weight: 600;
+            box-shadow: inset 2px 0 0 var(--brand-primary);
         }
+        .nav-icon {
+            opacity: 0.7;
+        }
+        
         .sidebar-footer {
             margin-top: auto;
             padding-top: 2rem;
         }
 
-        /* Main Content */
+        /* === Main Content === */
         .main-content {
             flex: 1;
-            padding: 3rem;
+            padding: 3rem 4rem;
             overflow-y: auto;
-            /* Create a separation from sidebar using a subtle inset shadow line */
-            box-shadow: inset 5px 0 10px -5px rgba(163, 177, 198, 0.3);
+            position: relative;
         }
+        
+        /* Subtle glow in the background of main content */
+        .main-content::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--brand-glow) 0%, transparent 60%);
+            border-radius: 50%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
         .page-header {
             margin-bottom: 3rem;
         }
@@ -64,107 +105,144 @@
         }
         .page-header p {
             color: var(--text-secondary);
-            font-size: 1.125rem;
+            font-size: 1.05rem;
         }
         
         /* Two-column layout */
         .content-grid {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 3rem;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2.5rem;
+            align-items: start;
         }
         
-        /* Specialized read-only inputs for Neumorphism */
-        .read-only-input {
-            background: transparent;
-            box-shadow: var(--shadow-pressed);
-            border: none;
-            color: var(--brand-primary);
-            font-family: monospace;
+        .card-title {
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Read-only monospace inputs for code/keys */
+        .code-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+            color: var(--brand-light);
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
             font-size: 0.85rem;
             width: 100%;
             padding: 1rem;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            user-select: all;
         }
         
-        /* Status Indicator */
-        .status-box {
-            margin-top: 2.5rem;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: var(--shadow-pressed);
+        /* Status Banner */
+        .status-banner {
+            margin-top: 2rem;
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #48bb78;
-            box-shadow: 0 0 10px rgba(72, 187, 120, 0.6);
+        .status-banner.ready {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(34, 197, 94, 0.05);
         }
         
         /* Toast Notification */
         #toast {
             visibility: hidden;
             min-width: 250px;
-            background-color: var(--bg-color);
-            color: var(--brand-primary);
+            background: var(--bg-surface);
+            color: var(--accent-green);
             text-align: center;
-            border-radius: 12px;
-            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            padding: 1rem 1.5rem;
             position: fixed;
             z-index: 100;
             bottom: 30px;
             right: 30px;
-            font-weight: 600;
-            box-shadow: var(--shadow-raised);
-            transition: visibility 0s, opacity 0.3s linear;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            transition: visibility 0s, opacity 0.3s linear, transform 0.3s var(--ease-out);
             opacity: 0;
+            transform: translateY(20px);
         }
         #toast.show {
             visibility: visible;
             opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Action Buttons Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
         
         @media (max-width: 1024px) {
             .content-grid { grid-template-columns: 1fr; }
+            .main-content { padding: 2.5rem; }
         }
         @media (max-width: 768px) {
             .dashboard-layout { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; box-shadow: 0 5px 10px -5px rgba(163, 177, 198, 0.3); }
-            .main-content { box-shadow: none; padding: 2rem; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-subtle); padding: 1.5rem; }
+            .main-content { padding: 1.5rem; }
+            .action-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="dashboard-layout">
+        <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-brand">ODOOX</div>
+            <div class="sidebar-brand">
+                <div class="brand-text">ODOOX</div>
+                <div class="brand-sub">by RECOGNATE</div>
+            </div>
             <nav>
-                <a href="/admin" class="nav-link active">Integration</a>
-                <a href="#" class="nav-link">Usage Logs</a>
-                <a href="#" class="nav-link">Settings</a>
+                <a href="/admin" class="nav-link active">
+                    <span class="nav-icon">🔌</span> Integration
+                </a>
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">📊</span> Logs & Usage
+                </a>
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">⚙️</span> Settings
+                </a>
             </nav>
             <div class="sidebar-footer">
-                <a href="/logout" class="nav-link" style="color: #f56565;">Log Out</a>
+                <a href="/logout" class="nav-link" style="color: var(--accent-red);">
+                    <span class="nav-icon">🚪</span> Log Out
+                </a>
             </div>
         </aside>
         
+        <!-- Main Content -->
         <main class="main-content">
             <header class="page-header animate-fade-in">
                 <h1>Odoo Integration</h1>
-                <p>Configure your connection to enable the Claude MCP endpoint.</p>
+                <p>Configure your secure connection to enable the Claude MCP endpoint.</p>
             </header>
             
             <div class="content-grid">
-                <!-- Config Form -->
-                <div class="neumorphic-card animate-fade-in" style="animation-delay: 0.1s;">
-                    <h3 style="margin-bottom: 2rem;">Connection Settings</h3>
+                
+                <!-- Left Column: Odoo Credentials -->
+                <div class="glass-card animate-fade-in-up delay-1">
+                    <h3 class="card-title">Database Credentials</h3>
+                    
                     <form id="configForm" onsubmit="event.preventDefault(); saveConfig();">
                         <div class="form-group">
-                            <label class="form-label">Odoo URL</label>
+                            <label class="form-label">Odoo Instance URL</label>
                             <input type="url" id="odoo_url" class="form-input" placeholder="https://mycompany.odoo.com" value="{{ workspace.odoo_url if workspace else '' }}" required>
                         </div>
                         
@@ -173,57 +251,68 @@
                             <input type="text" id="odoo_db" class="form-input" placeholder="mycompany_db" value="{{ workspace.odoo_db if workspace else '' }}" required>
                         </div>
                         
-                        <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div class="form-group">
                                 <label class="form-label">Username</label>
                                 <input type="text" id="odoo_username" class="form-input" placeholder="admin@mycompany.com" value="{{ workspace.odoo_username if workspace else '' }}" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Password / API Key</label>
-                                <input type="password" id="odoo_password" class="form-input" placeholder="********" value="{{ '********' if workspace else '' }}" required>
+                                <input type="password" id="odoo_password" class="form-input" placeholder="••••••••" value="{{ '********' if workspace else '' }}" required>
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary" id="saveBtn" style="margin-top: 1.5rem; width: 100%;">Save Configuration</button>
+                        <button type="submit" class="btn btn-primary btn-block mt-2" id="saveBtn">
+                            Securely Save & Connect
+                        </button>
                     </form>
                 </div>
                 
-                <!-- Connection Status -->
-                <div class="neumorphic-card animate-fade-in" style="animation-delay: 0.2s;">
-                    <h3 style="margin-bottom: 2rem;">Claude Connection</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">
-                        Use this endpoint and token in your Claude Desktop `claude_desktop_config.json` file.
+                <!-- Right Column: Claude Connection -->
+                <div class="glass-card animate-fade-in-up delay-2">
+                    <h3 class="card-title">Claude Desktop MCP</h3>
+                    <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        Use this endpoint in your Claude Desktop configuration to enable real-time Odoo access.
                     </p>
                     
-                    <div class="form-group">
-                        <label class="form-label">SSE Endpoint URL</label>
-                        <input type="text" class="read-only-input" value="{{ connection_url }}" readonly>
+                    <div>
+                        <label class="form-label">SSE Endpoint</label>
+                        <input type="text" class="code-input" value="{{ connection_url }}" readonly>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">Authorization Token</label>
-                        <input type="text" class="read-only-input" value="{{ token }}" readonly>
+                    <div>
+                        <label class="form-label">Auth Token (Encrypted JWT)</label>
+                        <input type="text" class="code-input" value="{{ token }}" readonly>
                     </div>
                     
-                    <div class="status-box">
-                        <div class="status-dot"></div>
-                        <div style="font-size: 0.95rem; color: var(--text-primary); font-weight: 500;">
+                    <div class="status-banner {% if workspace %}ready{% endif %}">
+                        <div class="status-dot" {% if not workspace %}style="background: var(--text-muted); animation: none; box-shadow: none;"{% endif %}></div>
+                        <div>
                             {% if workspace %}
-                            Ready for Claude. Data is encrypted.
+                            <div style="font-weight: 600; color: var(--text-primary);">Endpoint Active</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Traffic is AES-256 encrypted.</div>
                             {% else %}
-                            Save settings to activate endpoint.
+                            <div style="font-weight: 600; color: var(--text-primary);">Awaiting Configuration</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Save your Odoo credentials first.</div>
                             {% endif %}
                         </div>
                     </div>
                     
                     {% if workspace %}
-                    <div style="display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap;">
-                        <button onclick="downloadClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Download JSON</button>
-                        <button onclick="copyClaudeConfig()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Copy Snippet</button>
-                        <button onclick="copyDirectUrl()" class="btn neumorphic" style="font-size: 0.9rem; padding: 0.75rem;">Copy Direct URL</button>
+                    <div class="action-grid">
+                        <button onclick="copyClaudeConfig()" class="btn btn-outline" style="font-size: 0.85rem;">
+                            📋 Copy JSON Snippet
+                        </button>
+                        <button onclick="downloadClaudeConfig()" class="btn btn-outline" style="font-size: 0.85rem;">
+                            ⬇️ Download Config
+                        </button>
+                        <button onclick="copyDirectUrl()" class="btn btn-outline" style="grid-column: 1 / -1; font-size: 0.85rem;">
+                            🔗 Copy Direct URL
+                        </button>
                     </div>
                     {% endif %}
                 </div>
+
             </div>
         </main>
     </div>
@@ -233,9 +322,9 @@
     <script>
         async function saveConfig() {
             const btn = document.getElementById('saveBtn');
-            btn.innerText = 'Saving...';
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
             btn.disabled = true;
-            btn.classList.add('btn-pressed');
             
             const formData = new URLSearchParams();
             formData.append('odoo_url', document.getElementById('odoo_url').value);
@@ -259,9 +348,8 @@
             } catch (error) {
                 alert("Connection failed.");
             } finally {
-                btn.innerText = 'Save Configuration';
+                btn.innerHTML = originalText;
                 btn.disabled = false;
-                btn.classList.remove('btn-pressed');
             }
         }
         
@@ -270,6 +358,7 @@
             toast.className = "show";
             setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
         }
+        
         function getClaudeConfig() {
             const url = "{{ connection_url }}";
             const token = "{{ token }}";
