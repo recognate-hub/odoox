@@ -273,15 +273,14 @@
         function getClaudeConfig() {
             const url = "{{ connection_url }}";
             const token = "{{ token }}";
+            const sseUrl = `${url}?token=${token}`;
             return JSON.stringify({
                 "mcpServers": {
                     "odoox": {
-                        "command": "npx",
+                        "command": "C:\\\\WINDOWS\\\\System32\\\\cmd.exe",
                         "args": [
-                            "-y",
-                            "supergateway",
-                            "--sse",
-                            `${url}?token=${token}`
+                            "/c",
+                            `cd /d "D:\\Work Space\\Project\\Odoo" && poetry run python odoo_claude_mcp\\scripts\\mcp_sse_bridge.py "${sseUrl}"`
                         ]
                     }
                 }
