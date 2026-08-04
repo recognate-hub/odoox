@@ -6,8 +6,12 @@ ENV POETRY_HOME=/opt/poetry \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_VERSION=1.8.3
 
-RUN apt-get update && apt-get install -y curl && \
-    curl -sSL https://install.python-poetry.org | python3 -
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    && curl -sSL https://install.python-poetry.org | python3 -
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
