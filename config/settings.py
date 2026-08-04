@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str = Field(min_length=32, description="Master key for encrypting tenant secrets")
 
     # Client/Tenant Identification
-    COMPANY_NAME: str = Field(min_length=1, description="Company name")
-    COMPANY_EMAIL: str = Field(min_length=1, description="Company contact email")
+    COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")
+    COMPANY_EMAIL: str = Field(default="admin@odoox.com", min_length=1, description="Company contact email")
     COMPANY_PHONE: str = Field(default="", description="Company contact phone")
 
     def validate_config(self) -> None:
