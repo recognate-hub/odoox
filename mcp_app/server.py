@@ -3,6 +3,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from config.settings import get_settings
+from core.context import get_current_token, get_workspace_credentials
 from core.logger import get_logger
 from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput, UpdateLeadInput
 from mcp_app.security import secure_tool
@@ -13,11 +14,27 @@ from services.crm import CRMService
 
 logger = get_logger(__name__)
 
-# Initialize dependencies (in a real app, use a DI container)
-settings = get_settings()
-odoo_connector = XmlRpcOdooConnector(settings)
-odoo_repo = OdooRepository(odoo_connector)
-crm_service = CRMService(odoo_repo)
+
+def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
+    """
+    Lazily create an OdooConnector using the current tenant's credentials.
+    This is called per-request so each tenant gets their own connection.
+    """
+    token = get_current_token()
+    workspace = get_workspace_credentials(token)
+
+    settings = get_settings()
+    # Override the settings with the tenant's actual Odoo credentials
+    settings.ODOO_URL = workspace.odoo_url
+    settings.ODOO_DB = workspace.odoo_db
+    settings.ODOO_USERNAME = workspace.odoo_username
+    settings.ODOO_PASSWORD = workspace.odoo_password
+
+    connector = XmlRpcOdooConnector(settings)
+    repo = OdooRepository(connector)
+    service = CRMService(repo)
+    return repo, service
+
 
 # Initialize FastMCP Server
 mcp = FastMCP("ODOOX")
@@ -39,6 +56,7 @@ def get_leads(limit: int = 100) -> list[dict[str, Any]]:
         List[Dict[str, Any]]: A list of dictionaries representing leads with fields like name, email_from, phone, partner_id, stage_id, expected_revenue, and description.
     """
     logger.info("MCP Tool Called: get_leads", limit=limit)
+    odoo_repo, _ = _get_tenant_service()
     leads = odoo_repo.get_active_leads(limit=limit)
     return [lead.model_dump() for lead in leads]
 
@@ -62,6 +80,7 @@ def create_lead(name: str, email: str | None = None, phone: str | None = None, d
         Dict[str, Any]: A dictionary containing a 'status' string and the new 'lead_id' integer.
     """
     logger.info("MCP Tool Called: create_lead", name=name)
+    odoo_repo, _ = _get_tenant_service()
     lead_id = odoo_repo.create_lead(name, email, phone, description)
     return {"status": "success", "lead_id": lead_id}
 
@@ -83,6 +102,7 @@ def update_lead(lead_id: int, data: dict[str, Any]) -> dict[str, Any]:
         Dict[str, Any]: A dictionary containing the success status.
     """
     logger.info("MCP Tool Called: update_lead", lead_id=lead_id)
+    odoo_repo, _ = _get_tenant_service()
     success = odoo_repo.update_lead(lead_id, data)
     return {"status": "success" if success else "failed"}
 
@@ -103,6 +123,7 @@ def search_customer(name: str, limit: int = 20) -> list[dict[str, Any]]:
         List[Dict[str, Any]]: A list of contacts with fields like id, name, email, phone, is_company, and company_id.
     """
     logger.info("MCP Tool Called: search_customer", query=name)
+    odoo_repo, _ = _get_tenant_service()
     contacts = odoo_repo.search_contacts_by_name(name, limit=limit)
     return [contact.model_dump() for contact in contacts]
 
@@ -122,6 +143,7 @@ def get_customer_details(partner_id: int) -> dict[str, Any]:
         Dict[str, Any]: A dictionary containing the 'contact' dictionary and a 'recent_quotes' list.
     """
     logger.info("MCP Tool Called: get_customer_details", partner_id=partner_id)
+    _, crm_service = _get_tenant_service()
     return crm_service.get_customer_summary_data(partner_id)
 
 
@@ -143,6 +165,7 @@ def get_products(name_query: str = "", limit: int = 50) -> list[dict[str, Any]]:
         List[Dict[str, Any]]: A list of products with fields like id, name, list_price, default_code, and qty_available.
     """
     logger.info("MCP Tool Called: get_products", query=name_query)
+    odoo_repo, _ = _get_tenant_service()
     products = odoo_repo.search_products(name_query, limit=limit)
     return [product.model_dump() for product in products]
 
@@ -158,6 +181,7 @@ def revenue_report() -> dict[str, Any]:
         Dict[str, Any]: A dictionary containing total_revenue, active_leads_count, quotes_count, and win_rate_percentage.
     """
     logger.info("MCP Tool Called: revenue_report")
+    odoo_repo, _ = _get_tenant_service()
     dashboard = odoo_repo.get_dashboard()
     return dashboard.model_dump()
 
@@ -173,6 +197,7 @@ def get_sales_dashboard() -> dict[str, Any]:
         Dict[str, Any]: A dictionary containing total_revenue, active_leads_count, quotes_count, and win_rate_percentage.
     """
     logger.info("MCP Tool Called: get_sales_dashboard")
+    odoo_repo, _ = _get_tenant_service()
     dashboard = odoo_repo.get_dashboard()
     return dashboard.model_dump()
 
@@ -189,6 +214,7 @@ def get_pipeline_forecast_data() -> list[dict[str, Any]]:
         List[Dict[str, Any]]: A list of leads with full fields.
     """
     logger.info("MCP Tool Called: get_pipeline_forecast_data")
+    _, crm_service = _get_tenant_service()
     return crm_service.get_pipeline_data()
 
 
@@ -214,6 +240,7 @@ def schedule_meeting(name: str, start: str, stop: str, partner_ids: list[int], n
         Dict[str, Any]: A dictionary containing the success status and the new meeting_id.
     """
     logger.info("MCP Tool Called: schedule_meeting", name=name)
+    _, crm_service = _get_tenant_service()
     result = crm_service.create_meeting(name, start, stop, partner_ids, notes)
     return result
 
@@ -233,6 +260,7 @@ def get_lead_context(lead_id: int) -> dict[str, Any]:
         Dict[str, Any]: A dictionary representing the lead.
     """
     logger.info("MCP Tool Called: get_lead_context", lead_id=lead_id)
+    _, crm_service = _get_tenant_service()
     return crm_service.get_lead_context(lead_id)
 
 

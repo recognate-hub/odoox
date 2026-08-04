@@ -1,6 +1,6 @@
 {
   "name": "odoox-mcp-connector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A CLI tool to connect Claude Desktop to a remote Odoo MCP SSE Server",
   "main": "index.js",
   "type": "module",
