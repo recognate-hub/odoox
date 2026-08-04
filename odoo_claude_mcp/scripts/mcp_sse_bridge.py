@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import sys
-import anyio
 import argparse
+
+import anyio
 from mcp.client.sse import sse_client
-from mcp.client.session import ClientSession
 from mcp.server.stdio import stdio_server
+
 
 async def _pump(read_stream, write_stream):
     """Pipe messages between the client session and the stdio proxy streams."""
@@ -19,11 +19,11 @@ async def _pump(read_stream, write_stream):
         pass
 
 async def main(url: str):
-    from urllib.parse import urlparse, parse_qs
+    from urllib.parse import parse_qs, urlparse
     parsed = urlparse(url)
     qs = parse_qs(parsed.query)
     headers = {}
-    if "token" in qs and qs["token"]:
+    if qs.get("token"):
         headers["Authorization"] = f"Bearer {qs['token'][0]}"
 
     async with sse_client(url, headers=headers) as (sse_read, sse_write):

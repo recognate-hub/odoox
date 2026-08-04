@@ -1,12 +1,16 @@
-import pytest
 import time
-import socket
-import xmlrpc.client
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from core.idempotency import IdempotencyCache, _idempotency_state, _generate_key
+import pytest
+
 from core.exceptions import OdooConnectionError
-from odoo.xmlrpc import XmlRpcOdooConnector, TimeoutTransport, TimeoutSafeTransport, get_transport
+from core.idempotency import IdempotencyCache, _idempotency_state
+from odoo.xmlrpc import (
+    TimeoutSafeTransport,
+    TimeoutTransport,
+    XmlRpcOdooConnector,
+    get_transport,
+)
 
 
 def test_timeout_transport():

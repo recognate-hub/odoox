@@ -1,9 +1,9 @@
-import os
 import json
-import time
+import os
 from datetime import datetime
+
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 TABLE_NAME = "user_workspaces"
 
 def run_drill():
-    print(f"INITIATING AUTOMATED DISASTER RECOVERY DRILL")
+    print("INITIATING AUTOMATED DISASTER RECOVERY DRILL")
     print(f"Target Table: {TABLE_NAME}")
     print("-" * 50)
     
@@ -108,7 +108,7 @@ def run_drill():
         
         if final_count == record_count:
             print(f"VERIFICATION PASSED: Original count ({record_count}) matches restored count ({final_count}).")
-            print(f"DR DRILL COMPLETED SUCCESSFULLY.")
+            print("DR DRILL COMPLETED SUCCESSFULLY.")
         else:
             print(f"VERIFICATION FAILED: Expected {record_count} records, but found {final_count}.")
     except Exception as e:

@@ -1,10 +1,8 @@
-import os
-import json
-from datetime import datetime, date
-from typing import Dict, Any
+from datetime import date
+from typing import Any
 
-from core.logger import get_logger
 from core.exceptions import FinOpsBudgetExceededException
+from core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -15,7 +13,7 @@ class FinOpsService:
     
     # Simple in-memory store for tracking budgets during testing/execution
     # In production, this would be backed by Redis or Supabase.
-    _usage_store: Dict[str, Dict[str, int]] = {}
+    _usage_store: dict[str, dict[str, int]] = {}
     
     def __init__(self, daily_budget_limit: int = 1000):
         """
@@ -56,7 +54,7 @@ class FinOpsService:
             budget=self.daily_budget_limit
         )
 
-    def get_budget_status(self, tenant_id: str) -> Dict[str, Any]:
+    def get_budget_status(self, tenant_id: str) -> dict[str, Any]:
         """
         Returns the current budget status for a tenant.
         """

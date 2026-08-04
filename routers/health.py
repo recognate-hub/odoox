@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from config.settings import get_settings
 from odoo.xmlrpc import XmlRpcOdooConnector
 

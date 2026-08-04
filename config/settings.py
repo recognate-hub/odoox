@@ -1,6 +1,6 @@
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import HttpUrl, SecretStr, Field
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
     # Supabase (Multi-Tenant)
-    SUPABASE_URL: Optional[str] = Field(default=None, description="Supabase project URL")
-    SUPABASE_KEY: Optional[str] = Field(default=None, description="Supabase API key")
+    SUPABASE_URL: str | None = Field(default=None, description="Supabase project URL")
+    SUPABASE_KEY: str | None = Field(default=None, description="Supabase API key")
     
     # CORS Configuration
     CORS_ORIGINS: list[str] = Field(default=["*"], description="List of allowed CORS origins")
@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     OLD_ENCRYPTION_KEYS: str = Field(default="", description="Comma-separated old encryption keys for rotation")
     
     # mTLS configurations
-    ODOO_CLIENT_CERT_PATH: Optional[str] = Field(default=None, description="Path to mTLS client cert")
-    ODOO_CLIENT_KEY_PATH: Optional[str] = Field(default=None, description="Path to mTLS client key")
+    ODOO_CLIENT_CERT_PATH: str | None = Field(default=None, description="Path to mTLS client cert")
+    ODOO_CLIENT_KEY_PATH: str | None = Field(default=None, description="Path to mTLS client key")
 
     # Client/Tenant Identification
     COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")
@@ -47,7 +47,6 @@ class Settings(BaseSettings):
         this method serves as a simple explicit check.
         It will raise a ValidationError if configuration is invalid.
         """
-        pass
 
 
 def get_settings() -> Settings:

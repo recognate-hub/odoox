@@ -58,6 +58,30 @@ The application is containerized and ready for production deployment using Docke
    curl http://localhost:8000/health
    ```
 
+## Enterprise Client Distribution
+
+To allow your enterprise clients to connect their local Claude Desktop apps to your remote production Odoo MCP server, distribute the provided `odoox-mcp-connector` bridge tool. 
+
+Clients should add this configuration to their `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "odoox-cloud": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "https://your-production-domain.com/sse?token=YOUR_JWT_TOKEN"
+      ]
+    }
+  }
+}
+```
+
+*(Note: You will need to publish the `clients/odoox-mcp-connector` package to NPM, or instruct clients to install it via a git URL or local path).* 
+
 ## CI/CD
 
 This project uses GitHub Actions for Continuous Integration.

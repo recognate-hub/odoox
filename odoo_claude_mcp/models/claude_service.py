@@ -1,6 +1,8 @@
-from odoo import models, api
-from odoo.exceptions import UserError
 import logging
+
+from odoo.exceptions import UserError
+
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -66,7 +68,7 @@ Follow the instructions carefully and use the provided context to generate your 
             return response.content[0].text
         except Exception as e:
             _logger.error("Claude API Error: %s", str(e))
-            raise UserError(f"Failed to communicate with Claude: {str(e)}")
+            raise UserError(f"Failed to communicate with Claude: {e!s}")
 
     @api.model
     def analyze_lead(self, lead_id: int) -> str:

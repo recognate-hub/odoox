@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from schemas.odoo import (
-    OdooLead,
     OdooContact,
+    OdooLead,
     OdooProduct,
     OdooQuote,
-    OdooActivity,
-    OdooMeeting,
-    OdooSalesDashboard
+    OdooSalesDashboard,
 )
 
 
@@ -19,15 +17,15 @@ class OdooConnectorInterface(ABC):
     """
 
     @abstractmethod
-    def get_leads(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooLead]:
+    def get_leads(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooLead]:
         pass
 
     @abstractmethod
-    def create_lead(self, data: Dict[str, Any]) -> int:
+    def create_lead(self, data: dict[str, Any]) -> int:
         pass
 
     @abstractmethod
-    def update_lead(self, lead_id: int, data: Dict[str, Any]) -> bool:
+    def update_lead(self, lead_id: int, data: dict[str, Any]) -> bool:
         pass
 
     @abstractmethod
@@ -35,23 +33,23 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
-    def search_contacts(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooContact]:
+    def search_contacts(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooContact]:
         pass
 
     @abstractmethod
-    def get_products(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooProduct]:
+    def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
         pass
 
     @abstractmethod
-    def get_quotes(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooQuote]:
+    def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
         pass
 
     @abstractmethod
-    def create_activity(self, data: Dict[str, Any]) -> int:
+    def create_activity(self, data: dict[str, Any]) -> int:
         pass
 
     @abstractmethod
-    def schedule_meeting(self, data: Dict[str, Any]) -> int:
+    def schedule_meeting(self, data: dict[str, Any]) -> int:
         pass
 
     @abstractmethod

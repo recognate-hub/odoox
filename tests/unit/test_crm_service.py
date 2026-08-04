@@ -1,11 +1,12 @@
 """Unit tests for the CRMService business logic layer."""
-import pytest
 from unittest.mock import MagicMock
 
-from repositories.odoo import OdooRepository
-from services.crm import CRMService
-from schemas.odoo import OdooLead, OdooContact, OdooQuote
+import pytest
+
 from core.exceptions import OdooResourceNotFoundError
+from repositories.odoo import OdooRepository
+from schemas.odoo import OdooContact, OdooLead, OdooQuote
+from services.crm import CRMService
 
 
 @pytest.fixture

@@ -1,8 +1,7 @@
 """Unit tests for the structured logging setup."""
-import pytest
+from unittest.mock import MagicMock, patch
+
 import structlog
-import logging
-from unittest.mock import patch, MagicMock
 
 
 def test_get_logger_returns_bound_logger():

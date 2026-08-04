@@ -1,11 +1,16 @@
 """Unit tests for the OdooRepository layer."""
-import pytest
 from unittest.mock import MagicMock
 
-from repositories.odoo import OdooRepository
+import pytest
+
 from odoo.interface import OdooConnectorInterface
+from repositories.odoo import OdooRepository
 from schemas.odoo import (
-    OdooLead, OdooContact, OdooProduct, OdooQuote, OdooSalesDashboard
+    OdooContact,
+    OdooLead,
+    OdooProduct,
+    OdooQuote,
+    OdooSalesDashboard,
 )
 
 

@@ -7,15 +7,15 @@ It exposes Server-Sent Events (SSE) endpoints that Claude Connectors can connect
 When Claude calls a tool via SSE, this proxy forwards the request to the Odoo JSON-RPC endpoints.
 """
 
-import sys
 import os
+
 import httpx
 import uvicorn
-from starlette.applications import Starlette
-from starlette.routing import Route
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
+from starlette.applications import Starlette
+from starlette.routing import Route
 
 # Configuration via environment variables
 ODOO_URL = os.getenv("ODOO_URL", "http://localhost:8069")

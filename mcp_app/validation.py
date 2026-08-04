@@ -1,7 +1,10 @@
 import functools
-from pydantic import BaseModel, ValidationError as PydanticValidationError
-from core.logger import get_logger
+
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
+
 from core.exceptions import ValidationError
+from core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -19,7 +22,7 @@ def validate_write_input(schema_cls: type[BaseModel]):
             except PydanticValidationError as e:
                 # Explicit rejection logging
                 logger.warning("Write Validation Rejected", tool=func.__name__, errors=e.errors())
-                raise ValidationError(f"Input validation failed for {func.__name__}: {str(e)}")
+                raise ValidationError(f"Input validation failed for {func.__name__}: {e!s}")
             
             # Since fastmcp relies on the original signature for Claude, we can't easily 
             # inject the validated pydantic model back into kwargs if it expects primitives.

@@ -1,7 +1,9 @@
-from core.encryption import encrypt, decrypt
-from config.settings import get_settings
-from cryptography.fernet import Fernet
 import os
+
+from cryptography.fernet import Fernet
+
+from core.encryption import decrypt
+
 
 def test_rotation():
     # 1. Encrypt with old key

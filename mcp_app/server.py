@@ -1,14 +1,15 @@
+from typing import Any
+
 from fastmcp import FastMCP
-from typing import List, Optional, Dict, Any
 
 from config.settings import get_settings
 from core.logger import get_logger
+from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput, UpdateLeadInput
+from mcp_app.security import secure_tool
+from mcp_app.validation import validate_write_input
 from odoo.xmlrpc import XmlRpcOdooConnector
 from repositories.odoo import OdooRepository
 from services.crm import CRMService
-from mcp_app.security import secure_tool
-from mcp_app.validation import validate_write_input
-from mcp_app.schemas import CreateLeadInput, UpdateLeadInput, ScheduleMeetingInput
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ mcp = FastMCP("ODOOX")
 
 @mcp.tool()
 @secure_tool()
-def get_leads(limit: int = 100) -> List[Dict[str, Any]]:
+def get_leads(limit: int = 100) -> list[dict[str, Any]]:
     """
     Retrieve active CRM leads (opportunities) from Odoo.
     
@@ -45,7 +46,7 @@ def get_leads(limit: int = 100) -> List[Dict[str, Any]]:
 @mcp.tool()
 @secure_tool()
 @validate_write_input(CreateLeadInput)
-def create_lead(name: str, email: Optional[str] = None, phone: Optional[str] = None, description: Optional[str] = None) -> Dict[str, Any]:
+def create_lead(name: str, email: str | None = None, phone: str | None = None, description: str | None = None) -> dict[str, Any]:
     """
     Create a new CRM lead (opportunity) in Odoo.
     
@@ -68,7 +69,7 @@ def create_lead(name: str, email: Optional[str] = None, phone: Optional[str] = N
 @mcp.tool()
 @secure_tool()
 @validate_write_input(UpdateLeadInput)
-def update_lead(lead_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+def update_lead(lead_id: int, data: dict[str, Any]) -> dict[str, Any]:
     """
     Update an existing CRM lead in Odoo.
     
@@ -88,7 +89,7 @@ def update_lead(lead_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
 
 @mcp.tool()
 @secure_tool()
-def search_customer(name: str, limit: int = 20) -> List[Dict[str, Any]]:
+def search_customer(name: str, limit: int = 20) -> list[dict[str, Any]]:
     """
     Search for contacts/customers in Odoo by name.
     
@@ -108,7 +109,7 @@ def search_customer(name: str, limit: int = 20) -> List[Dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
-def get_customer_details(partner_id: int) -> Dict[str, Any]:
+def get_customer_details(partner_id: int) -> dict[str, Any]:
     """
     Fetch comprehensive customer details and recent quotes.
     
@@ -128,7 +129,7 @@ def get_customer_details(partner_id: int) -> Dict[str, Any]:
 
 @mcp.tool()
 @secure_tool()
-def get_products(name_query: str = "", limit: int = 50) -> List[Dict[str, Any]]:
+def get_products(name_query: str = "", limit: int = 50) -> list[dict[str, Any]]:
     """
     Search for products in Odoo's inventory.
     
@@ -148,7 +149,7 @@ def get_products(name_query: str = "", limit: int = 50) -> List[Dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
-def revenue_report() -> Dict[str, Any]:
+def revenue_report() -> dict[str, Any]:
     """
     Get the current sales dashboard and revenue report.
     (Note: This tool provides identical data to get_sales_dashboard).
@@ -163,7 +164,7 @@ def revenue_report() -> Dict[str, Any]:
 
 @mcp.tool()
 @secure_tool()
-def get_sales_dashboard() -> Dict[str, Any]:
+def get_sales_dashboard() -> dict[str, Any]:
     """
     Get the current sales dashboard metrics.
     (Note: This tool provides identical data to revenue_report).
@@ -178,7 +179,7 @@ def get_sales_dashboard() -> Dict[str, Any]:
 
 @mcp.tool()
 @secure_tool()
-def get_pipeline_forecast_data() -> List[Dict[str, Any]]:
+def get_pipeline_forecast_data() -> list[dict[str, Any]]:
     """
     Fetch active leads and pipeline data for sales forecasting.
     
@@ -196,7 +197,7 @@ def get_pipeline_forecast_data() -> List[Dict[str, Any]]:
 @mcp.tool()
 @secure_tool()
 @validate_write_input(ScheduleMeetingInput)
-def schedule_meeting(name: str, start: str, stop: str, partner_ids: List[int], notes: str = "") -> Dict[str, Any]:
+def schedule_meeting(name: str, start: str, stop: str, partner_ids: list[int], notes: str = "") -> dict[str, Any]:
     """
     Schedule a meeting in Odoo's calendar and log raw notes.
     
@@ -219,7 +220,7 @@ def schedule_meeting(name: str, start: str, stop: str, partner_ids: List[int], n
 
 @mcp.tool()
 @secure_tool()
-def get_lead_context(lead_id: int) -> Dict[str, Any]:
+def get_lead_context(lead_id: int) -> dict[str, Any]:
     """
     Fetch raw lead context to draft emails or perform analysis.
     

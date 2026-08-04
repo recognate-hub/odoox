@@ -1,7 +1,6 @@
 import json
-import os
 from pathlib import Path
-from typing import Dict, List
+
 from core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -11,7 +10,7 @@ class PolicyEngine:
     Policy-as-Code engine.
     Loads declarative RBAC policies and evaluates access requests.
     """
-    _policies: Dict[str, List[str]] = {}
+    _policies: dict[str, list[str]] = {}
     _loaded: bool = False
 
     @classmethod

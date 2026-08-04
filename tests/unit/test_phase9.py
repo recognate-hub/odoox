@@ -1,12 +1,10 @@
-import pytest
-import os
-import ssl
 from unittest.mock import patch
 
 from config.settings import get_settings
+from core.encryption import _get_active_fernet, _get_retired_fernets
 from core.secrets import SecretsManager
 from odoo.xmlrpc import TimeoutSafeTransport
-from core.encryption import _get_active_fernet, _get_retired_fernets
+
 
 def test_secrets_manager():
     # Test that secrets manager fetches the key correctly

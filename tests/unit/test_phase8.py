@@ -1,9 +1,11 @@
 import pytest
 from pydantic import ValidationError
-from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput
-from schemas.odoo import OdooLead, OdooContact
-from mcp_app.validation import validate_write_input
+
 from core.exceptions import ValidationError as CustomValidationError
+from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput
+from mcp_app.validation import validate_write_input
+from schemas.odoo import OdooLead
+
 
 def test_output_sanitization():
     # Test that OdooBaseModel wraps strings in XML tags and escapes existing tags

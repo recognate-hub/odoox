@@ -1,9 +1,10 @@
 import asyncio
 import contextvars
-from fastapi import FastAPI, Depends, Request
-import uvicorn
 import threading
+
 import httpx
+import uvicorn
+from fastapi import Depends, FastAPI, Request
 
 cv = contextvars.ContextVar("cv", default=None)
 app = FastAPI()

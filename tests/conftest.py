@@ -1,7 +1,8 @@
 """Root-level conftest for shared test fixtures and environment setup."""
 import os
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 # Ensure required environment variables are set for all tests.
 # This runs before any test module import, preventing ValidationErrors

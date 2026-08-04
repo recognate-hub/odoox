@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "odoox-cloud": {
-      "command": "cloudmcp-connect",
+      "command": "npx",
       "args": [
+        "-y",
+        "odoox-mcp-connector",
         "--url",
         "https://your-production-odoox-domain.com/sse?token=your-production-jwt-token"
       ]

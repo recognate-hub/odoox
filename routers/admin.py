@@ -1,12 +1,10 @@
-import os
-from fastapi import APIRouter, Request, Form, Response, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from config.settings import get_settings
-from core.supabase import get_supabase
 from core.encryption import encrypt
 from core.logger import get_logger
+from core.supabase import get_supabase
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -84,7 +82,7 @@ def get_admin_dashboard(request: Request, token: str = Depends(get_user_token)):
         if not user_response or not user_response.user:
             raise Exception("Invalid token")
         user_id = user_response.user.id
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
     
     # Fetch existing workspace from Supabase
@@ -114,6 +112,8 @@ def save_config(
     supabase = get_supabase(token)
     try:
         user_response = supabase.auth.get_user(token)
+        if not user_response or not user_response.user:
+            raise ValueError("Invalid user response")
         user_id = user_response.user.id
     except Exception:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -122,7 +122,9 @@ def save_config(
     existing = supabase.table("user_workspaces").select("*").eq("user_id", user_id).execute()
     
     if odoo_password == "********" and existing.data:
-        final_password = existing.data[0].get("odoo_password")
+        from typing import cast, Any
+        existing_data = cast(list[dict[str, Any]], existing.data)
+        final_password = existing_data[0].get("odoo_password")
     else:
         final_password = encrypt(odoo_password) if odoo_password else odoo_password
         

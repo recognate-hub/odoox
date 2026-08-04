@@ -1,25 +1,22 @@
-import xmlrpc.client
-from typing import List, Dict, Any, Optional, Tuple
-import socket
-import time
-import ssl
 import os
+import ssl
+import time
+import xmlrpc.client
+from typing import Any
 
 from config.settings import Settings, get_settings
-from core.exceptions import OdooAuthError, OdooConnectionError, OdooConnectorError
-from core.logger import get_logger
-from core.context import get_current_token, get_workspace_credentials, WorkspaceContext
+from core.context import WorkspaceContext, get_current_token, get_workspace_credentials
 from core.encryption import decrypt
+from core.exceptions import OdooAuthError, OdooConnectionError, OdooConnectorError
 from core.idempotency import IdempotencyCache
+from core.logger import get_logger
 from odoo.interface import OdooConnectorInterface
 from schemas.odoo import (
-    OdooLead,
     OdooContact,
+    OdooLead,
     OdooProduct,
     OdooQuote,
-    OdooActivity,
-    OdooMeeting,
-    OdooSalesDashboard
+    OdooSalesDashboard,
 )
 
 logger = get_logger(__name__)
@@ -68,11 +65,11 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     Provides dynamic credential fetching, auto-recovery on Auth errors, and tenant uid caching.
     """
 
-    def __init__(self, settings: Settings = None):
+    def __init__(self, settings: Settings | None = None):
         # Cache for authenticated uids to avoid redundant auth calls: {token: uid}
-        self._uids: Dict[str, int] = {}
+        self._uids: dict[str, int] = {}
         # Circuit Breaker state: {tenant_db: (failures, last_failure_time)}
-        self._circuit_breakers: Dict[str, Tuple[int, float]] = {}
+        self._circuit_breakers: dict[str, tuple[int, float]] = {}
 
 
     def _get_workspace(self, force_refresh: bool = False) -> WorkspaceContext:
@@ -115,9 +112,9 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             self._uids[token] = uid
             return uid
             
-        except (xmlrpc.client.ProtocolError, xmlrpc.client.Fault, socket.error) as e:
+        except (OSError, xmlrpc.client.ProtocolError, xmlrpc.client.Fault) as e:
             logger.error("Odoo authentication exception", error=str(e))
-            raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {str(e)}") from e
+            raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {e!s}") from e
 
     def _check_circuit_breaker(self, db_name: str):
         if db_name in self._circuit_breakers:
@@ -157,13 +154,13 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 uid = self._authenticate(force_refresh=True)
                 workspace = self._get_workspace()
                 return models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
-            raise OdooConnectorError(f"Error executing {method} on {model}: {str(e)}") from e
-        except (xmlrpc.client.ProtocolError, socket.error) as e:
+            raise OdooConnectorError(f"Error executing {method} on {model}: {e!s}") from e
+        except (OSError, xmlrpc.client.ProtocolError) as e:
             self._record_failure(workspace.odoo_db)
             logger.error("Odoo execute_kw exception", model=model, method=method, error=str(e))
-            raise OdooConnectionError(f"Error executing {method} on {model}: {str(e)}") from e
+            raise OdooConnectionError(f"Error executing {method} on {model}: {e!s}") from e
 
-    def get_leads(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooLead]:
+    def get_leads(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooLead]:
         domain = domain or []
         records = self._execute(
             "crm.lead", "search_read",
@@ -173,13 +170,13 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
         return [OdooLead(**record) for record in records]
 
-    def create_lead(self, data: Dict[str, Any]) -> int:
+    def create_lead(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
         def _exec():
             return self._execute("crm.lead", "create", [data])
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_lead", data, _exec)
 
-    def update_lead(self, lead_id: int, data: Dict[str, Any]) -> bool:
+    def update_lead(self, lead_id: int, data: dict[str, Any]) -> bool:
         result = self._execute("crm.lead", "write", [[lead_id], data])
         return bool(result)
 
@@ -187,7 +184,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         result = self._execute("crm.lead", "unlink", [[lead_id]])
         return bool(result)
 
-    def search_contacts(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooContact]:
+    def search_contacts(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooContact]:
         domain = domain or []
         records = self._execute(
             "res.partner", "search_read",
@@ -197,7 +194,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
         return [OdooContact(**record) for record in records]
 
-    def get_products(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooProduct]:
+    def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
         domain = domain or []
         records = self._execute(
             "product.product", "search_read",
@@ -207,7 +204,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
         return [OdooProduct(**record) for record in records]
 
-    def get_quotes(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooQuote]:
+    def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
         domain = domain or []
         # In Odoo, sale.order handles both quotes and confirmed orders
         records = self._execute(
@@ -218,13 +215,13 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
         return [OdooQuote(**record) for record in records]
 
-    def create_activity(self, data: Dict[str, Any]) -> int:
+    def create_activity(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
         def _exec():
             return self._execute("mail.activity", "create", [data])
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_activity", data, _exec)
 
-    def schedule_meeting(self, data: Dict[str, Any]) -> int:
+    def schedule_meeting(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
         def _exec():
             return self._execute("calendar.event", "create", [data])

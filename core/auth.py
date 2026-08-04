@@ -1,4 +1,5 @@
-from fastapi import Request, HTTPException, Depends
+from fastapi import HTTPException, Request
+
 from core.context import current_token, get_workspace_credentials
 from core.logger import get_logger
 

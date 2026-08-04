@@ -1,10 +1,9 @@
-import os
-import json
 import fileinput
-from typing import Dict, Any
+import os
+from typing import Any
 
-from core.supabase import get_supabase
 from core.logger import get_logger
+from core.supabase import get_supabase
 
 logger = get_logger(__name__)
 
@@ -18,7 +17,7 @@ class DataGovernanceService:
         self.token = token
         self.supabase = get_supabase(token)
 
-    def export_tenant_data(self, user_id: str) -> Dict[str, Any]:
+    def export_tenant_data(self, user_id: str) -> dict[str, Any]:
         """
         Exports all middleware data associated with a tenant.
         Odoo data is NOT exported here, as Odoo is the authoritative CRM system of record.
@@ -71,7 +70,7 @@ class DataGovernanceService:
                     return False
         return True
 
-    def delete_tenant_data(self, user_id: str) -> Dict[str, Any]:
+    def delete_tenant_data(self, user_id: str) -> dict[str, Any]:
         """
         Completely deletes a tenant from the middleware.
         1. Deletes all user_workspaces records.

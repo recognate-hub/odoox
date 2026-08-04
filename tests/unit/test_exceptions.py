@@ -1,9 +1,10 @@
 import pytest
+
 from core.exceptions import (
     BaseAppError,
-    OdooConnectorError,
     ClaudeAPIError,
-    PermissionDeniedError
+    OdooConnectorError,
+    PermissionDeniedError,
 )
 
 

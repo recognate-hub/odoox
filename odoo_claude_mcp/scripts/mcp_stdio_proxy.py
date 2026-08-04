@@ -7,13 +7,13 @@ Claude Desktop runs this script locally. This script uses the official
 When Claude calls a tool, this script forwards the call to the Odoo JSON-RPC endpoints.
 """
 
-import sys
 import os
-import httpx
+
 import anyio
+import httpx
 from mcp.server import Server
-from mcp.types import Tool, TextContent
 from mcp.server.stdio import stdio_server
+from mcp.types import TextContent, Tool
 
 # Configuration via environment variables in claude_desktop_config.json
 ODOO_URL = os.getenv("ODOO_URL", "http://localhost:8069")

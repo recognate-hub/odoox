@@ -2,16 +2,19 @@
 
 Tests exercise the full decorator chain: secure_tool → RBAC → rate limit → audit log → execution.
 """
-import pytest
 import time
 from unittest.mock import patch
 
+import pytest
+
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
-from mcp_app.security import (
-    secure_tool, UserContext, _rate_limit_state,
-    RATE_LIMIT_MAX_CALLS, RATE_LIMIT_WINDOW_SEC
-)
 from core.policy import PolicyEngine
+from mcp_app.security import (
+    UserContext,
+    _rate_limit_state,
+    secure_tool,
+)
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limit():

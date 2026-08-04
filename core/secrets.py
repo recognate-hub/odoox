@@ -1,5 +1,3 @@
-import os
-from typing import List
 from config.settings import get_settings
 from core.logger import get_logger
 
@@ -25,7 +23,7 @@ class SecretsManager:
         return key
 
     @classmethod
-    def get_retired_keys(cls) -> List[str]:
+    def get_retired_keys(cls) -> list[str]:
         """
         Retrieves previously active keys to allow decrypting legacy ciphertext 
         during a graceful rotation period.

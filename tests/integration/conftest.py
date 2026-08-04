@@ -1,10 +1,14 @@
 """Shared fixtures for integration tests."""
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from schemas.odoo import (
-    OdooLead, OdooContact, OdooProduct, OdooQuote,
-    OdooActivity, OdooMeeting, OdooSalesDashboard
+    OdooContact,
+    OdooLead,
+    OdooProduct,
+    OdooQuote,
+    OdooSalesDashboard,
 )
 
 

@@ -1,11 +1,13 @@
-import time
 import functools
-from typing import List, Callable, Any, Dict
+import time
+from collections.abc import Callable
+from typing import Any
+
 from pydantic import BaseModel
 
+from core.context import get_current_token, get_workspace_credentials
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
 from core.logger import get_logger
-from core.context import get_current_token, get_workspace_credentials
 from core.policy import PolicyEngine
 from services.finops import FinOpsService
 
@@ -30,7 +32,7 @@ def get_current_user_context() -> UserContext:
         raise PermissionDeniedError("Could not verify identity for execution.")
 
 # In-memory rate limiting state: {user_id: [timestamps]}
-_rate_limit_state: Dict[str, List[float]] = {}
+_rate_limit_state: dict[str, list[float]] = {}
 RATE_LIMIT_MAX_CALLS = 100
 RATE_LIMIT_WINDOW_SEC = 60
 
@@ -51,7 +53,7 @@ def _check_rate_limit(user_id: str) -> None:
     _rate_limit_state[user_id].append(now)
 
 
-def secure_tool(action: str = None):
+def secure_tool(action: str | None = None):
     """
     Decorator to enforce Policy-as-Code RBAC, audit logging, and rate limiting on an MCP tool.
     """

@@ -1,14 +1,16 @@
-import time
-import json
 import hashlib
-from typing import Dict, Tuple, Any, Callable
+import json
+import time
+from collections.abc import Callable
+from typing import Any
+
 from core.logger import get_logger
 
 logger = get_logger(__name__)
 
 # In-memory dictionary to store idempotency keys and their result (record_id)
 # Format: { idempotency_key: (record_id, timestamp) }
-_idempotency_state: Dict[str, Tuple[Any, float]] = {}
+_idempotency_state: dict[str, tuple[Any, float]] = {}
 
 IDEMPOTENCY_TTL_SEC = 900  # 15 minutes
 

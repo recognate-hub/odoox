@@ -1,13 +1,14 @@
 import asyncio
 import contextvars
+import threading
+
+import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import Route, Mount
-import uvicorn
-import threading
+from starlette.routing import Route
 
 cv = contextvars.ContextVar("cv", default=None)
 mcp = FastMCP("test")
@@ -42,8 +43,8 @@ def run_server():
     uvicorn.run(app, host="127.0.0.1", port=9999, log_level="error")
 
 async def run_client():
-    from mcp.client.sse import sse_client
     from mcp.client.session import ClientSession
+    from mcp.client.sse import sse_client
     async with sse_client("http://127.0.0.1:9999/sse") as streams:
         async with ClientSession(streams[0], streams[1]) as session:
             await session.initialize()

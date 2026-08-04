@@ -1,13 +1,12 @@
 import json
 import time
 import urllib.parse
-from fastapi import APIRouter, Request, Form, Response, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse, JSONResponse
-from pydantic import BaseModel
-from typing import Optional
 
+from fastapi import APIRouter, Form, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
+
+from core.encryption import decrypt, encrypt
 from core.logger import get_logger
-from core.encryption import encrypt, decrypt
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -21,7 +20,7 @@ def authorize(
     client_id: str = Query(...),
     redirect_uri: str = Query(...),
     response_type: str = Query("code"),
-    state: Optional[str] = Query(None)
+    state: str | None = Query(None)
 ):
     """
     Standard OAuth 2.0 Authorization Endpoint.

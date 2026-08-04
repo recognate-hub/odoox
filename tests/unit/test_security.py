@@ -1,6 +1,6 @@
-import pytest
-import time
 import os
+
+import pytest
 
 # Set required environment variables before importing anything from mcp_app
 os.environ["ODOO_URL"] = "https://odoo.example.com"
@@ -12,9 +12,10 @@ os.environ["COMPANY_NAME"] = "Test Co"
 os.environ["COMPANY_EMAIL"] = "test@example.com"
 
 from unittest.mock import patch
+
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
-from mcp_app.security import secure_tool, UserContext, _rate_limit_state
-from core.policy import PolicyEngine
+from mcp_app.security import UserContext, _rate_limit_state, secure_tool
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limit():

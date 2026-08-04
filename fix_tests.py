@@ -1,4 +1,3 @@
-import sys
 
 def process(filepath):
     with open(filepath, 'r') as f:

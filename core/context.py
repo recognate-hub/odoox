@@ -1,11 +1,11 @@
-import time
 import contextvars
-from pydantic import BaseModel
-from typing import Optional, Dict, Tuple
+import time
+
 from fastapi import HTTPException
-from core.supabase import get_supabase
+from pydantic import BaseModel
 
 from core.logger import get_logger
+from core.supabase import get_supabase
 
 logger = get_logger(__name__)
 
@@ -17,12 +17,12 @@ class WorkspaceContext(BaseModel):
     user_id: str
 
 # Context variable to hold the current request's JWT token
-current_token: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+current_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_token", default=None
 )
 
 # In-memory TTL Cache: { token: (WorkspaceContext, timestamp) }
-_credentials_cache: Dict[str, Tuple[WorkspaceContext, float]] = {}
+_credentials_cache: dict[str, tuple[WorkspaceContext, float]] = {}
 CACHE_TTL_SEC = 300  # 5 minutes
 
 def get_current_token() -> str:
@@ -55,7 +55,8 @@ def get_workspace_credentials(token: str, force_refresh: bool = False) -> Worksp
         if not workspace_response.data:
             raise HTTPException(status_code=404, detail="Workspace not found for user")
             
-        workspace_data = workspace_response.data
+        from typing import cast, Any
+        workspace_data = cast(dict[str, Any], workspace_response.data)
         
         workspace = WorkspaceContext(
             odoo_url=workspace_data["odoo_url"],
@@ -72,4 +73,4 @@ def get_workspace_credentials(token: str, force_refresh: bool = False) -> Worksp
         
     except Exception as e:
         logger.error("Error fetching dynamic workspace credentials", error=str(e))
-        raise RuntimeError(f"Could not fetch workspace credentials: {str(e)}")
+        raise RuntimeError(f"Could not fetch workspace credentials: {e!s}")

@@ -1,5 +1,7 @@
 from cryptography.fernet import Fernet, InvalidToken
+
 from core.secrets import SecretsManager
+
 
 def _get_active_fernet() -> Fernet:
     key = SecretsManager.get_active_key()

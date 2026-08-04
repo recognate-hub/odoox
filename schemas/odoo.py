@@ -1,5 +1,7 @@
-from typing import Optional, List, Any
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
+
 
 class OdooBaseModel(BaseModel):
     @model_validator(mode='before')
@@ -30,57 +32,57 @@ class OdooBaseModel(BaseModel):
 class OdooContact(OdooBaseModel):
     id: int
     name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
+    email: str | None = None
+    phone: str | None = None
     is_company: bool = False
-    company_id: Optional[list] = None  # Odoo returns [id, name] for Many2one
+    company_id: list | None = None  # Odoo returns [id, name] for Many2one
 
 
 class OdooLead(OdooBaseModel):
     id: int
     name: str
-    email_from: Optional[str] = None
-    phone: Optional[str] = None
-    partner_id: Optional[list] = None
-    stage_id: Optional[list] = None
+    email_from: str | None = None
+    phone: str | None = None
+    partner_id: list | None = None
+    stage_id: list | None = None
     expected_revenue: float = 0.0
     probability: float = 0.0
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class OdooProduct(OdooBaseModel):
     id: int
     name: str
     list_price: float = 0.0
-    default_code: Optional[str] = None
+    default_code: str | None = None
     qty_available: float = 0.0
 
 
 class OdooQuote(OdooBaseModel):
     id: int
     name: str
-    partner_id: Optional[list] = None
+    partner_id: list | None = None
     state: str
     amount_total: float = 0.0
-    date_order: Optional[str] = None
+    date_order: str | None = None
 
 
 class OdooActivity(OdooBaseModel):
     id: int
     res_model: str
     res_id: int
-    activity_type_id: Optional[list] = None
-    summary: Optional[str] = None
-    date_deadline: Optional[str] = None
-    user_id: Optional[list] = None
+    activity_type_id: list | None = None
+    summary: str | None = None
+    date_deadline: str | None = None
+    user_id: list | None = None
 
 
 class OdooMeeting(OdooBaseModel):
     id: int
     name: str
-    start: Optional[str] = None
-    stop: Optional[str] = None
-    partner_ids: List[int] = Field(default_factory=list)
+    start: str | None = None
+    stop: str | None = None
+    partner_ids: list[int] = Field(default_factory=list)
 
 
 class OdooSalesDashboard(OdooBaseModel):
