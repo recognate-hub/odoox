@@ -6,7 +6,7 @@
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "https://your-production-odoox-domain.com/sse?token=your-production-jwt-token"
+        "https://odoox.recognate.in/sse?token=YOUR_JWT_TOKEN"
       ]
     }
   }

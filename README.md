@@ -73,7 +73,7 @@ Clients should add this configuration to their `claude_desktop_config.json`:
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "https://your-production-domain.com/sse?token=YOUR_JWT_TOKEN"
+        "https://odoox.recognate.in/sse?token=YOUR_JWT_TOKEN"
       ]
     }
   }
