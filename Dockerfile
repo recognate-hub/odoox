@@ -22,7 +22,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
 
 # Re-sync lock file for this Poetry version, then install
-RUN poetry lock --no-update && poetry install --only main --no-root --no-interaction --no-ansi
+RUN poetry lock && poetry install --only main --no-root --no-interaction --no-ansi
 
 # Stage 2: Runtime environment
 FROM python:3.12-slim
