@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
                 streams[0], streams[1], mcp._mcp_server.create_initialization_options()
             )
 
-    @app.post("/messages", dependencies=[Depends(get_tenant_context)])
+    @app.post("/messages")
     async def handle_messages(request: Request):
         await sse.handle_post_message(
             request.scope, request.receive, request._send
