@@ -365,11 +365,12 @@
             const sseUrl = `${url}?token=${token}`;
             return JSON.stringify({
                 "mcpServers": {
-                    "odoox": {
-                        "command": "C:\\WINDOWS\\System32\\cmd.exe",
+                    "odoox-cloud": {
+                        "command": "npx",
                         "args": [
-                            "/c",
-                            `cd /d "D:\\Work Space\\Project\\Odoo" && poetry run python odoo_claude_mcp\\scripts\\mcp_sse_bridge.py "${sseUrl}"`
+                            "-y",
+                            "@modelcontextprotocol/sse-client",
+                            sseUrl
                         ]
                     }
                 }
