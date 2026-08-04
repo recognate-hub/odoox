@@ -67,12 +67,8 @@ def create_app() -> FastAPI:
         async def __call__(self, scope, receive, send):
             pass
 
-    @app.post("/messages")
-    async def handle_messages(request: Request):
-        await sse.handle_post_message(
-            request.scope, request.receive, request._send
-        )
-        return NoOpResponse()
+    # Mount the ASGI app directly instead of wrapping in a FastAPI route
+    app.mount("/messages", sse.handle_post_message)
 
     return app
 
