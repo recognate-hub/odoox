@@ -4,7 +4,7 @@ FROM python:3.12-slim as builder
 # Install Poetry
 ENV POETRY_HOME=/opt/poetry \
     POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_VERSION=1.8.3
+    POETRY_VERSION=2.0.1
 
 RUN apt-get update && apt-get install -y \
     curl \
