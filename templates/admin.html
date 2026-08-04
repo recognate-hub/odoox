@@ -279,12 +279,10 @@
                         "command": "npx",
                         "args": [
                             "-y",
-                            "@modelcontextprotocol/inspector",
-                            url
-                        ],
-                        "env": {
-                            "ODOOX_TOKEN": token
-                        }
+                            "supergateway",
+                            "--sse",
+                            `${url}?token=${token}`
+                        ]
                     }
                 }
             }, null, 2);
