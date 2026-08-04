@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ODOOX</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-brand {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 3rem;
+            color: var(--brand-primary);
+            text-align: center;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--text-secondary);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--brand-primary);
+        }
+        .nav-link.active {
+            color: var(--brand-primary);
+            box-shadow: var(--shadow-pressed);
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 2rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 3rem;
+            overflow-y: auto;
+            /* Create a separation from sidebar using a subtle inset shadow line */
+            box-shadow: inset 5px 0 10px -5px rgba(163, 177, 198, 0.3);
+        }
+        .page-header {
+            margin-bottom: 3rem;
+        }
+        .page-header h1 {
+            font-size: 2.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+        
+        /* Two-column layout */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 3rem;
+        }
+        
+        /* Specialized read-only inputs for Neumorphism */
+        .read-only-input {
+            background: transparent;
+            box-shadow: var(--shadow-pressed);
+            border: none;
+            color: var(--brand-primary);
+            font-family: monospace;
+            font-size: 0.85rem;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+        
+        /* Status Indicator */
+        .status-box {
+            margin-top: 2.5rem;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-pressed);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #48bb78;
+            box-shadow: 0 0 10px rgba(72, 187, 120, 0.6);
+        }
+        
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--bg-color);
+            color: var(--brand-primary);
+            text-align: center;
+            border-radius: 12px;
+            padding: 1.25rem;
+            position: fixed;
+            z-index: 100;
+            bottom: 30px;
+            right: 30px;
+            font-weight: 600;
+            box-shadow: var(--shadow-raised);
+            transition: visibility 0s, opacity 0.3s linear;
+            opacity: 0;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        @media (max-width: 1024px) {
+            .content-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .dashboard-layout { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; box-shadow: 0 5px 10px -5px rgba(163, 177, 198, 0.3); }
+            .main-content { box-shadow: none; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">ODOOX</div>
+            <nav>
+                <a href="/admin" class="nav-link active">Integration</a>
+                <a href="#" class="nav-link">Usage Logs</a>
+                <a href="#" class="nav-link">Settings</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/logout" class="nav-link" style="color: #f56565;">Log Out</a>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="page-header animate-fade-in">
+                <h1>Odoo Integration</h1>
+                <p>Configure your connection to enable the Claude MCP endpoint.</p>
+            </header>
+            
+            <div class="content-grid">
+                <!-- Config Form -->
+                <div class="neumorphic-card animate-fade-in" style="animation-delay: 0.1s;">
+                    <h3 style="margin-bottom: 2rem;">Connection Settings</h3>
+                    <form id="configForm" onsubmit="event.preventDefault(); saveConfig();">
+                        <div class="form-group">
+                            <label class="form-label">Odoo URL</label>
+                            <input type="url" id="odoo_url" class="form-input" placeholder="https://mycompany.odoo.com" value="{{ workspace.odoo_url if workspace else '' }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Database Name</label>
+                            <input type="text" id="odoo_db" class="form-input" placeholder="mycompany_db" value="{{ workspace.odoo_db if workspace else '' }}" required>
+                        </div>
+                        
+                        <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" id="odoo_username" class="form-input" placeholder="admin@mycompany.com" value="{{ workspace.odoo_username if workspace else '' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Password / API Key</label>
+                                <input type="password" id="odoo_password" class="form-input" placeholder="********" value="{{ '********' if workspace else '' }}" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="saveBtn" style="margin-top: 1.5rem; width: 100%;">Save Configuration</button>
+                    </form>
+                </div>
+                
+                <!-- Connection Status -->
+                <div class="neumorphic-card animate-fade-in" style="animation-delay: 0.2s;">
+                    <h3 style="margin-bottom: 2rem;">Claude Connection</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">
+                        Use this endpoint and token in your Claude Desktop `claude_desktop_config.json` file.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label class="form-label">SSE Endpoint URL</label>
+                        <input type="text" class="read-only-input" value="{{ connection_url }}" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Authorization Token</label>
+                        <input type="text" class="read-only-input" value="{{ token }}" readonly>
+                    </div>
+                    
+                    <div class="status-box">
+                        <div class="status-dot"></div>
+                        <div style="font-size: 0.95rem; color: var(--text-primary); font-weight: 500;">
+                            {% if workspace %}
+                            Ready for Claude. Data is encrypted.
+                            {% else %}
+                            Save settings to activate endpoint.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="toast">Configuration saved successfully!</div>
+
+    <script>
+        async function saveConfig() {
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = 'Saving...';
+            btn.disabled = true;
+            btn.classList.add('btn-pressed');
+            
+            const formData = new URLSearchParams();
+            formData.append('odoo_url', document.getElementById('odoo_url').value);
+            formData.append('odoo_db', document.getElementById('odoo_db').value);
+            formData.append('odoo_username', document.getElementById('odoo_username').value);
+            formData.append('odoo_password', document.getElementById('odoo_password').value);
+            
+            try {
+                const response = await fetch('/admin/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (error) {
+                alert("Connection failed.");
+            } finally {
+                btn.innerText = 'Save Configuration';
+                btn.disabled = false;
+                btn.classList.remove('btn-pressed');
+            }
+        }
+        
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+    </script>
+</body>
+</html>

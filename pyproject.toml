@@ -1,0 +1,38 @@
+[project]
+name = "odoo-mcp-claude"
+version = "0.1.0"
+description = "AI-Powered Odoo CRM Integration via MCP + Claude"
+authors = [
+    {name = "Antigravity",email = "antigravity@google.com"}
+]
+requires-python = "^3.12"
+dependencies = [
+    "pydantic (>=2.13.4,<3.0.0)",
+    "pydantic-settings (>=2.14.2,<3.0.0)",
+    "structlog (>=26.1.0,<27.0.0)",
+    "fastapi (>=0.141.1,<0.142.0)",
+    "fastmcp (>=3.4.5,<4.0.0)",
+    "anthropic (>=0.120.2,<0.121.0)",
+    "rich (>=15.0.0,<16.0.0)",
+    "typer[all] (>=0.27.1,<0.28.0)",
+    "uvicorn (>=0.52.1,<0.53.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
+    "cryptography (>=50.0.0,<51.0.0)",
+    "supabase (>=2.31.0,<3.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "mypy (>=2.3.0,<3.0.0)",
+    "ruff (>=0.16.1,<0.17.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pytest-mock (>=3.15.1,<4.0.0)"
+]

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODOOX | AI-Powered CRM Middleware</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 5%;
+            width: 100%;
+        }
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--text-primary);
+        }
+        .hero {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 5%;
+        }
+        .hero h1 {
+            font-size: 4rem;
+            max-width: 800px;
+            margin-bottom: 1.5rem;
+            letter-spacing: -2px;
+            color: var(--text-primary);
+        }
+        .hero h1 span {
+            color: var(--brand-primary);
+        }
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 3.5rem;
+        }
+        .features {
+            padding: 5rem 5%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .feature-card {
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            box-shadow: var(--shadow-raised);
+            color: var(--brand-primary);
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">ODOOX</div>
+        <div>
+            <a href="/login" class="btn" style="margin-right: 1rem;">Log In</a>
+            <a href="/login" class="btn btn-primary">Get Started</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero animate-fade-in">
+            <h1>Connect Claude AI to <span>Odoo ERP</span> instantly.</h1>
+            <p>The ultimate Model Context Protocol (MCP) server. Empower your Claude agents with real-time access to your CRM, Sales, and Inventory data.</p>
+            <div>
+                <a href="/login" class="btn btn-primary" style="padding: 1.25rem 3rem; font-size: 1.125rem; border-radius: 50px;">Start Free Trial</a>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="neumorphic-card feature-card animate-fade-in">
+                <div class="feature-icon">🔌</div>
+                <h3>Plug & Play MCP</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">No coding required. Just provide your Odoo credentials and instantly get an SSE endpoint to connect with Claude.</p>
+            </div>
+            <div class="neumorphic-card feature-card animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="feature-icon">🔒</div>
+                <h3>Enterprise Security</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Multi-tenant architecture powered by Supabase. Your database credentials are AES-256 encrypted.</p>
+            </div>
+            <div class="neumorphic-card feature-card animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-Time Data</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Claude agents can read and write directly to your live Odoo instance using ultra-fast XML-RPC connections.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

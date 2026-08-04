@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Background & Surfaces */
+    --bg-color: #e0e5ec;
+    
+    /* Text */
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --text-muted: #a0aec0;
+    
+    /* Brand Accent */
+    --brand-primary: #5a67d8;
+    
+    /* Neumorphic Shadows */
+    --shadow-light: #ffffff;
+    --shadow-dark: #a3b1c6;
+    
+    --shadow-raised: 9px 9px 16px rgba(163, 177, 198, 0.6), 
+                     -9px -9px 16px rgba(255, 255, 255, 0.5);
+                     
+    --shadow-pressed: inset 6px 6px 10px rgba(163, 177, 198, 0.6), 
+                      inset -6px -6px 10px rgba(255, 255, 255, 0.5);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+a {
+    color: var(--brand-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #434190;
+}
+
+/* Neumorphic Cards */
+.neumorphic-card {
+    background: var(--bg-color);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: var(--shadow-raised);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Forms & Inputs */
+.form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--bg-color);
+    border: none;
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    box-shadow: var(--shadow-pressed);
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    /* When focused, make the trench slightly deeper and glow with brand color */
+    box-shadow: inset 8px 8px 12px rgba(163, 177, 198, 0.7), 
+                inset -8px -8px 12px rgba(255, 255, 255, 0.6),
+                inset 0 0 0 2px rgba(90, 103, 216, 0.2);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: var(--bg-color);
+    box-shadow: var(--shadow-raised);
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.btn:hover {
+    color: var(--brand-primary);
+}
+
+.btn:active, .btn-pressed {
+    box-shadow: var(--shadow-pressed);
+    color: var(--brand-primary);
+}
+
+.btn-primary {
+    color: var(--brand-primary);
+    font-weight: 700;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease forwards;
+}

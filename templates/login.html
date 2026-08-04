@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ODOOX</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <style>
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background-color: var(--bg-color);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            transition: all 0.2s ease;
+        }
+        
+        .btn:active {
+            color: var(--text-secondary);
+        }
+
+        .error-message {
+            background: #ffe3e3;
+            color: #c92a2a;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+            box-shadow: var(--shadow-inset);
+        }
+        
+        .success-message {
+            background: #e3fae8;
+            color: #2b8a3e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+            box-shadow: var(--shadow-inset);
+        }
+
+        /* Step transitions */
+        #step-1, #step-2 {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        #step-2 {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        
+        .code-input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .code-input {
+            width: 45px;
+            height: 55px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card neumorphic">
+            <div class="login-header">
+                <h1>ODOOX</h1>
+                <p id="header-text">Sign in to your AI workspace</p>
+            </div>
+
+            <div id="error-box" class="error-message"></div>
+            <div id="success-box" class="success-message"></div>
+
+            <!-- STEP 1: Request OTP -->
+            <div id="step-1">
+                <form id="otp-request-form">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-input inset-shadow" required placeholder="you@company.com">
+                    </div>
+                    
+                    <button type="submit" class="btn neumorphic" id="btn-request">
+                        Send Magic Code
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 2: Verify OTP -->
+            <div id="step-2">
+                <form id="otp-verify-form">
+                    <div class="form-group">
+                        <label class="form-label" style="text-align: center;">Enter the 6-digit code sent to your email</label>
+                        <div class="code-input-group">
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                            <input type="text" maxlength="1" class="form-input inset-shadow code-input" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn neumorphic" id="btn-verify">
+                        Verify & Login
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" id="btn-back" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">← Back to email</a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const requestForm = document.getElementById('otp-request-form');
+        const verifyForm = document.getElementById('otp-verify-form');
+        const errorBox = document.getElementById('error-box');
+        const successBox = document.getElementById('success-box');
+        const emailInput = document.getElementById('email');
+        const btnRequest = document.getElementById('btn-request');
+        const btnVerify = document.getElementById('btn-verify');
+        const codeInputs = document.querySelectorAll('.code-input');
+
+        function showError(msg) {
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+            successBox.style.display = 'none';
+        }
+        
+        function showSuccess(msg) {
+            successBox.textContent = msg;
+            successBox.style.display = 'block';
+            errorBox.style.display = 'none';
+        }
+
+        // Auto-advance code inputs
+        codeInputs.forEach((input, index) => {
+            input.addEventListener('input', function() {
+                if (this.value.length === 1) {
+                    if (index < codeInputs.length - 1) codeInputs[index + 1].focus();
+                }
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '') {
+                    if (index > 0) codeInputs[index - 1].focus();
+                }
+            });
+        });
+
+        // Step 1: Request OTP
+        requestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btnRequest.textContent = "Sending...";
+            btnRequest.disabled = true;
+            errorBox.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('email', emailInput.value);
+
+            try {
+                const res = await fetch('/login/otp', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    showSuccess("Magic code sent! Please check your inbox.");
+                    // Transition to Step 2
+                    step1.style.display = 'none';
+                    step2.style.display = 'block';
+                    setTimeout(() => {
+                        step2.style.opacity = '1';
+                        step2.style.transform = 'translateY(0)';
+                        codeInputs[0].focus();
+                    }, 50);
+                } else {
+                    showError(data.message || "Failed to send OTP");
+                }
+            } catch (err) {
+                showError("Network error occurred.");
+            } finally {
+                btnRequest.textContent = "Send Magic Code";
+                btnRequest.disabled = false;
+            }
+        });
+
+        // Step 2: Verify OTP
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btnVerify.textContent = "Verifying...";
+            btnVerify.disabled = true;
+            errorBox.style.display = 'none';
+            
+            let token = "";
+            codeInputs.forEach(input => token += input.value);
+            
+            if (token.length !== 6) {
+                showError("Please enter the full 6-digit code.");
+                btnVerify.textContent = "Verify & Login";
+                btnVerify.disabled = false;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('email', emailInput.value);
+            formData.append('token', token);
+
+            try {
+                const res = await fetch('/login/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    window.location.href = data.redirect;
+                } else {
+                    showError(data.message || "Invalid code.");
+                }
+            } catch (err) {
+                showError("Network error occurred.");
+            } finally {
+                btnVerify.textContent = "Verify & Login";
+                btnVerify.disabled = false;
+            }
+        });
+
+        // Back button
+        document.getElementById('btn-back').addEventListener('click', (e) => {
+            e.preventDefault();
+            step2.style.opacity = '0';
+            setTimeout(() => {
+                step2.style.display = 'none';
+                step1.style.display = 'block';
+                errorBox.style.display = 'none';
+                successBox.style.display = 'none';
+            }, 300);
+        });
+    </script>
+</body>
+</html>
