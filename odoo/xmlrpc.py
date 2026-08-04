@@ -1,11 +1,16 @@
 import xmlrpc.client
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import socket
+import time
+import ssl
+import os
 
-from config.settings import Settings
+from config.settings import Settings, get_settings
 from core.exceptions import OdooAuthError, OdooConnectionError, OdooConnectorError
 from core.logger import get_logger
 from core.context import get_current_token, get_workspace_credentials, WorkspaceContext
+from core.encryption import decrypt
+from core.idempotency import IdempotencyCache
 from odoo.interface import OdooConnectorInterface
 from schemas.odoo import (
     OdooLead,
@@ -19,6 +24,43 @@ from schemas.odoo import (
 
 logger = get_logger(__name__)
 
+class TimeoutTransport(xmlrpc.client.Transport):
+    def __init__(self, timeout=10, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self.timeout
+        return conn
+
+class TimeoutSafeTransport(xmlrpc.client.SafeTransport):
+    def __init__(self, timeout=10, *args, **kwargs):
+        settings = get_settings()
+        if settings.ODOO_CLIENT_CERT_PATH and settings.ODOO_CLIENT_KEY_PATH:
+            if os.path.exists(settings.ODOO_CLIENT_CERT_PATH) and os.path.exists(settings.ODOO_CLIENT_KEY_PATH):
+                context = ssl.create_default_context()
+                context.load_cert_chain(
+                    certfile=settings.ODOO_CLIENT_CERT_PATH,
+                    keyfile=settings.ODOO_CLIENT_KEY_PATH
+                )
+                kwargs["context"] = context
+            else:
+                logger.warning("mTLS certificates not found at specified paths. Falling back to default SSL context.")
+                
+        super().__init__(*args, **kwargs)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self.timeout
+        return conn
+
+def get_transport(url: str, timeout: int = 10):
+    if url.startswith("https:"):
+        return TimeoutSafeTransport(timeout=timeout)
+    return TimeoutTransport(timeout=timeout)
+
 
 class XmlRpcOdooConnector(OdooConnectorInterface):
     """
@@ -29,6 +71,9 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def __init__(self, settings: Settings = None):
         # Cache for authenticated uids to avoid redundant auth calls: {token: uid}
         self._uids: Dict[str, int] = {}
+        # Circuit Breaker state: {tenant_db: (failures, last_failure_time)}
+        self._circuit_breakers: Dict[str, Tuple[int, float]] = {}
+
 
     def _get_workspace(self, force_refresh: bool = False) -> WorkspaceContext:
         token = get_current_token()
@@ -36,11 +81,13 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def _get_common(self, workspace: WorkspaceContext):
         url = str(workspace.odoo_url).rstrip("/")
-        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
+        transport = get_transport(url, timeout=10)
+        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common", transport=transport)
 
     def _get_models(self, workspace: WorkspaceContext):
         url = str(workspace.odoo_url).rstrip("/")
-        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
+        transport = get_transport(url, timeout=10)
+        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object", transport=transport)
 
     def _authenticate(self, force_refresh: bool = False) -> int:
         """Authenticate and get user ID dynamically for the current tenant.
@@ -56,7 +103,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         common = self._get_common(workspace)
         
         try:
-            uid = common.authenticate(workspace.odoo_db, workspace.odoo_username, workspace.odoo_password, {})
+            uid = common.authenticate(workspace.odoo_db, workspace.odoo_username, decrypt(workspace.odoo_password), {})
             if not uid:
                 # If we haven't forced a refresh yet, try refreshing the credentials from DB
                 if not force_refresh:
@@ -72,25 +119,49 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             logger.error("Odoo authentication exception", error=str(e))
             raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {str(e)}") from e
 
+    def _check_circuit_breaker(self, db_name: str):
+        if db_name in self._circuit_breakers:
+            failures, last_failure = self._circuit_breakers[db_name]
+            if failures >= 5:
+                if time.time() - last_failure < 30:
+                    raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
+                else:
+                    # Half-open state: reset failures to allow a test request
+                    self._circuit_breakers[db_name] = (0, time.time())
+
+    def _record_failure(self, db_name: str):
+        failures, _ = self._circuit_breakers.get(db_name, (0, 0))
+        self._circuit_breakers[db_name] = (failures + 1, time.time())
+
+    def _record_success(self, db_name: str):
+        if db_name in self._circuit_breakers:
+            del self._circuit_breakers[db_name]
+
     def _execute(self, model: str, method: str, *args, **kwargs) -> Any:
         """Execute a method on an Odoo model."""
-        uid = self._authenticate()
         workspace = self._get_workspace()
+        self._check_circuit_breaker(workspace.odoo_db)
+        
+        uid = self._authenticate()
         models = self._get_models(workspace)
         
         try:
-            return models.execute_kw(workspace.odoo_db, uid, workspace.odoo_password, model, method, args, kwargs)
+            result = models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
+            self._record_success(workspace.odoo_db)
+            return result
         except xmlrpc.client.Fault as e:
+            self._record_success(workspace.odoo_db) # Fault means Odoo responded, not a timeout
             # If Odoo throws an Access Denied / Auth fault during execute, we should also try to recover
             if "Access Denied" in str(e) or "AuthenticationError" in str(e):
                 logger.warning("Odoo execute_kw failed with Access Denied. Forcing auth refresh.")
                 uid = self._authenticate(force_refresh=True)
                 workspace = self._get_workspace()
-                return models.execute_kw(workspace.odoo_db, uid, workspace.odoo_password, model, method, args, kwargs)
+                return models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
             raise OdooConnectorError(f"Error executing {method} on {model}: {str(e)}") from e
         except (xmlrpc.client.ProtocolError, socket.error) as e:
+            self._record_failure(workspace.odoo_db)
             logger.error("Odoo execute_kw exception", model=model, method=method, error=str(e))
-            raise OdooConnectorError(f"Error executing {method} on {model}: {str(e)}") from e
+            raise OdooConnectionError(f"Error executing {method} on {model}: {str(e)}") from e
 
     def get_leads(self, domain: Optional[List[Any]] = None, limit: int = 100) -> List[OdooLead]:
         domain = domain or []
@@ -103,8 +174,10 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return [OdooLead(**record) for record in records]
 
     def create_lead(self, data: Dict[str, Any]) -> int:
-        record_id = self._execute("crm.lead", "create", [data])
-        return record_id
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("crm.lead", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_lead", data, _exec)
 
     def update_lead(self, lead_id: int, data: Dict[str, Any]) -> bool:
         result = self._execute("crm.lead", "write", [[lead_id], data])
@@ -146,12 +219,16 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return [OdooQuote(**record) for record in records]
 
     def create_activity(self, data: Dict[str, Any]) -> int:
-        record_id = self._execute("mail.activity", "create", [data])
-        return record_id
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("mail.activity", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_activity", data, _exec)
 
     def schedule_meeting(self, data: Dict[str, Any]) -> int:
-        record_id = self._execute("calendar.event", "create", [data])
-        return record_id
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("calendar.event", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "schedule_meeting", data, _exec)
 
     def get_sales_dashboard(self) -> OdooSalesDashboard:
         active_leads = self._execute("crm.lead", "search_count", [["type", "=", "opportunity"]])

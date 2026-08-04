@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
 from core.logger import get_logger
 from core.context import get_current_token, get_workspace_credentials
+from core.policy import PolicyEngine
+from services.finops import FinOpsService
 
 # Dedicated audit logger
 audit_logger = get_logger("audit")
@@ -32,6 +34,9 @@ _rate_limit_state: Dict[str, List[float]] = {}
 RATE_LIMIT_MAX_CALLS = 100
 RATE_LIMIT_WINDOW_SEC = 60
 
+# Global FinOps instance
+finops_service = FinOpsService()
+
 def _check_rate_limit(user_id: str) -> None:
     now = time.time()
     if user_id not in _rate_limit_state:
@@ -46,38 +51,45 @@ def _check_rate_limit(user_id: str) -> None:
     _rate_limit_state[user_id].append(now)
 
 
-def secure_tool(allowed_roles: List[str]):
+def secure_tool(action: str = None):
     """
-    Decorator to enforce RBAC, audit logging, and rate limiting on an MCP tool.
+    Decorator to enforce Policy-as-Code RBAC, audit logging, and rate limiting on an MCP tool.
     """
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             user = get_current_user_context()
             
+            # Determine the action name (default to function name)
+            tool_action = action or func.__name__
+            
             # 1. Audit Logging (Request)
             audit_logger.info(
                 "Tool Invoked",
                 tool=func.__name__,
+                action=tool_action,
                 user_id=user.user_id,
                 role=user.role,
                 kwargs_keys=list(kwargs.keys())
             )
             
-            # 2. RBAC Verification
-            if user.role not in allowed_roles and "Admin" not in user.role:
-                audit_logger.warning("Permission Denied", tool=func.__name__, user_id=user.user_id)
-                raise PermissionDeniedError(f"Role {user.role} does not have permission to execute {func.__name__}")
+            # 2. RBAC Verification via Policy Engine
+            if not PolicyEngine.is_allowed(user.role, tool_action):
+                audit_logger.warning("Permission Denied", tool=func.__name__, action=tool_action, user_id=user.user_id)
+                raise PermissionDeniedError(f"Role {user.role} does not have permission to execute {tool_action}")
                 
             # 3. Rate Limiting
             _check_rate_limit(user.user_id)
             
-            # 4. Execution
+            # 4. FinOps Budget Check
+            finops_service.record_invocation(user.user_id, func.__name__)
+            
+            # 5. Execution
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
                 
-                # 5. Audit Logging (Success)
+                # 6. Audit Logging (Success)
                 audit_logger.info(
                     "Tool Succeeded",
                     tool=func.__name__,
@@ -86,7 +98,7 @@ def secure_tool(allowed_roles: List[str]):
                 )
                 return result
             except Exception as e:
-                # 5. Audit Logging (Failure)
+                # 6. Audit Logging (Failure)
                 audit_logger.error(
                     "Tool Failed",
                     tool=func.__name__,

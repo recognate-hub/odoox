@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "odoox-cloud": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/sse-client",
+        "https://your-production-odoox-domain.com/sse"
+      ],
+      "env": {
+        "ODOOX_TOKEN": "your-production-jwt-token"
+      }
+    }
+  }
+}

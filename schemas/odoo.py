@@ -14,6 +14,18 @@ class OdooBaseModel(BaseModel):
                     data[k] = None
         return data
 
+    @model_validator(mode='after')
+    def sanitize_strings(self) -> 'OdooBaseModel':
+        for field_name, field_info in type(self).model_fields.items():
+            val = getattr(self, field_name)
+            if isinstance(val, str):
+                # Escape existing XML/HTML tags
+                sanitized = val.replace('<', '&lt;').replace('>', '&gt;')
+                # Wrap in delimiting tags to prevent prompt injection
+                wrapped = f"<untrusted_crm_data>{sanitized}</untrusted_crm_data>"
+                setattr(self, field_name, wrapped)
+        return self
+
 
 class OdooContact(OdooBaseModel):
     id: int

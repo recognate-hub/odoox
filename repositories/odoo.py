@@ -53,6 +53,9 @@ class OdooRepository:
             data["description"] = description
         return self.connector.create_lead(data)
 
+    def update_lead(self, lead_id: int, data: Dict[str, Any]) -> bool:
+        return self.connector.update_lead(lead_id, data)
+
     def log_activity(self, res_model: str, res_id: int, summary: str, activity_type_id: int = 4) -> int:
         # activity_type_id 4 is usually 'Todo' or 'Email' in Odoo, should be configurable in a real app
         data = {

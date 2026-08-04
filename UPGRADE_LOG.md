@@ -1,0 +1,9 @@
+# ODOOX Enterprise Upgrade Log
+
+| Date | Phase | What Changed | Why |
+|---|---|---|---|
+| 2026-08-04 | Phase 1 | `WorkspaceContext` no longer holds decrypted passwords in memory. Refactored `XmlRpcOdooConnector` to ephemerally decrypt immediately before XML-RPC execution and discard instantly. Added `OLD_ENCRYPTION_KEYS` support to `core/encryption.py` for key rotation. Fixed mock logic in tests. | To prevent plain-text credential leaks in the TTL cache and enable zero-downtime key rotation for enterprise security compliance. |
+| 2026-08-05 | Phase 2 | Added custom \TimeoutTransport\ with 10s socket timeout. Added Circuit Breaker tracking timeouts per tenant database. Added \IdempotencyCache\ to prevent duplicate writes during network retries. | To prevent thundering herds during Odoo outages and stop duplicate record creation on bridge retries. |
+| 2026-08-05 | Phase 3 | Restored \update_lead\ and \get_sales_dashboard\ tools to server.py. Enhanced FastMCP tool docstrings with detailed parameter typing and descriptions. | To ensure backwards compatibility with Claude Desktop and to improve LLM tool usage accuracy via robust schemas. |
+| 2026-08-05 | Phase 8 | Added global string sanitization to OdooBaseModel to delimit untrusted CRM data. Added @validate_write_input decorator and Pydantic schemas to strictly validate inputs for write tools before Odoo execution. | To prevent LLM prompt injection via Odoo data and enforce an explicit validation barrier for AI-initiated writes. |
+| 2026-08-05 | Phase 9 | Added mTLS support to \TimeoutSafeTransport\. Abstracted encryption key logic into a \SecretsManager\. Created Break-Glass Revocation runbook. | To implement Zero-Trust networking between the bridge and Odoo, and decouple static environment keys into a managed secrets lifecycle. |

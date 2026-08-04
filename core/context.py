@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Tuple
 from fastapi import HTTPException
 from core.supabase import get_supabase
-from core.encryption import decrypt
+
 from core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -61,7 +61,7 @@ def get_workspace_credentials(token: str, force_refresh: bool = False) -> Worksp
             odoo_url=workspace_data["odoo_url"],
             odoo_db=workspace_data["odoo_db"],
             odoo_username=workspace_data["odoo_username"],
-            odoo_password=decrypt(workspace_data["odoo_password"]),
+            odoo_password=workspace_data["odoo_password"],
             user_id=user_id
         )
         

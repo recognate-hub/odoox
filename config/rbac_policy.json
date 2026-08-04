@@ -1,0 +1,31 @@
+{
+  "roles": {
+    "Admin": [
+      "*"
+    ],
+    "Sales": [
+      "get_leads",
+      "create_lead",
+      "update_lead",
+      "search_contacts",
+      "get_products",
+      "get_sales_dashboard",
+      "get_customer_details",
+      "schedule_meeting",
+      "get_lead_context"
+    ],
+    "Manager": [
+      "get_leads",
+      "search_contacts",
+      "get_products",
+      "revenue_report",
+      "get_sales_dashboard",
+      "get_customer_details",
+      "get_lead_context"
+    ],
+    "Support": [
+      "search_contacts",
+      "get_customer_details"
+    ]
+  }
+}

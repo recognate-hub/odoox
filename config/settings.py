@@ -30,6 +30,11 @@ class Settings(BaseSettings):
 
     # Security
     ENCRYPTION_KEY: str = Field(min_length=32, description="Master key for encrypting tenant secrets")
+    OLD_ENCRYPTION_KEYS: str = Field(default="", description="Comma-separated old encryption keys for rotation")
+    
+    # mTLS configurations
+    ODOO_CLIENT_CERT_PATH: Optional[str] = Field(default=None, description="Path to mTLS client cert")
+    ODOO_CLIENT_KEY_PATH: Optional[str] = Field(default=None, description="Path to mTLS client key")
 
     # Client/Tenant Identification
     COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")

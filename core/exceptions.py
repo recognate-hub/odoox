@@ -51,3 +51,8 @@ class RateLimitExceededError(BaseAppError):
 class ValidationError(BaseAppError):
     """Raised when data validation fails (outside of Pydantic)."""
     pass
+
+# --- FinOps Errors ---
+class FinOpsBudgetExceededException(BaseAppError):
+    """Raised when a tenant exceeds their allowed API budget."""
+    pass

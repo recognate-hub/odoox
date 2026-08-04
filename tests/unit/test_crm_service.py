@@ -27,7 +27,7 @@ def test_get_lead_context_success(mock_odoo_repo):
     service = CRMService(mock_odoo_repo)
     result = service.get_lead_context(1)
 
-    assert result["name"] == "Test Lead"
+    assert result["name"] == "<untrusted_crm_data>Test Lead</untrusted_crm_data>"
     assert result["expected_revenue"] == 5000.0
     mock_odoo_repo.get_lead_by_id.assert_called_once_with(1)
 
@@ -54,7 +54,7 @@ def test_get_customer_summary_data_success(mock_odoo_repo):
     service = CRMService(mock_odoo_repo)
     result = service.get_customer_summary_data(10)
 
-    assert result["contact"]["name"] == "Alpha Corp"
+    assert result["contact"]["name"] == "<untrusted_crm_data>Alpha Corp</untrusted_crm_data>"
     assert len(result["recent_quotes"]) == 2
     mock_odoo_repo.connector.search_contacts.assert_called_once()
     mock_odoo_repo.get_recent_quotes.assert_called_once_with(partner_id=10, limit=5)
@@ -79,7 +79,7 @@ def test_get_pipeline_data(mock_odoo_repo):
     result = service.get_pipeline_data()
 
     assert len(result) == 2
-    assert result[0]["name"] == "Lead 1"
+    assert result[0]["name"] == "<untrusted_crm_data>Lead 1</untrusted_crm_data>"
     mock_odoo_repo.get_active_leads.assert_called_once_with(limit=50)
 
 

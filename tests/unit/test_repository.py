@@ -30,7 +30,7 @@ def test_get_active_leads(repo, mock_connector):
 
     assert len(leads) == 1
     assert leads[0].id == 1
-    assert leads[0].name == "Test Lead"
+    assert leads[0].name == "<untrusted_crm_data>Test Lead</untrusted_crm_data>"
     mock_connector.get_leads.assert_called_once_with(
         domain=[["type", "=", "opportunity"]], limit=5
     )
@@ -52,7 +52,7 @@ def test_get_lead_by_id_found(repo, mock_connector):
 
     assert lead is not None
     assert lead.id == 42
-    assert lead.name == "Found Lead"
+    assert lead.name == "<untrusted_crm_data>Found Lead</untrusted_crm_data>"
     mock_connector.get_leads.assert_called_once_with(
         domain=[["id", "=", 42]], limit=1
     )
@@ -74,7 +74,7 @@ def test_search_contacts_by_name(repo, mock_connector):
 
     assert len(contacts) == 1
     assert contacts[0].id == 2
-    assert contacts[0].name == "John Doe"
+    assert contacts[0].name == "<untrusted_crm_data>John Doe</untrusted_crm_data>"
     mock_connector.search_contacts.assert_called_once_with(
         domain=[["name", "ilike", "John"]], limit=20
     )
@@ -98,7 +98,7 @@ def test_search_products(repo, mock_connector):
 
     assert len(products) == 1
     assert products[0].id == 3
-    assert products[0].name == "Product A"
+    assert products[0].name == "<untrusted_crm_data>Product A</untrusted_crm_data>"
     mock_connector.get_products.assert_called_once_with(
         domain=[["name", "ilike", "Prod"]], limit=20
     )
@@ -113,7 +113,7 @@ def test_get_recent_quotes_no_partner(repo, mock_connector):
     quotes = repo.get_recent_quotes()
 
     assert len(quotes) == 1
-    assert quotes[0].name == "S00001"
+    assert quotes[0].name == "<untrusted_crm_data>S00001</untrusted_crm_data>"
     mock_connector.get_quotes.assert_called_once_with(domain=[], limit=10)
 
 
