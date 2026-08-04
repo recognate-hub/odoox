@@ -19,7 +19,7 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 WORKDIR /app
 
 # Copy dependency definitions
-COPY pyproject.toml ./
+COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies
 RUN poetry install --only main --no-root --no-interaction --no-ansi
