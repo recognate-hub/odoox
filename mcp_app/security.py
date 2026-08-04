@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
 from core.logger import get_logger
+from core.context import get_current_token, get_workspace_credentials
 
 # Dedicated audit logger
 audit_logger = get_logger("audit")
@@ -13,9 +14,18 @@ class UserContext(BaseModel):
     user_id: str
     role: str
 
-# Mock context since standard MCP over stdio lacks auth headers.
-# In a production HTTP deployment, this would be set by middleware extracting JWTs.
-_mock_context = UserContext(user_id="system_user", role="Admin")
+def get_current_user_context() -> UserContext:
+    """
+    Resolves the user context dynamically from the active JWT token.
+    Defaulting to 'Admin' role as requested by the user.
+    """
+    try:
+        token = get_current_token()
+        workspace = get_workspace_credentials(token)
+        return UserContext(user_id=workspace.user_id, role="Admin")
+    except Exception as e:
+        audit_logger.error("Failed to resolve user context", error=str(e))
+        raise PermissionDeniedError("Could not verify identity for execution.")
 
 # In-memory rate limiting state: {user_id: [timestamps]}
 _rate_limit_state: Dict[str, List[float]] = {}
@@ -43,7 +53,7 @@ def secure_tool(allowed_roles: List[str]):
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            user = _mock_context
+            user = get_current_user_context()
             
             # 1. Audit Logging (Request)
             audit_logger.info(

@@ -10,12 +10,23 @@ async def _pump(read_stream, write_stream):
     """Pipe messages between the client session and the stdio proxy streams."""
     try:
         async for message in read_stream:
+            if isinstance(message, Exception):
+                import sys
+                print(f"[mcp_sse_bridge] Stream error: {message}", file=sys.stderr)
+                break
             await write_stream.send(message)
     except Exception:
         pass
 
 async def main(url: str):
-    async with sse_client(url) as (sse_read, sse_write):
+    from urllib.parse import urlparse, parse_qs
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    headers = {}
+    if "token" in qs and qs["token"]:
+        headers["Authorization"] = f"Bearer {qs['token'][0]}"
+
+    async with sse_client(url, headers=headers) as (sse_read, sse_write):
         async with stdio_server() as (stdio_read, stdio_write):
             # Run two concurrent tasks to pipe messages in both directions
             async with anyio.create_task_group() as tg:

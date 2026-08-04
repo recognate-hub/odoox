@@ -5,7 +5,7 @@ import socket
 from config.settings import Settings
 from core.exceptions import OdooAuthError, OdooConnectionError, OdooConnectorError
 from core.logger import get_logger
-from core.context import get_current_workspace
+from core.context import get_current_token, get_workspace_credentials, WorkspaceContext
 from odoo.interface import OdooConnectorInterface
 from schemas.odoo import (
     OdooLead,
@@ -23,46 +23,51 @@ logger = get_logger(__name__)
 class XmlRpcOdooConnector(OdooConnectorInterface):
     """
     Odoo Connector implementation using the XML-RPC protocol.
-    Provides typed methods and robust error translation.
+    Provides dynamic credential fetching, auto-recovery on Auth errors, and tenant uid caching.
     """
 
     def __init__(self, settings: Settings = None):
-        # We no longer cache credentials globally since this is a multi-tenant application.
-        # Credentials will be fetched dynamically via get_current_workspace() on each request.
-        pass
+        # Cache for authenticated uids to avoid redundant auth calls: {token: uid}
+        self._uids: Dict[str, int] = {}
 
-    @property
-    def url(self) -> str:
-        return str(get_current_workspace().odoo_url).rstrip("/")
+    def _get_workspace(self, force_refresh: bool = False) -> WorkspaceContext:
+        token = get_current_token()
+        return get_workspace_credentials(token, force_refresh=force_refresh)
 
-    @property
-    def db(self) -> str:
-        return get_current_workspace().odoo_db
+    def _get_common(self, workspace: WorkspaceContext):
+        url = str(workspace.odoo_url).rstrip("/")
+        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
 
-    @property
-    def username(self) -> str:
-        return get_current_workspace().odoo_username
+    def _get_models(self, workspace: WorkspaceContext):
+        url = str(workspace.odoo_url).rstrip("/")
+        return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
 
-    @property
-    def password(self) -> str:
-        return get_current_workspace().odoo_password
-
-    @property
-    def common(self):
-        return xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
-
-    @property
-    def models(self):
-        return xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object")
-
-    def _authenticate(self) -> int:
-        """Authenticate and get user ID dynamically for the current tenant."""
+    def _authenticate(self, force_refresh: bool = False) -> int:
+        """Authenticate and get user ID dynamically for the current tenant.
+        Implements an auto-retry mechanism if authentication fails due to stale cached credentials.
+        """
+        token = get_current_token()
+        
+        # If not forcing a refresh and we already authenticated this token, reuse the uid
+        if not force_refresh and token in self._uids:
+            return self._uids[token]
+            
+        workspace = self._get_workspace(force_refresh=force_refresh)
+        common = self._get_common(workspace)
+        
         try:
-            uid = self.common.authenticate(self.db, self.username, self.password, {})
+            uid = common.authenticate(workspace.odoo_db, workspace.odoo_username, workspace.odoo_password, {})
             if not uid:
-                raise OdooAuthError(f"Authentication failed for user {self.username} on database {self.db}")
-            logger.info("Successfully authenticated with Odoo via XML-RPC for tenant", db=self.db)
+                # If we haven't forced a refresh yet, try refreshing the credentials from DB
+                if not force_refresh:
+                    logger.warning("Odoo Auth failed with cached credentials. Forcing refresh from database.")
+                    return self._authenticate(force_refresh=True)
+                raise OdooAuthError(f"Authentication failed for user {workspace.odoo_username} on database {workspace.odoo_db}")
+                
+            logger.info("Successfully authenticated with Odoo via XML-RPC for tenant", db=workspace.odoo_db)
+            self._uids[token] = uid
             return uid
+            
         except (xmlrpc.client.ProtocolError, xmlrpc.client.Fault, socket.error) as e:
             logger.error("Odoo authentication exception", error=str(e))
             raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {str(e)}") from e
@@ -70,9 +75,20 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def _execute(self, model: str, method: str, *args, **kwargs) -> Any:
         """Execute a method on an Odoo model."""
         uid = self._authenticate()
+        workspace = self._get_workspace()
+        models = self._get_models(workspace)
+        
         try:
-            return self.models.execute_kw(self.db, uid, self.password, model, method, args, kwargs)
-        except (xmlrpc.client.ProtocolError, xmlrpc.client.Fault, socket.error) as e:
+            return models.execute_kw(workspace.odoo_db, uid, workspace.odoo_password, model, method, args, kwargs)
+        except xmlrpc.client.Fault as e:
+            # If Odoo throws an Access Denied / Auth fault during execute, we should also try to recover
+            if "Access Denied" in str(e) or "AuthenticationError" in str(e):
+                logger.warning("Odoo execute_kw failed with Access Denied. Forcing auth refresh.")
+                uid = self._authenticate(force_refresh=True)
+                workspace = self._get_workspace()
+                return models.execute_kw(workspace.odoo_db, uid, workspace.odoo_password, model, method, args, kwargs)
+            raise OdooConnectorError(f"Error executing {method} on {model}: {str(e)}") from e
+        except (xmlrpc.client.ProtocolError, socket.error) as e:
             logger.error("Odoo execute_kw exception", model=model, method=method, error=str(e))
             raise OdooConnectorError(f"Error executing {method} on {model}: {str(e)}") from e
 
@@ -138,15 +154,9 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return record_id
 
     def get_sales_dashboard(self) -> OdooSalesDashboard:
-        # A simple dashboard implementation by aggregating data from Odoo
-        # 1. Active Leads Count (probability < 100 and > 0, typical for 'active' but not won/lost)
-        # 2. Quotes count
-        # 3. Total revenue from Won sale orders
-        
         active_leads = self._execute("crm.lead", "search_count", [["type", "=", "opportunity"]])
         quotes = self._execute("sale.order", "search_count", [["state", "in", ["draft", "sent"]]])
         
-        # Calculate win rate and total revenue from sale.order
         won_orders = self._execute(
             "sale.order", "search_read",
             [["state", "in", ["sale", "done"]]],
