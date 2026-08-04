@@ -11,6 +11,7 @@ from mcp_app.server import mcp
 from routers.admin import router as admin_router
 from routers.health import router as health_router
 from routers.oauth import router as oauth_router
+from routers.oauth_metadata import router as oauth_metadata_router
 
 logger = get_logger(__name__)
 
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, tags=["Health"])
     app.include_router(admin_router, tags=["Admin"])
     app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
+    app.include_router(oauth_metadata_router, tags=["OAuth Metadata"])
     
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get("/sse", dependencies=[Depends(get_tenant_context)])

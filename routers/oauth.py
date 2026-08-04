@@ -95,3 +95,30 @@ def token(
     except Exception as e:
         logger.error("OAuth Token Exchange Failed", error=str(e))
         return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "invalid authorization code"})
+
+
+@router.post("/register")
+async def register(request: Request):
+    """
+    RFC 7591: Dynamic Client Registration.
+    Allows Claude Desktop to automatically register itself as an OAuth client.
+    For this simple integration, we dynamically generate and return a client_id without persistence.
+    """
+    import uuid
+    
+    try:
+        data = await request.json()
+    except:
+        data = {}
+        
+    client_id = f"client_{uuid.uuid4().hex}"
+    
+    return JSONResponse(
+        status_code=201,
+        content={
+            "client_id": client_id,
+            "redirect_uris": data.get("redirect_uris", []),
+            "client_name": data.get("client_name", "Dynamic MCP Client"),
+            "token_endpoint_auth_method": "none"  # No client_secret required for Claude desktop
+        }
+    )

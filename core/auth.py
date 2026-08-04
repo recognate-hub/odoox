@@ -19,7 +19,11 @@ async def get_tenant_context(request: Request):
         token = request.query_params.get("token")
         
     if not token:
-        raise HTTPException(status_code=401, detail="Missing Authorization header or token query parameter")
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header or token query parameter",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     
     try:
         # Pre-warm the cache and validate the token immediately
@@ -30,4 +34,8 @@ async def get_tenant_context(request: Request):
         
     except Exception as e:
         logger.error("Tenant Auth Error", error=str(e))
-        raise HTTPException(status_code=401, detail="Authentication failed")
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
