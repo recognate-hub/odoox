@@ -92,9 +92,7 @@ def get_admin_dashboard(request: Request, token: str = Depends(get_user_token)):
     workspace = workspace_response.data[0] if workspace_response.data else None
     
     # Generate the connection URL for Claude Connectors
-    settings = get_settings()
-    base_url = f"http://{request.client.host}:{settings.SERVER_PORT}"
-    connection_url = f"{base_url}/sse"
+    connection_url = f"{request.base_url}sse"
     
     return templates.TemplateResponse(request, "admin.html", {
         "request": request, 
