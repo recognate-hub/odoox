@@ -207,13 +207,19 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
         domain = domain or []
         # In Odoo, sale.order handles both quotes and confirmed orders
-        records = self._execute(
-            "sale.order", "search_read",
-            domain,
-            fields=["name", "partner_id", "state", "amount_total", "date_order"],
-            limit=limit
-        )
-        return [OdooQuote(**record) for record in records]
+        try:
+            records = self._execute(
+                "sale.order", "search_read",
+                domain,
+                fields=["name", "partner_id", "state", "amount_total", "date_order"],
+                limit=limit
+            )
+            return [OdooQuote(**record) for record in records]
+        except OdooConnectorError as e:
+            if "sale.order" in str(e):
+                logger.warning("Sales module not installed (sale.order missing). Returning empty quotes list.")
+                return []
+            raise
 
     def create_activity(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
@@ -229,17 +235,27 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def get_sales_dashboard(self) -> OdooSalesDashboard:
         active_leads = self._execute("crm.lead", "search_count", [["type", "=", "opportunity"]])
-        quotes = self._execute("sale.order", "search_count", [["state", "in", ["draft", "sent"]]])
         
-        won_orders = self._execute(
-            "sale.order", "search_read",
-            [["state", "in", ["sale", "done"]]],
-            fields=["amount_total"]
-        )
-        total_revenue = sum(order.get("amount_total", 0.0) for order in won_orders)
-        
-        all_orders_count = self._execute("sale.order", "search_count", [])
-        win_rate = (len(won_orders) / all_orders_count * 100.0) if all_orders_count > 0 else 0.0
+        try:
+            quotes = self._execute("sale.order", "search_count", [["state", "in", ["draft", "sent"]]])
+            
+            won_orders = self._execute(
+                "sale.order", "search_read",
+                [["state", "in", ["sale", "done"]]],
+                fields=["amount_total"]
+            )
+            total_revenue = sum(order.get("amount_total", 0.0) for order in won_orders)
+            
+            all_orders_count = self._execute("sale.order", "search_count", [])
+            win_rate = (len(won_orders) / all_orders_count * 100.0) if all_orders_count > 0 else 0.0
+        except OdooConnectorError as e:
+            if "sale.order" in str(e):
+                logger.warning("Sales module not installed (sale.order missing). Dashboard will show 0 for sales metrics.")
+                quotes = 0
+                total_revenue = 0.0
+                win_rate = 0.0
+            else:
+                raise
 
         return OdooSalesDashboard(
             total_revenue=total_revenue,
