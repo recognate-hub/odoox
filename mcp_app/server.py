@@ -20,16 +20,9 @@ def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
     Lazily create an OdooConnector using the current tenant's credentials.
     This is called per-request so each tenant gets their own connection.
     """
-    token = get_current_token()
-    workspace = get_workspace_credentials(token)
-
+    # The XmlRpcOdooConnector automatically reads the credentials from the
+    # current_token and get_workspace_credentials context when making calls.
     settings = get_settings()
-    # Override the settings with the tenant's actual Odoo credentials
-    settings.ODOO_URL = workspace.odoo_url
-    settings.ODOO_DB = workspace.odoo_db
-    settings.ODOO_USERNAME = workspace.odoo_username
-    settings.ODOO_PASSWORD = workspace.odoo_password
-
     connector = XmlRpcOdooConnector(settings)
     repo = OdooRepository(connector)
     service = CRMService(repo)
