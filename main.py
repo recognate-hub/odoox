@@ -85,6 +85,15 @@ def create_app() -> FastAPI:
     app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
     app.include_router(oauth_metadata_router, tags=["OAuth Metadata"])
     
+    @app.get("/", tags=["Root"])
+    async def get_root():
+        return {
+            "service": "OdooX API Gateway",
+            "status": "online",
+            "version": "1.0.0",
+            "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application."
+        }
+    
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get("/sse", dependencies=[Depends(get_tenant_context), get_rate_limiter(times=50, seconds=60)])
     async def handle_sse(request: Request):
