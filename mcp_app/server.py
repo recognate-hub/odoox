@@ -3,7 +3,6 @@ from typing import Any
 from fastmcp import FastMCP
 
 from config.settings import get_settings
-from core.context import get_current_token, get_workspace_credentials
 from core.logger import get_logger
 from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput, UpdateLeadInput
 from mcp_app.security import secure_tool
@@ -13,6 +12,21 @@ from repositories.odoo import OdooRepository
 from services.crm import CRMService
 
 logger = get_logger(__name__)
+
+try:
+    from opentelemetry import trace
+    tracer = trace.get_tracer(__name__)
+except Exception:
+    tracer = None
+
+from contextlib import nullcontext
+
+
+def _span(name: str):
+    """Return a tracing span context manager, or a no-op if OTel is unavailable."""
+    if tracer:
+        return tracer.start_as_current_span(name)
+    return nullcontext()
 
 
 def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
@@ -48,10 +62,15 @@ def get_leads(limit: int = 100) -> list[dict[str, Any]]:
     Returns:
         List[Dict[str, Any]]: A list of dictionaries representing leads with fields like name, email_from, phone, partner_id, stage_id, expected_revenue, and description.
     """
-    logger.info("MCP Tool Called: get_leads", limit=limit)
-    odoo_repo, _ = _get_tenant_service()
-    leads = odoo_repo.get_active_leads(limit=limit)
-    return [lead.model_dump() for lead in leads]
+    with _span("mcp.get_leads") as span:
+        if span:
+            span.set_attribute("limit", limit)
+        logger.info("MCP Tool Called: get_leads", limit=limit)
+        odoo_repo, _ = _get_tenant_service()
+        leads = odoo_repo.get_active_leads(limit=limit)
+        if span:
+            span.set_attribute("returned_leads", len(leads))
+        return [lead.model_dump() for lead in leads]
 
 
 @mcp.tool()
@@ -72,10 +91,15 @@ def create_lead(name: str, email: str | None = None, phone: str | None = None, d
     Returns:
         Dict[str, Any]: A dictionary containing a 'status' string and the new 'lead_id' integer.
     """
-    logger.info("MCP Tool Called: create_lead", name=name)
-    odoo_repo, _ = _get_tenant_service()
-    lead_id = odoo_repo.create_lead(name, email, phone, description)
-    return {"status": "success", "lead_id": lead_id}
+    with _span("mcp.create_lead") as span:
+        if span:
+            span.set_attribute("lead.name", name)
+        logger.info("MCP Tool Called: create_lead", name=name)
+        odoo_repo, _ = _get_tenant_service()
+        lead_id = odoo_repo.create_lead(name, email, phone, description)
+        if span:
+            span.set_attribute("lead.id", lead_id)
+        return {"status": "success", "lead_id": lead_id}
 
 
 @mcp.tool()

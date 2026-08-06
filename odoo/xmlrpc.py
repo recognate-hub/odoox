@@ -74,7 +74,9 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def _get_workspace(self, force_refresh: bool = False) -> WorkspaceContext:
         token = get_current_token()
-        return get_workspace_credentials(token, force_refresh=force_refresh)
+        from core.context import current_workspace_id
+        workspace_id = current_workspace_id.get()
+        return get_workspace_credentials(token, workspace_id=workspace_id, force_refresh=force_refresh)
 
     def _get_common(self, workspace: WorkspaceContext):
         url = str(workspace.odoo_url).rstrip("/")

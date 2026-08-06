@@ -4,6 +4,7 @@ import time
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from core.cache import get_cached_workspace, set_cached_workspace
 from core.logger import get_logger
 from core.supabase import get_supabase
 
@@ -20,9 +21,12 @@ class WorkspaceContext(BaseModel):
 current_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_token", default=None
 )
+current_workspace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "current_workspace_id", default=None
+)
 
-# In-memory TTL Cache: { token: (WorkspaceContext, timestamp) }
-_credentials_cache: dict[str, tuple[WorkspaceContext, float]] = {}
+# In-memory TTL Cache: { (token, workspace_id): (WorkspaceContext, timestamp) }
+_credentials_cache: dict[tuple[str, str | None], tuple[WorkspaceContext, float]] = {}
 CACHE_TTL_SEC = 300  # 5 minutes
 
 def get_current_token() -> str:
@@ -31,15 +35,25 @@ def get_current_token() -> str:
         raise RuntimeError("No auth token is currently active in context.")
     return token
 
-def get_workspace_credentials(token: str, force_refresh: bool = False) -> WorkspaceContext:
+def get_workspace_credentials(token: str, workspace_id: str | None = None, force_refresh: bool = False) -> WorkspaceContext:
     """Fetch credentials dynamically with an auto-refreshing TTL cache."""
     now = time.time()
+    cache_key = (token, workspace_id)
     
     # Return from cache if valid and not forcing a refresh
-    if not force_refresh and token in _credentials_cache:
-        cached_workspace, timestamp = _credentials_cache[token]
-        if now - timestamp < CACHE_TTL_SEC:
+    if not force_refresh:
+        # Note: Redis cache currently doesn't support workspace_id keying easily unless we change the key format.
+        # We'll skip redis for multi-workspace for now and rely on in-memory, or append workspace_id to token.
+        redis_key = f"{token}:{workspace_id}" if workspace_id else token
+        cached_workspace = get_cached_workspace(redis_key, WorkspaceContext)
+        if cached_workspace:
             return cached_workspace
+            
+        # Fallback to in-memory TTL cache
+        if cache_key in _credentials_cache:
+            cached_workspace, timestamp = _credentials_cache[cache_key]
+            if now - timestamp < CACHE_TTL_SEC:
+                return cached_workspace
             
     # Fetch from Supabase
     try:
@@ -50,13 +64,17 @@ def get_workspace_credentials(token: str, force_refresh: bool = False) -> Worksp
             
         user_id = user_response.user.id
         
-        workspace_response = supabase.table("user_workspaces").select("*").eq("user_id", user_id).single().execute()
+        query = supabase.table("user_workspaces").select("*").eq("user_id", user_id)
+        if workspace_id:
+            query = query.eq("id", workspace_id)
+            
+        workspace_response = query.limit(1).execute()
         
-        if not workspace_response.data:
+        if not workspace_response.data or len(workspace_response.data) == 0:
             raise HTTPException(status_code=404, detail="Workspace not found for user")
             
-        from typing import cast, Any
-        workspace_data = cast(dict[str, Any], workspace_response.data)
+        from typing import Any, cast
+        workspace_data = cast(dict[str, Any], workspace_response.data[0])
         
         workspace = WorkspaceContext(
             odoo_url=workspace_data["odoo_url"],
@@ -66,9 +84,12 @@ def get_workspace_credentials(token: str, force_refresh: bool = False) -> Worksp
             user_id=user_id
         )
         
-        # Update cache
-        _credentials_cache[token] = (workspace, now)
-        logger.info("Fetched fresh credentials from database", user_id=user_id)
+        # Update caches
+        _credentials_cache[cache_key] = (workspace, now)
+        redis_key = f"{token}:{workspace_id}" if workspace_id else token
+        set_cached_workspace(redis_key, workspace, ttl=CACHE_TTL_SEC)
+        
+        logger.info("Fetched fresh credentials from database", user_id=user_id, workspace_id=workspace_id)
         return workspace
         
     except Exception as e:

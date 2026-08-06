@@ -24,9 +24,11 @@ class Settings(BaseSettings):
     # Supabase (Multi-Tenant)
     SUPABASE_URL: str | None = Field(default=None, description="Supabase project URL")
     SUPABASE_KEY: str | None = Field(default=None, description="Supabase API key")
+    # Redis Configuration
+    REDIS_URL: str | None = Field(default=None, description="Redis connection URL for caching and rate limiting")
     
     # CORS Configuration
-    CORS_ORIGINS: list[str] = Field(default=["*"], description="List of allowed CORS origins")
+    CORS_ORIGINS: list[str] = Field(default=[], description="List of allowed CORS origins")
 
     # Security
     ENCRYPTION_KEY: str = Field(min_length=32, description="Master key for encrypting tenant secrets")

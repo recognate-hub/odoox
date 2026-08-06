@@ -25,7 +25,9 @@ def get_current_user_context() -> UserContext:
     """
     try:
         token = get_current_token()
-        workspace = get_workspace_credentials(token)
+        from core.context import current_workspace_id
+        workspace_id = current_workspace_id.get()
+        workspace = get_workspace_credentials(token, workspace_id=workspace_id)
         return UserContext(user_id=workspace.user_id, role="Admin")
     except Exception as e:
         audit_logger.error("Failed to resolve user context", error=str(e))

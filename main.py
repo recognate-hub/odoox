@@ -19,10 +19,43 @@ sse = SseServerTransport("/messages")
 
 from contextlib import asynccontextmanager
 
+try:
+    from opentelemetry import trace
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+    # Initialize OpenTelemetry Tracer
+    resource = Resource.create({"service.name": "odoox-gateway"})
+    provider = TracerProvider(resource=resource)
+
+    # Only add OTLP exporter if endpoint is configured
+    import os
+    if os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        otlp_exporter = OTLPSpanExporter()
+        provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+        logger.info("OTLP exporter configured.")
+
+    trace.set_tracer_provider(provider)
+    tracer = trace.get_tracer(__name__)
+    _otel_available = True
+    logger.info("OpenTelemetry initialized successfully.")
+except Exception as e:
+    logger.warning(f"OpenTelemetry initialization failed: {e}. Tracing disabled.")
+    _otel_available = False
+    tracer = None
+
+from core.rate_limit import get_rate_limiter, init_rate_limiter
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up FastAPI server...")
+    await init_rate_limiter()
     yield
 
 def create_app() -> FastAPI:
@@ -53,7 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(oauth_metadata_router, tags=["OAuth Metadata"])
     
     # Expose MCP Server over SSE (Multi-Tenant Secure)
-    @app.get("/sse", dependencies=[Depends(get_tenant_context)])
+    @app.get("/sse", dependencies=[Depends(get_tenant_context), get_rate_limiter(times=50, seconds=60)])
     async def handle_sse(request: Request):
         async def wrapped_send(message: dict):
             if message["type"] == "http.response.body" and message.get("body"):
@@ -80,6 +113,10 @@ def create_app() -> FastAPI:
 
     # Mount the ASGI app directly instead of wrapping in a FastAPI route
     app.mount("/messages", sse.handle_post_message)
+
+    # Instrument FastAPI with OpenTelemetry (if available)
+    if _otel_available:
+        FastAPIInstrumentor.instrument_app(app)
 
     return app
 

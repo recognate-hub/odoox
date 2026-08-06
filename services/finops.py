@@ -1,5 +1,5 @@
-from datetime import date
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, ClassVar
 
 from core.exceptions import FinOpsBudgetExceededException
 from core.logger import get_logger
@@ -13,14 +13,14 @@ class FinOpsService:
     
     # Simple in-memory store for tracking budgets during testing/execution
     # In production, this would be backed by Redis or Supabase.
-    _usage_store: dict[str, dict[str, int]] = {}
+    _usage_store: ClassVar[dict[str, dict[str, int]]] = {}
     
     def __init__(self, daily_budget_limit: int = 1000):
         """
         Initialize the FinOps service with a default daily budget.
         """
         self.daily_budget_limit = daily_budget_limit
-        self.today = date.today().isoformat()
+        self.today = datetime.now(timezone.utc).date().isoformat()
 
     def _get_tenant_usage(self, tenant_id: str) -> int:
         if tenant_id not in self._usage_store:

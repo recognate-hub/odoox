@@ -25,12 +25,16 @@ async def get_tenant_context(request: Request):
             headers={"WWW-Authenticate": "Bearer"}
         )
     
+    workspace_id = request.query_params.get("workspace_id")
+    
     try:
+        from core.context import current_workspace_id
         # Pre-warm the cache and validate the token immediately
-        get_workspace_credentials(token)
+        get_workspace_credentials(token, workspace_id)
         
         # Set the token in context for the lifetime of this SSE connection
         current_token.set(token)
+        current_workspace_id.set(workspace_id)
         
     except Exception as e:
         logger.error("Tenant Auth Error", error=str(e))
