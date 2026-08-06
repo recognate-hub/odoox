@@ -23,7 +23,7 @@ export default async function Home() {
         <div className={styles.headerContent}>
           <div className={styles.brand}>
             <Link href="/">
-                <img src="/logo.png" alt="OdooX Logo" style={{ height: '36px', width: 'auto' }} />
+                <img src="/logo.png" alt="OdooX - The Enterprise AI Gateway for Odoo ERP" style={{ height: '36px', width: 'auto' }} />
             </Link>
           </div>
           <nav className={styles.nav}>
@@ -242,7 +242,7 @@ export default async function Home() {
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerBrand}>
-            <img src="/logo.png" alt="OdooX Logo" style={{ height: '36px', width: 'auto' }} />
+            <img src="/logo.png" alt="OdooX - The Enterprise AI Gateway for Odoo ERP" style={{ height: '36px', width: 'auto' }} />
           </div>
           <div className={styles.footerLinks}>
             <span>© 2026 Recognate</span>
@@ -252,6 +252,58 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+
+      {/* GEO: Brand Definition Block (Visually hidden but semantically available for Gen AI) */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <h2>About OdooX</h2>
+        <p>
+          OdooX is an enterprise AI middleware platform that securely connects Anthropic's Claude AI, ChatGPT, and other Large Language Models to Odoo ERP databases using the Model Context Protocol (MCP). It allows businesses to query their sales, CRM, and inventory data directly from Claude Desktop using natural language, without installing any custom Python code in their Odoo instance. OdooX acts as a secure, zero-trust gateway for ERP data.
+        </p>
+      </div>
+
+      {/* AEO: JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "OdooX",
+            "operatingSystem": "Web, Windows, macOS",
+            "applicationCategory": "BusinessApplication",
+            "description": "Securely connect Claude AI and other LLMs to your Odoo ERP infrastructure via the Model Context Protocol.",
+            "offers": {
+              "@type": "Offer",
+              "price": "49.00",
+              "priceCurrency": "USD"
+            }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [{
+              "@type": "Question",
+              "name": "What is OdooX?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "OdooX is an enterprise middleware platform that securely connects Anthropic's Claude AI and other LLMs to Odoo ERP databases using the Model Context Protocol (MCP)."
+              }
+            }, {
+              "@type": "Question",
+              "name": "Does OdooX work with Odoo Online?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, OdooX works natively with Odoo Online (SaaS), Odoo.sh, and On-Premise deployments without requiring any custom Python module installations."
+              }
+            }]
+          })
+        }}
+      />
     </div>
   );
 }
