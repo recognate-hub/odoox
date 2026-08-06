@@ -72,7 +72,13 @@ export async function POST(request: NextRequest) {
         });
 
         let hasPaid = false;
-        const { data: paymentData } = await userClient
+        
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''; 
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+        const { data: paymentData } = await adminClient
             .from('payments')
             .select('id')
             .eq('user_id', userId)

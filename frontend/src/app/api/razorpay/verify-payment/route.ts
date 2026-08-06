@@ -47,28 +47,20 @@ export async function POST(request: NextRequest) {
             }
 
             if (userId && userId !== 'unknown') {
-                const token = request.cookies.get('access_token')?.value;
-                let clientToUse;
-                
-                if (token) {
-                    const { getSupabaseWithToken } = await import('@/lib/supabase');
-                    clientToUse = getSupabaseWithToken(token);
-                } else {
-                    const { createClient } = await import('@supabase/supabase-js');
-                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''; 
-                    clientToUse = createClient(supabaseUrl, supabaseServiceKey);
-                }
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''; 
+                const adminClient = createClient(supabaseUrl, supabaseServiceKey);
                 
                 // Check if payment already exists
-                const { data: existing } = await clientToUse
+                const { data: existing } = await adminClient
                     .from('payments')
                     .select('id')
                     .eq('razorpay_order_id', razorpay_order_id)
                     .limit(1);
 
                 if (!existing || existing.length === 0) {
-                    const { error: insertError } = await clientToUse.from('payments').insert([{
+                    const { error: insertError } = await adminClient.from('payments').insert([{
                         user_id: userId,
                         razorpay_order_id,
                         razorpay_payment_id
