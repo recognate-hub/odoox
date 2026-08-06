@@ -17,6 +17,20 @@ export default function PaymentPage() {
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [selectedPlanPrice, setSelectedPlanPrice] = useState<number | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    useEffect(() => {
+        fetch('/api/auth/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    setIsAuthenticated(true);
+                }
+            })
+            .catch(() => {})
+            .finally(() => setIsCheckingAuth(false));
+    }, []);
 
     // Load Razorpay checkout script
     useEffect(() => {
@@ -166,7 +180,7 @@ export default function PaymentPage() {
                     </div>
                 )}
 
-                <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', maxWidth: '900px', margin: '0 auto 3rem auto' }}>
+                <div className="plans-grid">
                     
                     {/* Single User Plan */}
                     <div className="pricing-card delay-1">
@@ -183,20 +197,30 @@ export default function PaymentPage() {
                             <div className="billing-note">One-time payment · Valid for 5 years</div>
                         </div>
 
-                        <button 
-                            className="btn btn-primary btn-outline" 
-                            onClick={() => handlePayment(1, 'OdooX Pro - Single User')}
-                            disabled={isLoading || paymentStatus === 'success'}
-                        >
-                            {isLoading && selectedPlanPrice === 1 ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    Processing...
-                                </>
-                            ) : (
-                                `Select Single User`
-                            )}
-                        </button>
+                        {isCheckingAuth ? (
+                            <button className="btn btn-primary btn-outline" disabled>
+                                <span className="spinner"></span>
+                            </button>
+                        ) : !isAuthenticated ? (
+                            <button className="btn btn-primary btn-outline" onClick={() => router.push('/login')}>
+                                Login to Continue
+                            </button>
+                        ) : (
+                            <button 
+                                className="btn btn-primary btn-outline" 
+                                onClick={() => handlePayment(1, 'OdooX Pro - Single User')}
+                                disabled={isLoading || paymentStatus === 'success'}
+                            >
+                                {isLoading && selectedPlanPrice === 1 ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    `Select Single User`
+                                )}
+                            </button>
+                        )}
 
                         <div className="features-divider">
                             <span>Included</span>
@@ -235,20 +259,30 @@ export default function PaymentPage() {
                             <div className="billing-note">One-time payment · Valid for 5 years</div>
                         </div>
 
-                        <button 
-                            className="btn btn-primary" 
-                            onClick={() => handlePayment(1, 'OdooX Pro - Team')}
-                            disabled={isLoading || paymentStatus === 'success'}
-                        >
-                            {isLoading && selectedPlanPrice === 1 ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    Processing...
-                                </>
-                            ) : (
-                                `Select Team Plan`
-                            )}
-                        </button>
+                        {isCheckingAuth ? (
+                            <button className="btn btn-primary" disabled>
+                                <span className="spinner"></span>
+                            </button>
+                        ) : !isAuthenticated ? (
+                            <button className="btn btn-primary" onClick={() => router.push('/login')}>
+                                Login to Continue
+                            </button>
+                        ) : (
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={() => handlePayment(1, 'OdooX Pro - Team')}
+                                disabled={isLoading || paymentStatus === 'success'}
+                            >
+                                {isLoading && selectedPlanPrice === 1 ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    `Select Team Plan`
+                                )}
+                            </button>
+                        )}
 
                         <div className="features-divider">
                             <span>Everything in Single, plus</span>

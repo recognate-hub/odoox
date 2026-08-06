@@ -231,9 +231,19 @@ export default async function Home() {
             Join the beta and connect Claude to your Odoo instance in under 3 minutes.
           </p>
           <div className={styles.heroActions}>
-            <Link href="/payment" className={styles.primaryButton}>
-              Get Started Now
-            </Link>
+            {!hasToken ? (
+                <Link href="/login" className={styles.primaryButton}>
+                  Get Started Now
+                </Link>
+            ) : isPaid ? (
+                <Link href="/userdashboard" className={styles.primaryButton}>
+                  Go to Dashboard
+                </Link>
+            ) : (
+                <Link href="/payment" className={styles.primaryButton} style={{ background: 'var(--accent-red)' }}>
+                  Unlock Pro Access
+                </Link>
+            )}
           </div>
         </section>
 
