@@ -203,14 +203,14 @@ export default function LoginPage() {
                                 <label className="form-label" style={{ textTransform: 'none', color: 'var(--text-secondary)' }}>
                                     Enter the 6-digit code sent to your email
                                 </label>
-                                <div className="code-input-group" onPaste={handlePaste}>
+                                <div className="otp-input-group" onPaste={handlePaste}>
                                     {code.map((digit, idx) => (
                                         <input
                                             key={idx}
                                             ref={(el) => { inputRefs.current[idx] = el; }}
                                             type="text"
                                             maxLength={1}
-                                            className="form-input code-input"
+                                            className="form-input otp-input"
                                             value={digit}
                                             onChange={(e) => handleCodeChange(idx, e.target.value)}
                                             onKeyDown={(e) => handleKeyDown(idx, e)}

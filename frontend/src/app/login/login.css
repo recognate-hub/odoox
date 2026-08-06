@@ -162,13 +162,13 @@
     box-shadow: 0 0 0 1px var(--border-focus);
 }
 
-.code-input-group {
+.otp-input-group {
     display: flex;
     gap: 8px;
     justify-content: center;
     margin-top: 1rem;
 }
-.code-input {
+.otp-input {
     width: 48px;
     height: 56px;
     text-align: center;
