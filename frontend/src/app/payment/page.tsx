@@ -254,7 +254,7 @@ export default function PaymentPage() {
                         <div className="price-block">
                             <div className="price-container">
                                 <span className="currency">₹</span>
-                                <span className="price">1</span>
+                                <span className="price">2</span>
                             </div>
                             <div className="billing-note">One-time payment · Valid for 5 years</div>
                         </div>
@@ -270,10 +270,10 @@ export default function PaymentPage() {
                         ) : (
                             <button 
                                 className="btn btn-primary" 
-                                onClick={() => handlePayment(1, 'OdooX Pro - Team')}
+                                onClick={() => handlePayment(2, 'OdooX Pro - Team')}
                                 disabled={isLoading || paymentStatus === 'success'}
                             >
-                                {isLoading && selectedPlanPrice === 1 ? (
+                                {isLoading && selectedPlanPrice === 2 ? (
                                     <>
                                         <span className="spinner"></span>
                                         Processing...
