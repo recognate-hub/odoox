@@ -45,7 +45,7 @@ try:
     _otel_available = True
     logger.info("OpenTelemetry initialized successfully.")
 except Exception as e:
-    logger.warning(f"OpenTelemetry initialization failed: {e}. Tracing disabled.")
+    logger.exception(f"OpenTelemetry initialization failed: {e}. Tracing disabled.")
     _otel_available = False
     tracer = None
 
@@ -111,8 +111,13 @@ def create_app() -> FastAPI:
         async def __call__(self, scope, receive, send):
             pass
 
-    # Mount the ASGI app directly instead of wrapping in a FastAPI route
-    app.mount("/messages", sse.handle_post_message)
+    @app.post("/messages", dependencies=[get_rate_limiter(times=50, seconds=60)])
+    async def handle_messages_post(request: Request):
+        await get_tenant_context(request)
+        class ASGIProxyResponse(Response):
+            async def __call__(self, scope, receive, send):
+                await sse.handle_post_message(scope, receive, send)
+        return ASGIProxyResponse()
 
     # Instrument FastAPI with OpenTelemetry (if available)
     if _otel_available:

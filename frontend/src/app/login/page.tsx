@@ -46,6 +46,12 @@ export default function LoginPage() {
 
     const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!email || !email.includes('@')) {
+            setError("Please enter a valid email address.");
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         setSuccess('');
@@ -228,6 +234,11 @@ export default function LoginPage() {
                                     </>
                                 ) : "Verify & Login"}
                             </button>
+
+                            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center', border: '1px solid var(--border-subtle)' }}>
+                                <div style={{ marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: 500 }}>Received a link instead of a 6-digit code?</div>
+                                Please ensure your Supabase Email Template is configured to send <code style={{ color: 'var(--brand-primary)' }}>{"{{ .Token }}"}</code> instead of a Magic Link.
+                            </div>
                             
                             <div className="text-center mt-3">
                                 <a href="#" onClick={handleBack} className="back-link">

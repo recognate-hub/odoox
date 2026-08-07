@@ -4,6 +4,13 @@ import time
 import xmlrpc.client
 from typing import Any
 
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from config.settings import Settings, get_settings
 from core.context import WorkspaceContext, get_current_token, get_workspace_credentials
 from core.encryption import decrypt
@@ -18,6 +25,7 @@ from schemas.odoo import (
     OdooQuote,
     OdooSalesDashboard,
 )
+from core.cache import redis_client
 
 logger = get_logger(__name__)
 
@@ -88,6 +96,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         transport = get_transport(url, timeout=10)
         return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object", transport=transport)
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type((OSError, xmlrpc.client.ProtocolError, OdooConnectionError)))
     def _authenticate(self, force_refresh: bool = False) -> int:
         """Authenticate and get user ID dynamically for the current tenant.
         Implements an auto-retry mechanism if authentication fails due to stale cached credentials.
@@ -95,7 +104,11 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         token = get_current_token()
         
         # If not forcing a refresh and we already authenticated this token, reuse the uid
-        if not force_refresh and token in self._uids:
+        if not force_refresh and redis_client:
+            cached_uid = redis_client.get(f"odoo_uid:{token}")
+            if cached_uid:
+                return int(cached_uid)
+        elif not force_refresh and token in self._uids:
             return self._uids[token]
             
         workspace = self._get_workspace(force_refresh=force_refresh)
@@ -111,7 +124,10 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 raise OdooAuthError(f"Authentication failed for user {workspace.odoo_username} on database {workspace.odoo_db}")
                 
             logger.info("Successfully authenticated with Odoo via XML-RPC for tenant", db=workspace.odoo_db)
-            self._uids[token] = uid
+            if redis_client:
+                redis_client.setex(f"odoo_uid:{token}", 86400, str(uid))
+            else:
+                self._uids[token] = uid
             return uid
             
         except (OSError, xmlrpc.client.ProtocolError, xmlrpc.client.Fault) as e:
@@ -119,23 +135,38 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {e!s}") from e
 
     def _check_circuit_breaker(self, db_name: str):
-        if db_name in self._circuit_breakers:
-            failures, last_failure = self._circuit_breakers[db_name]
-            if failures >= 5:
-                if time.time() - last_failure < 30:
-                    raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
-                else:
-                    # Half-open state: reset failures to allow a test request
-                    self._circuit_breakers[db_name] = (0, time.time())
+        if redis_client:
+            failures = redis_client.get(f"cb_fails:{db_name}")
+            if failures and int(failures) >= 5:
+                raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
+        else:
+            if db_name in self._circuit_breakers:
+                local_failures, last_failure = self._circuit_breakers[db_name]
+                if local_failures >= 5:
+                    if time.time() - last_failure < 30:
+                        raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
+                    else:
+                        # Half-open state: reset failures to allow a test request
+                        self._circuit_breakers[db_name] = (0, time.time())
 
     def _record_failure(self, db_name: str):
-        failures, _ = self._circuit_breakers.get(db_name, (0, 0))
-        self._circuit_breakers[db_name] = (failures + 1, time.time())
+        if redis_client:
+            pipe = redis_client.pipeline()
+            pipe.incr(f"cb_fails:{db_name}")
+            pipe.expire(f"cb_fails:{db_name}", 30)
+            pipe.execute()
+        else:
+            local_failures, _ = self._circuit_breakers.get(db_name, (0, 0))
+            self._circuit_breakers[db_name] = (local_failures + 1, time.time())
 
     def _record_success(self, db_name: str):
-        if db_name in self._circuit_breakers:
-            del self._circuit_breakers[db_name]
+        if redis_client:
+            redis_client.delete(f"cb_fails:{db_name}")
+        else:
+            if db_name in self._circuit_breakers:
+                del self._circuit_breakers[db_name]
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type((OSError, xmlrpc.client.ProtocolError, OdooConnectionError)))
     def _execute(self, model: str, method: str, *args, **kwargs) -> Any:
         """Execute a method on an Odoo model."""
         workspace = self._get_workspace()
@@ -265,3 +296,17 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             quotes_count=quotes,
             win_rate_percentage=win_rate
         )
+
+    def create_invoice(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("account.move", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_invoice", data, _exec)
+
+    def send_email(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            mail_id = self._execute("mail.mail", "create", [data])
+            self._execute("mail.mail", "send", [[mail_id]])
+            return mail_id
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "send_email", data, _exec)

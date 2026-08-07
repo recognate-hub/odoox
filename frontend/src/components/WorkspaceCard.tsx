@@ -107,7 +107,7 @@ export default function WorkspaceCard({
                             <input 
                                 type="password" 
                                 className="form-input" 
-                                placeholder={workspace.has_password ? "••••••••" : "Required"} 
+                                placeholder={workspace.has_password ? "(Saved. Leave empty to keep)" : "Required"} 
                                 value={workspace.odoo_password || ''}
                                 onChange={(e) => onChange(index, 'odoo_password', e.target.value)}
                                 required={!workspace.has_password} 
@@ -130,7 +130,13 @@ export default function WorkspaceCard({
                 
                 <div>
                     <label className="form-label">Connection URL</label>
-                    <input type="text" className="code-input" value={workspace.connection_url || 'Save to generate URL'} readOnly />
+                    <input 
+                        type="text" 
+                        className="code-input" 
+                        value={workspace.connection_url || 'Save to generate URL'} 
+                        readOnly 
+                        onClick={(e) => e.currentTarget.select()}
+                    />
                 </div>
                 
                 <div className={`status-banner ${isSaved ? 'ready' : ''}`}>

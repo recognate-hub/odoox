@@ -110,6 +110,11 @@ def secure_tool(action: str | None = None):
                     error=str(e),
                     execution_time_ms=round((time.time() - start_time) * 1000, 2)
                 )
+                
+                error_str = str(e).lower()
+                if "connection" in error_str or "xmlrpc" in error_str or "access denied" in error_str or "protocolerror" in error_str:
+                    raise RuntimeError("Failed to connect to Odoo ERP. Please verify your credentials and connection URL in the Dashboard.") from e
+                
                 raise
                 
         return wrapper

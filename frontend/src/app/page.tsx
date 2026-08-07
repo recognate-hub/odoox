@@ -274,7 +274,7 @@ export default async function Home() {
       <div style={{ display: 'none' }} aria-hidden="true">
         <h2>About OdooX</h2>
         <p>
-          OdooX is an enterprise AI middleware platform that securely connects Anthropic's Claude AI, ChatGPT, and other Large Language Models to Odoo ERP databases using the Model Context Protocol (MCP). It allows businesses to query their sales, CRM, and inventory data directly from Claude Desktop using natural language, without installing any custom Python code in their Odoo instance. OdooX acts as a secure, zero-trust gateway for ERP data.
+          OdooX is an enterprise AI middleware platform that securely connects Anthropic&apos;s Claude AI, ChatGPT, and other Large Language Models to Odoo ERP databases using the Model Context Protocol (MCP). It allows businesses to query their sales, CRM, and inventory data directly from Claude Desktop using natural language, without installing any custom Python code in their Odoo instance. OdooX acts as a secure, zero-trust gateway for ERP data.
         </p>
       </div>
 

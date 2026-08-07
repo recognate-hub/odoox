@@ -4,7 +4,14 @@ from fastmcp import FastMCP
 
 from config.settings import get_settings
 from core.logger import get_logger
-from mcp_app.schemas import CreateLeadInput, ScheduleMeetingInput, UpdateLeadInput
+from mcp_app.schemas import (
+    CreateLeadInput,
+    LogActivityInput,
+    ScheduleMeetingInput,
+    UpdateLeadInput,
+    CreateInvoiceInput,
+    SendEmailInput,
+)
 from mcp_app.security import secure_tool
 from mcp_app.validation import validate_write_input
 from odoo.xmlrpc import XmlRpcOdooConnector
@@ -16,8 +23,8 @@ logger = get_logger(__name__)
 try:
     from opentelemetry import trace
     tracer = trace.get_tracer(__name__)
-except Exception:
-    tracer = None
+except Exception:  # noqa: BLE001
+    tracer = None  # type: ignore
 
 from contextlib import nullcontext
 
@@ -50,13 +57,15 @@ mcp = FastMCP("ODOOX")
 
 @mcp.tool()
 @secure_tool()
-def get_leads(limit: int = 100) -> list[dict[str, Any]]:
+def get_leads(name_query: str | None = None, stage_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
     """
     Retrieve active CRM leads (opportunities) from Odoo.
     
-    Use this tool to fetch a list of current active sales leads.
+    Use this tool to fetch a list of current active sales leads or search for specific leads.
     
     Args:
+        name_query (Optional[str]): Search by lead name (case-insensitive partial match).
+        stage_id (Optional[int]): Filter by a specific pipeline stage ID.
         limit (int): The maximum number of leads to return. Default is 100.
         
     Returns:
@@ -65,9 +74,9 @@ def get_leads(limit: int = 100) -> list[dict[str, Any]]:
     with _span("mcp.get_leads") as span:
         if span:
             span.set_attribute("limit", limit)
-        logger.info("MCP Tool Called: get_leads", limit=limit)
+        logger.info("MCP Tool Called: get_leads", limit=limit, query=name_query, stage_id=stage_id)
         odoo_repo, _ = _get_tenant_service()
-        leads = odoo_repo.get_active_leads(limit=limit)
+        leads = odoo_repo.get_active_leads(name_query=name_query, stage_id=stage_id, limit=limit)
         if span:
             span.set_attribute("returned_leads", len(leads))
         return [lead.model_dump() for lead in leads]
@@ -122,6 +131,30 @@ def update_lead(lead_id: int, data: dict[str, Any]) -> dict[str, Any]:
     odoo_repo, _ = _get_tenant_service()
     success = odoo_repo.update_lead(lead_id, data)
     return {"status": "success" if success else "failed"}
+
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(LogActivityInput)
+def log_crm_note(res_model: str, res_id: int, summary: str) -> dict[str, Any]:
+    """
+    Log a note or activity on an Odoo record.
+    
+    Use this tool to add call notes, meeting summaries, or updates to a lead/contact.
+    
+    Args:
+        res_model (str): The Odoo model (e.g., 'crm.lead', 'res.partner').
+        res_id (int): The ID of the record.
+        summary (str): The text content of the note.
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and activity ID.
+    """
+    logger.info("MCP Tool Called: log_crm_note", model=res_model, id=res_id)
+    odoo_repo, _ = _get_tenant_service()
+    # 4 is usually 'Todo' or general note
+    activity_id = odoo_repo.log_activity(res_model, res_id, summary, activity_type_id=4)
+    return {"status": "success", "activity_id": activity_id}
 
 
 @mcp.tool()
@@ -185,6 +218,27 @@ def get_products(name_query: str = "", limit: int = 50) -> list[dict[str, Any]]:
     odoo_repo, _ = _get_tenant_service()
     products = odoo_repo.search_products(name_query, limit=limit)
     return [product.model_dump() for product in products]
+
+
+@mcp.tool()
+@secure_tool()
+def get_recent_quotes(partner_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Retrieve a list of recent quotes and sales orders.
+    
+    Use this tool to check the status of orders or look up quotes for the entire company or a specific customer.
+    
+    Args:
+        partner_id (Optional[int]): Filter by a specific customer/partner ID. Leave empty for all recent quotes.
+        limit (int): The maximum number of quotes to return.
+        
+    Returns:
+        List[Dict[str, Any]]: A list of quotes with amount, status, and partner_id.
+    """
+    logger.info("MCP Tool Called: get_recent_quotes", partner_id=partner_id, limit=limit)
+    odoo_repo, _ = _get_tenant_service()
+    quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit)
+    return [quote.model_dump() for quote in quotes]
 
 
 @mcp.tool()
@@ -279,6 +333,52 @@ def get_lead_context(lead_id: int) -> dict[str, Any]:
     logger.info("MCP Tool Called: get_lead_context", lead_id=lead_id)
     _, crm_service = _get_tenant_service()
     return crm_service.get_lead_context(lead_id)
+
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(CreateInvoiceInput)
+def create_invoice(partner_id: int, amount: float, description: str = "Consulting Services") -> dict[str, Any]:
+    """
+    Create a draft customer invoice in Odoo.
+    
+    Use this tool to bill a customer for a specific amount.
+    
+    Args:
+        partner_id (int): The ID of the customer.
+        amount (float): The total amount for the invoice line.
+        description (str): The description for the invoice line item.
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and new invoice ID.
+    """
+    logger.info("MCP Tool Called: create_invoice", partner_id=partner_id, amount=amount)
+    odoo_repo, _ = _get_tenant_service()
+    invoice_id = odoo_repo.create_invoice(partner_id, amount, description)
+    return {"status": "success", "invoice_id": invoice_id}
+
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(SendEmailInput)
+def send_email(email_to: str, subject: str, body: str) -> dict[str, Any]:
+    """
+    Send an email via Odoo's mail system.
+    
+    Use this tool to send outbound communications to leads or customers.
+    
+    Args:
+        email_to (str): The recipient's email address.
+        subject (str): The subject line.
+        body (str): The email body (HTML or plain text).
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and mail ID.
+    """
+    logger.info("MCP Tool Called: send_email", email_to=email_to, subject=subject)
+    odoo_repo, _ = _get_tenant_service()
+    mail_id = odoo_repo.send_email(email_to, subject, body)
+    return {"status": "success", "mail_id": mail_id}
 
 
 if __name__ == "__main__":

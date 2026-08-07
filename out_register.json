@@ -1,0 +1,18 @@
+{
+  "status": 201,
+  "body": {
+    "client_id": "client_b45b5b623a2943b2b3362e11ba361540",
+    "client_id_issued_at": 1786103753,
+    "redirect_uris": [
+      "http://127.0.0.1:8080/callback"
+    ],
+    "grant_types": [
+      "authorization_code"
+    ],
+    "response_types": [
+      "code"
+    ],
+    "client_name": "Claude Desktop",
+    "token_endpoint_auth_method": "none"
+  }
+}

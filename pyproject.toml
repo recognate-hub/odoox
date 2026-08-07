@@ -28,6 +28,7 @@ dependencies = [
     "opentelemetry-sdk (>=1.44.0,<2.0.0)",
     "opentelemetry-instrumentation-fastapi (>=0.65b0,<0.66)",
     "opentelemetry-exporter-otlp (>=1.44.0,<2.0.0)",
+    "tenacity (>=9.1.4,<10.0.0)",
 ]
 
 
@@ -45,3 +46,7 @@ dev = [
     "httpx (>=0.28.1,<0.29.0)",
     "pytest-mock (>=3.15.1,<4.0.0)"
 ]
+
+[tool.mypy]
+explicit_package_bases = true
+namespace_packages = true

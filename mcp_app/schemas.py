@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -31,3 +32,18 @@ class ScheduleMeetingInput(BaseModel):
         except ValueError:
             raise ValueError("Must be a valid ISO 8601 string.")
         return v
+
+class LogActivityInput(BaseModel):
+    res_model: str = Field(..., description="The Odoo model to attach the note to (e.g. 'crm.lead' or 'res.partner').")
+    res_id: int = Field(..., description="The ID of the record.")
+    summary: str = Field(..., max_length=1000, description="The content of the note or activity summary.")
+
+class CreateInvoiceInput(BaseModel):
+    partner_id: int = Field(..., description="The ID of the customer (partner) to invoice.")
+    amount: float = Field(..., gt=0, description="The total amount for the invoice line item.")
+    description: str = Field("Consulting Services", max_length=500, description="The description for the invoice line item.")
+
+class SendEmailInput(BaseModel):
+    email_to: str = Field(..., description="The recipient's email address.")
+    subject: str = Field(..., max_length=200, description="The subject line of the email.")
+    body: str = Field(..., description="The HTML or plain text body of the email.")

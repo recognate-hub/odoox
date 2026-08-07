@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from core.exceptions import FinOpsBudgetExceededException
@@ -20,7 +20,7 @@ class FinOpsService:
         Initialize the FinOps service with a default daily budget.
         """
         self.daily_budget_limit = daily_budget_limit
-        self.today = datetime.now(timezone.utc).date().isoformat()
+        self.today = datetime.now(UTC).date().isoformat()
 
     def _get_tenant_usage(self, tenant_id: str) -> int:
         if tenant_id not in self._usage_store:

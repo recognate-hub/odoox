@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from core.encryption import decrypt, encrypt
 from core.logger import get_logger
+from core.supabase import get_supabase
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -28,6 +29,7 @@ def authorize(
     Generates a short-lived auth code if authenticated.
     """
     token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
     
     # If the user is not logged in, redirect them to the ODOOX login page
     # passing the current OAuth URL as the `next` parameter so they come back here
@@ -39,13 +41,15 @@ def authorize(
     # We use a stateless encrypted payload so we don't need a DB table.
     payload = {
         "access_token": token,
+        "refresh_token": refresh_token,
         "exp": time.time() + CODE_EXPIRY_SEC
     }
     
     code = encrypt(json.dumps(payload))
     
     # Redirect back to the client application with the code and state
-    redirect_with_code = f"{redirect_uri}?code={urllib.parse.quote(code)}"
+    sep = "&" if "?" in redirect_uri else "?"
+    redirect_with_code = f"{redirect_uri}{sep}code={urllib.parse.quote(code)}"
     if state:
         redirect_with_code += f"&state={urllib.parse.quote(state)}"
         
@@ -56,11 +60,11 @@ def authorize(
 def token(
     request: Request,
     grant_type: str = Form(...),
-    code: str = Form(None),
-    refresh_token: str = Form(None),
-    client_id: str = Form(None),
-    client_secret: str = Form(None),
-    redirect_uri: str = Form(None)
+    code: str | None = Form(None),
+    refresh_token: str | None = Form(None),
+    client_id: str | None = Form(None),
+    client_secret: str | None = Form(None),
+    redirect_uri: str | None = Form(None)
 ):
     """
     Standard OAuth 2.0 Token Endpoint.
@@ -70,13 +74,30 @@ def token(
         if not refresh_token:
             return JSONResponse(status_code=400, content={"error": "invalid_request", "error_description": "refresh_token is required"})
         
-        access_token = refresh_token.replace("refresh_", "")
-        return JSONResponse(content={
-            "access_token": access_token,
-            "token_type": "Bearer",
-            "expires_in": 3600,
-            "refresh_token": f"refresh_{access_token}"
-        })
+        try:
+            # Our OAuth refresh_token is simply the encrypted Supabase refresh_token
+            supabase_refresh = decrypt(refresh_token)
+            if supabase_refresh == refresh_token:
+                raise ValueError("Invalid refresh token signature")
+            
+            supabase = get_supabase()
+            res = supabase.auth.refresh_session(supabase_refresh)
+            
+            if not res or not res.session:
+                raise ValueError("Supabase failed to refresh session")
+            
+            new_access_token = res.session.access_token
+            new_refresh_token = res.session.refresh_token
+            
+            return JSONResponse(content={
+                "access_token": new_access_token,
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "refresh_token": encrypt(new_refresh_token) if new_refresh_token else refresh_token
+            })
+        except Exception as e:  # noqa: BLE001
+            logger.error("OAuth Token Refresh Failed", error=str(e))
+            return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "refresh failed"})
 
     if grant_type != "authorization_code":
         return JSONResponse(status_code=400, content={"error": "unsupported_grant_type"})
@@ -98,15 +119,17 @@ def token(
         if not access_token:
             raise ValueError("Missing access token in payload")
             
+        supabase_refresh = payload.get("refresh_token")
+            
         # Return standard OAuth 2.0 response
         return JSONResponse(content={
             "access_token": access_token,
             "token_type": "Bearer",
             "expires_in": 3600,  # Generic expiry for the token format
-            "refresh_token": f"refresh_{access_token}"
+            "refresh_token": encrypt(supabase_refresh) if supabase_refresh else f"refresh_{access_token}"
         })
         
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("OAuth Token Exchange Failed", error=str(e))
         return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "invalid authorization code"})
 
@@ -121,7 +144,7 @@ async def register(request: Request):
     
     try:
         data = await request.json()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to parse registration body: {e}")
         data = {}
 
@@ -139,9 +162,8 @@ async def register(request: Request):
         "token_endpoint_auth_method": auth_method
     }
 
-    if auth_method != "none":
-        response_content["client_secret"] = f"secret_{uuid.uuid4().hex}"
-        response_content["client_secret_expires_at"] = 0
+    response_content["client_secret"] = f"secret_{uuid.uuid4().hex}"
+    response_content["client_secret_expires_at"] = 0
 
     if "scope" in data:
         response_content["scope"] = data["scope"]

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from core.encryption import encrypt
 from core.logger import get_logger
@@ -23,7 +23,7 @@ async def post_login_otp(request: Request, email: str = Form(...)):
     """Request an OTP for the given email via Supabase."""
     supabase = get_supabase()
     try:
-        res = supabase.auth.sign_in_with_otp({
+        supabase.auth.sign_in_with_otp({
             "email": email,
             "options": {
                 "should_create_user": True
@@ -46,7 +46,7 @@ async def post_verify_otp(request: Request, email: str = Form(...), token: str =
         })
         
         if not res or not res.session:
-            raise Exception("Invalid or expired OTP.")
+            raise ValueError("Invalid or expired OTP.")
             
         response = Response(
             content='{"status": "success", "redirect": "/payment"}',
@@ -59,6 +59,14 @@ async def post_verify_otp(request: Request, email: str = Form(...), token: str =
             samesite="lax",
             secure=False,  # Set to True in production with HTTPS
         )
+        if res.session.refresh_token:
+            response.set_cookie(
+                "refresh_token",
+                res.session.refresh_token,
+                httponly=True,
+                samesite="lax",
+                secure=False,
+            )
         return response
     except Exception as e:
         logger.error("OTP Verify Error", error=str(e))
@@ -68,6 +76,7 @@ async def post_verify_otp(request: Request, email: str = Form(...), token: str =
 def logout():
     redirect = RedirectResponse(url="/login", status_code=303)
     redirect.delete_cookie("access_token")
+    redirect.delete_cookie("refresh_token")
     return redirect
 
 # ============================================================
@@ -81,7 +90,7 @@ def get_current_user(request: Request, token: str = Depends(get_user_token)):
     try:
         user_response = supabase.auth.get_user(token)
         if not user_response or not user_response.user:
-            raise Exception("Invalid token")
+            raise ValueError("Invalid token")
         user = user_response.user
         return {
             "status": "success",
@@ -101,22 +110,23 @@ def get_workspace(request: Request, token: str = Depends(get_user_token)):
     try:
         user_response = supabase.auth.get_user(token)
         if not user_response or not user_response.user:
-            raise Exception("Invalid token")
+            raise ValueError("Invalid token")
         user_id = user_response.user.id
     except Exception:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
     
     workspace_response = supabase.table("user_workspaces").select("*").eq("user_id", user_id).execute()
-    workspace = workspace_response.data[0] if workspace_response.data else None
+    # type: ignore
+    workspace = workspace_response.data[0] if workspace_response.data and isinstance(workspace_response.data, list) else None
     connection_url = f"{request.base_url}sse"
     
     return {
         "status": "success",
         "workspace": {
-            "odoo_url": workspace.get("odoo_url", "") if workspace else "",
-            "odoo_db": workspace.get("odoo_db", "") if workspace else "",
-            "odoo_username": workspace.get("odoo_username", "") if workspace else "",
-            "has_password": bool(workspace and workspace.get("odoo_password")),
+            "odoo_url": workspace.get("odoo_url", "") if workspace else "",  # type: ignore
+            "odoo_db": workspace.get("odoo_db", "") if workspace else "",  # type: ignore
+            "odoo_username": workspace.get("odoo_username", "") if workspace else "",  # type: ignore
+            "has_password": bool(workspace and workspace.get("odoo_password")),  # type: ignore
         } if workspace else None,
         "connection_url": connection_url,
         "token": token,
@@ -143,7 +153,7 @@ def api_save_config(
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     # We remove the plan column since it doesn't exist in the DB schema
-    plan_response = supabase.table("payments").select("id").eq("user_id", user_id).limit(1).execute()
+    supabase.table("payments").select("id").eq("user_id", user_id).limit(1).execute()
     # Assume single plan if they paid, since the column is missing
     plan_type = "single"
     

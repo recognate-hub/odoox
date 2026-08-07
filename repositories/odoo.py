@@ -19,8 +19,12 @@ class OdooRepository:
     def __init__(self, connector: OdooConnectorInterface):
         self.connector = connector
 
-    def get_active_leads(self, limit: int = 100) -> list[OdooLead]:
-        domain = [["type", "=", "opportunity"]]
+    def get_active_leads(self, name_query: str | None = None, stage_id: int | None = None, limit: int = 100) -> list[OdooLead]:
+        domain: list[Any] = [["type", "=", "opportunity"]]
+        if name_query:
+            domain.append(["name", "ilike", name_query])
+        if stage_id:
+            domain.append(["stage_id", "=", stage_id])
         return self.connector.get_leads(domain=domain, limit=limit)
 
     def get_lead_by_id(self, lead_id: int) -> OdooLead | None:
@@ -76,3 +80,26 @@ class OdooRepository:
 
     def get_dashboard(self) -> OdooSalesDashboard:
         return self.connector.get_sales_dashboard()
+
+    def create_invoice(self, partner_id: int, amount: float, description: str) -> int:
+        data = {
+            "partner_id": partner_id,
+            "move_type": "out_invoice",
+            "invoice_line_ids": [
+                [0, 0, {
+                    "name": description,
+                    "price_unit": amount,
+                    "quantity": 1
+                }]
+            ]
+        }
+        return self.connector.create_invoice(data)
+
+    def send_email(self, email_to: str, subject: str, body: str) -> int:
+        data = {
+            "email_to": email_to,
+            "subject": subject,
+            "body_html": body,
+            "state": "outgoing"
+        }
+        return self.connector.send_email(data)

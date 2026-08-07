@@ -55,3 +55,12 @@ class OdooConnectorInterface(ABC):
     @abstractmethod
     def get_sales_dashboard(self) -> OdooSalesDashboard:
         pass
+
+    @abstractmethod
+    def create_invoice(self, data: dict[str, Any]) -> int:
+        pass
+
+    @abstractmethod
+    def send_email(self, data: dict[str, Any]) -> int:
+        pass
+
