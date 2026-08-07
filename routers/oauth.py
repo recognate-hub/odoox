@@ -57,6 +57,7 @@ def token(
     request: Request,
     grant_type: str = Form(...),
     code: str = Form(None),
+    refresh_token: str = Form(None),
     client_id: str = Form(None),
     client_secret: str = Form(None),
     redirect_uri: str = Form(None)
@@ -65,6 +66,18 @@ def token(
     Standard OAuth 2.0 Token Endpoint.
     Exchanges the short-lived authorization code for the actual Bearer access_token.
     """
+    if grant_type == "refresh_token":
+        if not refresh_token:
+            return JSONResponse(status_code=400, content={"error": "invalid_request", "error_description": "refresh_token is required"})
+        
+        access_token = refresh_token.replace("refresh_", "")
+        return JSONResponse(content={
+            "access_token": access_token,
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": f"refresh_{access_token}"
+        })
+
     if grant_type != "authorization_code":
         return JSONResponse(status_code=400, content={"error": "unsupported_grant_type"})
         
@@ -89,7 +102,8 @@ def token(
         return JSONResponse(content={
             "access_token": access_token,
             "token_type": "Bearer",
-            "expires_in": 3600  # Generic expiry for the token format
+            "expires_in": 3600,  # Generic expiry for the token format
+            "refresh_token": f"refresh_{access_token}"
         })
         
     except Exception as e:

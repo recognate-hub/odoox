@@ -3,13 +3,18 @@ from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
+def _get_base_url(request: Request) -> str:
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host", request.headers.get("host", request.url.hostname))
+    return f"{proto}://{host}"
+
 @router.get("/.well-known/oauth-protected-resource")
 def get_protected_resource_metadata(request: Request):
     """
     RFC 9728: Protected Resource Metadata
     Tells the client where the authorization server is.
     """
-    base_url = str(request.base_url).rstrip("/")
+    base_url = _get_base_url(request)
     return JSONResponse({
         "resource": base_url,
         "authorization_servers": [base_url]
@@ -22,14 +27,14 @@ def get_authorization_server_metadata(request: Request):
     RFC 8414: Authorization Server Metadata
     Tells the client about OAuth capabilities and endpoints.
     """
-    base_url = str(request.base_url).rstrip("/")
+    base_url = _get_base_url(request)
     return JSONResponse({
         "issuer": base_url,
         "authorization_endpoint": f"{base_url}/oauth/authorize",
         "token_endpoint": f"{base_url}/oauth/token",
         "registration_endpoint": f"{base_url}/oauth/register",
         "response_types_supported": ["code"],
-        "grant_types_supported": ["authorization_code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
         "code_challenge_methods_supported": ["S256", "plain"],
         "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic", "none"]
     })
