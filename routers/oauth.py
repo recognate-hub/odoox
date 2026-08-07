@@ -114,32 +114,39 @@ def token(
 @router.post("/register")
 async def register(request: Request):
     """
-    RFC 7591: Dynamic Client Registration.
-    Allows Claude Desktop to automatically register itself as an OAuth client.
-    For this simple integration, we dynamically generate and return a client_id and client_secret without persistence.
+    RFC 7591: OAuth 2.0 Dynamic Client Registration
+    Allows Claude Desktop or other MCP clients to register dynamically.
     """
-    import time
     import uuid
     
     try:
         data = await request.json()
-    except:
+    except Exception as e:
+        logger.error(f"Failed to parse registration body: {e}")
         data = {}
-        
+
     client_id = f"client_{uuid.uuid4().hex}"
-    client_secret = f"secret_{uuid.uuid4().hex}"
     
+    auth_method = data.get("token_endpoint_auth_method", "none")
+
+    response_content = {
+        "client_id": client_id,
+        "client_id_issued_at": int(time.time()),
+        "redirect_uris": data.get("redirect_uris", []),
+        "grant_types": data.get("grant_types", ["authorization_code", "refresh_token"]),
+        "response_types": data.get("response_types", ["code"]),
+        "client_name": data.get("client_name", "Dynamic MCP Client"),
+        "token_endpoint_auth_method": auth_method
+    }
+
+    if auth_method != "none":
+        response_content["client_secret"] = f"secret_{uuid.uuid4().hex}"
+        response_content["client_secret_expires_at"] = 0
+
+    if "scope" in data:
+        response_content["scope"] = data["scope"]
+
     return JSONResponse(
         status_code=201,
-        content={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "client_secret_expires_at": 0,
-            "client_id_issued_at": int(time.time()),
-            "redirect_uris": data.get("redirect_uris", []),
-            "grant_types": data.get("grant_types", ["authorization_code"]),
-            "response_types": data.get("response_types", ["code"]),
-            "client_name": data.get("client_name", "Dynamic MCP Client"),
-            "token_endpoint_auth_method": "client_secret_post"
-        }
+        content=response_content
     )
