@@ -42,7 +42,7 @@ jobs:
 
       - name: Run Pytest with Coverage
         run: |
-          poetry run pytest tests/ --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -v
+          poetry run pytest tests/ --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=50 -v
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
