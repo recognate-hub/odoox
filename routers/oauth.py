@@ -127,7 +127,7 @@ async def register(request: Request):
 
     client_id = f"client_{uuid.uuid4().hex}"
     
-    auth_method = data.get("token_endpoint_auth_method", "none")
+    auth_method = data.get("token_endpoint_auth_method", "client_secret_basic")
 
     response_content = {
         "client_id": client_id,
