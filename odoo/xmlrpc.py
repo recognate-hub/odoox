@@ -229,13 +229,19 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
         domain = domain or []
-        records = self._execute(
-            "product.product", "search_read",
-            domain,
-            fields=["name", "list_price", "default_code", "qty_available"],
-            limit=limit
-        )
-        return [OdooProduct(**record) for record in records]
+        try:
+            records = self._execute(
+                "product.product", "search_read",
+                domain,
+                fields=["name", "list_price", "default_code", "qty_available"],
+                limit=limit
+            )
+            return [OdooProduct(**record) for record in records]
+        except OdooConnectorError as e:
+            if "product.product" in str(e):
+                logger.warning("Sales/Inventory module not installed (product.product missing). Returning empty products list.")
+                return []
+            raise
 
     def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
         domain = domain or []
@@ -257,7 +263,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def create_activity(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
         def _exec():
-            return self._execute("mail.activity", "create", [data])
+            return self._execute("mail.message", "create", [data])
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_activity", data, _exec)
 
     def schedule_meeting(self, data: dict[str, Any]) -> int:

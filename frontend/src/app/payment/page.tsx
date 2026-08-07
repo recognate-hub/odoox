@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import './payment.css';
 
 declare global {
@@ -19,6 +20,25 @@ export default function PaymentPage() {
     const [selectedPlanPrice, setSelectedPlanPrice] = useState<number | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [singlePrice, setSinglePrice] = useState<number | null>(null);
+    const [teamPrice, setTeamPrice] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchPrices = async () => {
+            try {
+                const { data, error } = await supabase.from('app_config').select('*').in('key', ['single_plan_price', 'team_plan_price']);
+                if (data && !error) {
+                    const single = data.find(d => d.key === 'single_plan_price');
+                    const team = data.find(d => d.key === 'team_plan_price');
+                    if (single) setSinglePrice(parseFloat(single.value));
+                    if (team) setTeamPrice(parseFloat(team.value));
+                }
+            } catch (err) {
+                console.error('Could not fetch dynamic prices');
+            }
+        };
+        fetchPrices();
+    }, []);
 
     useEffect(() => {
         fetch('/api/auth/me')
@@ -183,7 +203,7 @@ export default function PaymentPage() {
                 <div className="plans-grid">
                     
                     {/* Single User Plan */}
-                    <div className="pricing-card delay-1">
+                    <div className="pricing-card featured delay-1">
                         <div className="plan-header-section">
                             <div className="tier-name">Single User</div>
                             <p className="tier-desc">Perfect for solo developers and freelancers integrating AI with Odoo.</p>
@@ -192,7 +212,7 @@ export default function PaymentPage() {
                         <div className="price-block">
                             <div className="price-container">
                                 <span className="currency">₹</span>
-                                <span className="price">1</span>
+                                <span className="price">{singlePrice === null ? '...' : singlePrice}</span>
                             </div>
                             <div className="billing-note">One-time payment · Valid for 5 years</div>
                         </div>
@@ -207,11 +227,12 @@ export default function PaymentPage() {
                             </button>
                         ) : (
                             <button 
-                                className="btn btn-primary btn-outline" 
-                                onClick={() => handlePayment(1, 'OdooX Pro - Single User')}
-                                disabled={isLoading || paymentStatus === 'success'}
+                                className="btn btn-primary" 
+                                style={{ width: '100%' }}
+                                onClick={() => singlePrice !== null && handlePayment(singlePrice, 'OdooX Pro - Single User')}
+                                disabled={isLoading || isCheckingAuth || singlePrice === null}
                             >
-                                {isLoading && selectedPlanPrice === 1 ? (
+                                {isLoading && selectedPlanPrice === singlePrice ? (
                                     <>
                                         <span className="spinner"></span>
                                         Processing...
@@ -244,8 +265,6 @@ export default function PaymentPage() {
 
                     {/* Team Plan */}
                     <div className="pricing-card featured delay-2">
-                        <div className="pro-badge">Recommended</div>
-                        
                         <div className="plan-header-section">
                             <div className="tier-name">Team / Agency</div>
                             <p className="tier-desc">Complete access to the AI-powered Odoo MCP Gateway for your entire team.</p>
@@ -254,26 +273,27 @@ export default function PaymentPage() {
                         <div className="price-block">
                             <div className="price-container">
                                 <span className="currency">₹</span>
-                                <span className="price">2</span>
+                                <span className="price">{teamPrice === null ? '...' : teamPrice}</span>
                             </div>
                             <div className="billing-note">One-time payment · Valid for 5 years</div>
                         </div>
 
                         {isCheckingAuth ? (
-                            <button className="btn btn-primary" disabled>
+                            <button className="btn btn-primary btn-outline" disabled>
                                 <span className="spinner"></span>
                             </button>
                         ) : !isAuthenticated ? (
-                            <button className="btn btn-primary" onClick={() => router.push('/login')}>
+                            <button className="btn btn-primary btn-outline" onClick={() => router.push('/login')}>
                                 Login to Continue
                             </button>
                         ) : (
                             <button 
                                 className="btn btn-primary" 
-                                onClick={() => handlePayment(2, 'OdooX Pro - Team')}
-                                disabled={isLoading || paymentStatus === 'success'}
+                                style={{ width: '100%' }}
+                                onClick={() => teamPrice !== null && handlePayment(teamPrice, 'OdooX Pro - Team')}
+                                disabled={isLoading || isCheckingAuth || teamPrice === null}
                             >
-                                {isLoading && selectedPlanPrice === 2 ? (
+                                {isLoading && selectedPlanPrice === teamPrice ? (
                                     <>
                                         <span className="spinner"></span>
                                         Processing...

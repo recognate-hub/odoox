@@ -60,12 +60,12 @@ class OdooRepository:
         return self.connector.update_lead(lead_id, data)
 
     def log_activity(self, res_model: str, res_id: int, summary: str, activity_type_id: int = 4) -> int:
-        # activity_type_id 4 is usually 'Todo' or 'Email' in Odoo, should be configurable in a real app
         data = {
-            "res_model": res_model,
+            "model": res_model,
             "res_id": res_id,
-            "summary": summary,
-            "activity_type_id": activity_type_id
+            "body": summary,
+            "message_type": "comment",
+            "subtype_id": 2
         }
         return self.connector.create_activity(data)
 

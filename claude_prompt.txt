@@ -1,0 +1,67 @@
+You are an expert CRM and Sales Assistant connected to my Odoo ERP instance via an MCP Server. You have access to a full suite of tools to read and write data to my business systems. 
+
+Please perform the following comprehensive workflow step-by-step, utilizing your tools to fetch real data and execute actions on my behalf:
+
+### Step 1: Executive Overview
+Start by using `get_sales_dashboard` and `get_pipeline_forecast_data`. Analyze the returned data and write a short executive summary of our current total revenue, win rate, active quotes, and overall pipeline health.
+
+### Step 2: Lead Triage
+Use `get_leads` to retrieve our current active opportunities. Identify the most recent or highest-value lead. Use `log_crm_note` on that specific lead to leave a note saying: "Automated AI Review: Prioritize this lead for follow-up this week."
+
+### Step 3: Customer Deep Dive
+Use `search_customer` to find a customer in our system (if you aren't sure who to look for, search for common names like "Acme", "Tech", or use a partner ID you found in step 2). Then, use `get_customer_details` to summarize their profile and recent quotes for me. 
+
+### Step 4: Product & Quote Alignment
+Use `get_products` to fetch our current inventory or service catalog. Recommend one of our active products that might be a good upsell for the customer you analyzed in Step 3.
+
+### Step 5: Execute Actions (Invoice & Calendar)
+Now, take action on that customer:
+1. Use `create_invoice` to draft a "Consulting Services" invoice for $1,500.
+2. Use `schedule_meeting` to book a 30-minute "Quarterly Business Review" with them for sometime next week.
+
+### Step 6: Communications
+Finally, use `send_email` to send a professional, friendly email to the customer. Inform them that their invoice has been drafted and that you've scheduled a placeholder for a QBR next week. 
+
+Execute these steps chronologically. You may chain your tool calls if necessary, but keep me updated on your progress and provide a final summary of all the actions you took!
+
+---
+
+## Scenario 2: The "Sales Closer" Routine
+You are a highly driven Sales Closer connected to my Odoo ERP. Your goal today is to push deals across the finish line.
+
+1. **Pipeline Sweep:** Use `get_leads` to find all active leads. Identify any lead with an expected revenue over $5,000.
+2. **Move to Close:** Use `update_lead` to bump the probability of the highest-value lead to 90%. 
+3. **Log the Action:** Use `log_crm_note` on that lead: "Moved to final closing stages. Expected to sign by Friday."
+4. **Final Push Communication:** Use `send_email` to send a highly persuasive email to the lead, offering a final quick sync.
+5. **Lock it in:** Use `schedule_meeting` to put a 15-minute "Final Review" sync on the calendar for tomorrow.
+
+---
+
+## Scenario 3: The "Revenue Analyst" Check-in
+You are a Data and Revenue Analyst managing my Odoo instance. I need a quick health check on our business.
+
+1. **Macro View:** Call `revenue_report` and immediately summarize our win rate and total revenue. If the win rate is below 40%, express concern.
+2. **Micro View:** Call `get_pipeline_forecast_data` and find the deal that is dragging our pipeline down (lowest probability or stagnant).
+3. **Action:** Draft an internal warning note using `log_crm_note` on that struggling lead indicating it might need to be dropped.
+4. **Report:** Use `send_email` to send an email to "admin@mycompany.com" containing a clean markdown table summarizing the top 3 biggest deals currently in the pipeline.
+
+---
+
+## Scenario 4: The "Customer Success Manager" (Cross-sell & Retention)
+You are a Customer Success Manager hooked into my Odoo system. Your primary goal is to ensure our existing clients are happy and to find cross-sell opportunities.
+
+1. **Client Lookup:** Use `search_customer` to find a contact who we haven't spoken to recently (pick an existing partner).
+2. **Account Audit:** Use `get_customer_details` and `get_recent_quotes` for that specific partner to understand what they previously bought from us.
+3. **Cross-sell Strategy:** Use `get_products` to view our catalog. Pick a product that complements their previous purchases.
+4. **Outreach:** Use `send_email` to send them a personalized message thanking them for their past business and offering a special demo of the new product you found.
+5. **Log Activity:** Use `log_crm_note` on their record noting that a cross-sell outreach email was sent.
+
+---
+
+## Scenario 5: The "SDR" (Sales Development Rep - Cold Outreach)
+You are an aggressive Sales Development Representative. You need to build pipeline from scratch.
+
+1. **Create the Target:** Use `create_lead` to generate a brand new prospect for "Globex Corporation - Software Licensing". Make sure to include a fake email and phone number.
+2. **First Touch:** Immediately use `send_email` to send a highly personalized cold email introducing our services to this new lead.
+3. **Internal Documentation:** Use `log_crm_note` on the new lead to log "Cold outreach sequence initiated."
+4. **Forecast Impact:** Finally, use `get_sales_dashboard` to see if your newly created opportunity moved the needle on our active leads count!

@@ -10,19 +10,32 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         
-        const amount = body.amount || 499900; // ₹4,999 in paise
         const currency = body.currency || 'INR';
-
         const planName = body.plan || 'OdooX Pro - Single User';
 
         let userId = 'unknown';
         const token = request.cookies.get('access_token')?.value;
+        const { getSupabaseWithToken, supabase } = await import('@/lib/supabase');
+        
         if (token) {
-            const { getSupabaseWithToken } = await import('@/lib/supabase');
-            const supabase = getSupabaseWithToken(token);
-            const { data } = await supabase.auth.getUser();
+            const supabaseAuth = getSupabaseWithToken(token);
+            const { data } = await supabaseAuth.auth.getUser();
             if (data?.user) userId = data.user.id;
         }
+
+        // Fetch dynamic pricing from Supabase app_config
+        const isTeamPlan = planName.toLowerCase().includes('team');
+        const configKey = isTeamPlan ? 'team_plan_price' : 'single_plan_price';
+        let amount = 0;
+
+        const { data, error } = await supabase.from('app_config').select('value').eq('key', configKey).single();
+        
+        if (error || !data) {
+            console.error('Could not fetch dynamic price from Supabase:', error);
+            return NextResponse.json({ success: false, message: 'Pricing system error. Please try again.' }, { status: 500 });
+        }
+        
+        amount = parseFloat(data.value) * 100; // Convert Rupees to Paise
 
         const options = {
             amount: amount,

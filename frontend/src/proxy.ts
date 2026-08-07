@@ -65,7 +65,7 @@ async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
     }
 }
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
     const token = request.cookies.get('access_token')?.value;
     const { pathname } = request.nextUrl;
 
@@ -108,11 +108,14 @@ export async function middleware(request: NextRequest) {
     // Public Routes (Login only)
     if (pathname === '/login') {
         if (token) {
-            const isPaid = await checkPaymentStatus(request);
-            if (isPaid) {
-                return NextResponse.redirect(new URL('/userdashboard', request.url));
-            } else {
-                return NextResponse.redirect(new URL('/payment', request.url));
+            const isSessionValid = await checkDeviceSession(request, token);
+            if (isSessionValid) {
+                const isPaid = await checkPaymentStatus(request);
+                if (isPaid) {
+                    return NextResponse.redirect(new URL('/userdashboard', request.url));
+                } else {
+                    return NextResponse.redirect(new URL('/payment', request.url));
+                }
             }
         }
     }
