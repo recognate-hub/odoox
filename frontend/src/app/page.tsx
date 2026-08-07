@@ -2,6 +2,7 @@ import React from 'react';
 import styles from "./Home.module.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import SignOutButton from "@/components/SignOutButton";
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -34,9 +35,15 @@ export default async function Home() {
                 <Link href="/login" className={styles.primaryButtonSmall}>Get Started</Link>
               </>
             ) : isPaid ? (
-              <Link href="/userdashboard" className={styles.primaryButtonSmall}>Dashboard</Link>
+              <>
+                <SignOutButton className={styles.navLink} />
+                <Link href="/userdashboard" className={styles.primaryButtonSmall}>Dashboard</Link>
+              </>
             ) : (
-              <Link href="/payment" className={styles.primaryButtonSmall}>Complete Payment</Link>
+              <>
+                <SignOutButton className={styles.navLink} />
+                <Link href="/payment" className={styles.primaryButtonSmall}>Complete Payment</Link>
+              </>
             )}
           </nav>
         </div>
