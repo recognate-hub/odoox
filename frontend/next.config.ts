@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         source: "/sse",
         destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/sse`,
       },
+      // Proxy OAuth Metadata
+      {
+        source: "/.well-known/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/.well-known/:path*`,
+      },
+      // Proxy OAuth endpoints
+      {
+        source: "/oauth/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/oauth/:path*`,
+      },
     ];
   },
 };
