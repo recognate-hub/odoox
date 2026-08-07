@@ -97,17 +97,8 @@ def create_app() -> FastAPI:
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get("/sse", dependencies=[Depends(get_tenant_context), get_rate_limiter(times=50, seconds=60)])
     async def handle_sse(request: Request):
-        async def wrapped_send(message: dict):
-            if message["type"] == "http.response.body" and message.get("body"):
-                body_bytes = message["body"]
-                # If we see the endpoint event, inject 2KB of padding to flush proxy buffers
-                if b"event: endpoint" in body_bytes:
-                    padding = b"\n: " + (b"x" * 2048) + b"\n\n"
-                    message["body"] = body_bytes + padding
-            await request._send(message)
-
         async with sse.connect_sse(
-            request.scope, request.receive, wrapped_send
+            request.scope, request.receive, request._send
         ) as streams:
             await mcp._mcp_server.run(
                 streams[0], streams[1], mcp._mcp_server.create_initialization_options()
