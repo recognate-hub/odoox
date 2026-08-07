@@ -260,10 +260,9 @@ export default function LoginPage() {
                             </p>
                         </div>
                         <button 
-                            className="btn btn-primary btn-block"
+                            className="btn btn-danger btn-block"
                             onClick={handleForceLogout}
                             disabled={isLoading}
-                            style={{ background: 'var(--accent-red)' }}
                         >
                             {isLoading ? (
                                 <>
