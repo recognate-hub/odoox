@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         source: "/sse",
         destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/sse`,
       },
+      // Proxy MCP messages endpoint
+      {
+        source: "/messages",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/messages`,
+      },
       // Proxy OAuth Metadata
       {
         source: "/.well-known/:path*",
