@@ -30,5 +30,6 @@ def get_authorization_server_metadata(request: Request):
         "registration_endpoint": f"{base_url}/oauth/register",
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code"],
-        "code_challenge_methods_supported": ["S256", "plain"]
+        "code_challenge_methods_supported": ["S256", "plain"],
+        "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic", "none"]
     })

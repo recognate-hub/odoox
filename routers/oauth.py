@@ -102,8 +102,9 @@ async def register(request: Request):
     """
     RFC 7591: Dynamic Client Registration.
     Allows Claude Desktop to automatically register itself as an OAuth client.
-    For this simple integration, we dynamically generate and return a client_id without persistence.
+    For this simple integration, we dynamically generate and return a client_id and client_secret without persistence.
     """
+    import time
     import uuid
     
     try:
@@ -112,13 +113,19 @@ async def register(request: Request):
         data = {}
         
     client_id = f"client_{uuid.uuid4().hex}"
+    client_secret = f"secret_{uuid.uuid4().hex}"
     
     return JSONResponse(
         status_code=201,
         content={
             "client_id": client_id,
+            "client_secret": client_secret,
+            "client_secret_expires_at": 0,
+            "client_id_issued_at": int(time.time()),
             "redirect_uris": data.get("redirect_uris", []),
+            "grant_types": data.get("grant_types", ["authorization_code"]),
+            "response_types": data.get("response_types", ["code"]),
             "client_name": data.get("client_name", "Dynamic MCP Client"),
-            "token_endpoint_auth_method": "none"  # No client_secret required for Claude desktop
+            "token_endpoint_auth_method": "client_secret_post"
         }
     )
