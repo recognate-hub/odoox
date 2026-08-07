@@ -11,6 +11,9 @@ from mcp_app.schemas import (
     UpdateLeadInput,
     CreateInvoiceInput,
     SendEmailInput,
+    CreateContactInput,
+    CreateProductInput,
+    CreateQuoteInput,
 )
 from mcp_app.security import secure_tool
 from mcp_app.validation import validate_write_input
@@ -180,6 +183,30 @@ def search_customer(name: str, limit: int = 20) -> list[dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
+@validate_write_input(CreateContactInput)
+def create_contact(name: str, email: str | None = None, phone: str | None = None, is_company: bool = False) -> dict[str, Any]:
+    """
+    Create a new CRM contact or customer in Odoo.
+    
+    Use this tool to add new people or companies to the system.
+    
+    Args:
+        name (str): The full name of the contact or company.
+        email (Optional[str]): The email address.
+        phone (Optional[str]): The phone number.
+        is_company (bool): True if the contact represents a company.
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and new partner ID.
+    """
+    logger.info("MCP Tool Called: create_contact", name=name)
+    odoo_repo, _ = _get_tenant_service()
+    partner_id = odoo_repo.create_contact(name, email, phone, is_company)
+    return {"status": "success", "partner_id": partner_id}
+
+
+@mcp.tool()
+@secure_tool()
 def get_customer_details(partner_id: int) -> dict[str, Any]:
     """
     Fetch comprehensive customer details and recent quotes.
@@ -222,6 +249,30 @@ def get_products(name_query: str = "", limit: int = 50) -> list[dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
+@validate_write_input(CreateProductInput)
+def create_product(name: str, list_price: float, default_code: str | None = None, product_type: str = "service") -> dict[str, Any]:
+    """
+    Create a new product or service in Odoo's inventory.
+    
+    Use this tool to add new offerings to the catalog.
+    
+    Args:
+        name (str): The name of the product.
+        list_price (float): The sale price.
+        default_code (Optional[str]): Internal reference or SKU.
+        product_type (str): Usually 'consu', 'service', or 'product'.
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and new product ID.
+    """
+    logger.info("MCP Tool Called: create_product", name=name)
+    odoo_repo, _ = _get_tenant_service()
+    product_id = odoo_repo.create_product(name, list_price, default_code, type_code=product_type)
+    return {"status": "success", "product_id": product_id}
+
+
+@mcp.tool()
+@secure_tool()
 def get_recent_quotes(partner_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
     """
     Retrieve a list of recent quotes and sales orders.
@@ -239,6 +290,28 @@ def get_recent_quotes(partner_id: int | None = None, limit: int = 50) -> list[di
     odoo_repo, _ = _get_tenant_service()
     quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit)
     return [quote.model_dump() for quote in quotes]
+
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(CreateQuoteInput)
+def create_quote(partner_id: int, order_lines: list[dict]) -> dict[str, Any]:
+    """
+    Create a new sales quotation or order.
+    
+    Use this tool to generate a full quote for a customer.
+    
+    Args:
+        partner_id (int): The ID of the customer.
+        order_lines (List[Dict]): List of line items, each must have 'product_id', 'quantity', and optional 'price_unit'.
+        
+    Returns:
+        Dict[str, Any]: The status of the operation and new order ID.
+    """
+    logger.info("MCP Tool Called: create_quote", partner_id=partner_id)
+    odoo_repo, _ = _get_tenant_service()
+    quote_id = odoo_repo.create_quote(partner_id, order_lines)
+    return {"status": "success", "quote_id": quote_id}
 
 
 @mcp.tool()

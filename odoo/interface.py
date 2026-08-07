@@ -37,11 +37,23 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
+    def create_contact(self, data: dict[str, Any]) -> int:
+        pass
+
+    @abstractmethod
     def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
         pass
 
     @abstractmethod
+    def create_product(self, data: dict[str, Any]) -> int:
+        pass
+
+    @abstractmethod
     def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
+        pass
+
+    @abstractmethod
+    def create_quote(self, data: dict[str, Any]) -> int:
         pass
 
     @abstractmethod

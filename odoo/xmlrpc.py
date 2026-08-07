@@ -227,6 +227,12 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
         return [OdooContact(**record) for record in records]
 
+    def create_contact(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("res.partner", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_contact", data, _exec)
+
     def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
         domain = domain or []
         try:
@@ -242,6 +248,12 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 logger.warning("Sales/Inventory module not installed (product.product missing). Returning empty products list.")
                 return []
             raise
+
+    def create_product(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("product.product", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_product", data, _exec)
 
     def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
         domain = domain or []
@@ -259,6 +271,12 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 logger.warning("Sales module not installed (sale.order missing). Returning empty quotes list.")
                 return []
             raise
+
+    def create_quote(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("sale.order", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_quote", data, _exec)
 
     def create_activity(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()

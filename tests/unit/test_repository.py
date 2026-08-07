@@ -165,10 +165,11 @@ def test_log_activity(repo, mock_connector):
 
     assert activity_id == 6
     mock_connector.create_activity.assert_called_once_with({
-        "res_model": "crm.lead",
+        "model": "crm.lead",
         "res_id": 1,
-        "summary": "Follow up call",
-        "activity_type_id": 4
+        "body": "Follow up call",
+        "message_type": "comment",
+        "subtype_id": 2
     })
 
 
@@ -178,10 +179,11 @@ def test_log_activity_custom_type(repo, mock_connector):
 
     assert activity_id == 7
     mock_connector.create_activity.assert_called_once_with({
-        "res_model": "res.partner",
+        "model": "res.partner",
         "res_id": 10,
-        "summary": "Send proposal",
-        "activity_type_id": 2
+        "body": "Send proposal",
+        "message_type": "comment",
+        "subtype_id": 2
     })
 
 

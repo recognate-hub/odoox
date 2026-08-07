@@ -47,3 +47,25 @@ class SendEmailInput(BaseModel):
     email_to: str = Field(..., description="The recipient's email address.")
     subject: str = Field(..., max_length=200, description="The subject line of the email.")
     body: str = Field(..., description="The HTML or plain text body of the email.")
+
+class CreateContactInput(BaseModel):
+    name: str = Field(..., max_length=150, description="The full name of the contact or company.")
+    email: EmailStr | None = Field(None, description="The email address of the contact.")
+    phone: str | None = Field(None, max_length=20, pattern=r'^\+?[\d\s\-\(\)]+$', description="Phone number format.")
+    is_company: bool = Field(False, description="Set to true if this contact represents a company rather than an individual.")
+
+class CreateProductInput(BaseModel):
+    name: str = Field(..., max_length=150, description="The name of the product or service.")
+    list_price: float = Field(..., ge=0, description="The sale price of the product.")
+    default_code: str | None = Field(None, max_length=50, description="The internal reference or SKU for the product.")
+    product_type: str = Field("service", description="Product type. Usually 'consu' (Consumable), 'service' (Service), or 'product' (Storable Product).")
+
+class QuoteLineInput(BaseModel):
+    product_id: int = Field(..., description="The ID of the product.")
+    quantity: float = Field(1.0, gt=0, description="The quantity to order.")
+    price_unit: float | None = Field(None, ge=0, description="The unit price. If omitted, Odoo will use the product's default list price.")
+
+class CreateQuoteInput(BaseModel):
+    partner_id: int = Field(..., description="The ID of the customer (partner) to create the quote for.")
+    order_lines: list[QuoteLineInput] = Field(..., min_length=1, description="List of products and quantities to include in the quote.")
+

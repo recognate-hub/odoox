@@ -36,15 +36,50 @@ class OdooRepository:
         domain = [["name", "ilike", name_query]]
         return self.connector.search_contacts(domain=domain, limit=limit)
 
+    def create_contact(self, name: str, email: str | None = None, phone: str | None = None, is_company: bool = False) -> int:
+        data = {"name": name, "is_company": is_company}
+        if email:
+            data["email"] = email
+        if phone:
+            data["phone"] = phone
+        return self.connector.create_contact(data)
+
+
     def search_products(self, query: str, limit: int = 20) -> list[OdooProduct]:
         domain = [["name", "ilike", query]]
         return self.connector.get_products(domain=domain, limit=limit)
+
+    def create_product(self, name: str, list_price: float, default_code: str | None = None, type_code: str = "service") -> int:
+        data = {"name": name, "list_price": list_price, "detailed_type": type_code}
+        if default_code:
+            data["default_code"] = default_code
+        return self.connector.create_product(data)
+
 
     def get_recent_quotes(self, partner_id: int | None = None, limit: int = 10) -> list[OdooQuote]:
         domain = []
         if partner_id:
             domain.append(["partner_id", "=", partner_id])
         return self.connector.get_quotes(domain=domain, limit=limit)
+
+    def create_quote(self, partner_id: int, order_lines: list[dict]) -> int:
+        formatted_lines = []
+        for line in order_lines:
+            line_dict = {
+                "product_id": line["product_id"],
+                "product_uom_qty": line["quantity"],
+            }
+            if line.get("price_unit") is not None:
+                line_dict["price_unit"] = line["price_unit"]
+            # Odoo uses [0, 0, dict] for creating new related records
+            formatted_lines.append([0, 0, line_dict])
+            
+        data = {
+            "partner_id": partner_id,
+            "order_line": formatted_lines
+        }
+        return self.connector.create_quote(data)
+
 
     def create_lead(self, name: str, email: str | None = None, phone: str | None = None, description: str | None = None) -> int:
         data = {"name": name, "type": "opportunity"}
