@@ -28,8 +28,42 @@ export default function WorkspaceCard({
 
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isFetchingDb, setIsFetchingDb] = useState(false);
+    const [availableDbs, setAvailableDbs] = useState<string[]>([]);
+    const [dbFetchError, setDbFetchError] = useState('');
 
     const isSaved = !!workspace.id;
+
+    const fetchDatabases = async () => {
+        if (!workspace.odoo_url) {
+            setDbFetchError('Please enter an Odoo URL first');
+            return;
+        }
+        setIsFetchingDb(true);
+        setDbFetchError('');
+        try {
+            const res = await fetch('/api/workspace/databases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: workspace.odoo_url })
+            });
+            const data = await res.json();
+            if (data.databases && data.databases.length > 0) {
+                setAvailableDbs(data.databases);
+                if (!workspace.odoo_db || !data.databases.includes(workspace.odoo_db)) {
+                    onChange(index, 'odoo_db', data.databases[0]);
+                }
+            } else if (data.error) {
+                setDbFetchError(data.error);
+            } else {
+                setDbFetchError('No databases found');
+            }
+        } catch (err) {
+            setDbFetchError('Failed to fetch databases');
+        } finally {
+            setIsFetchingDb(false);
+        }
+    };
 
 
 
@@ -67,27 +101,57 @@ export default function WorkspaceCard({
                 </div>
                 <form onSubmit={handleSaveClick}>
                     <div className="form-group">
-                        <label className="form-label">Odoo Instance URL</label>
+                        <label className="form-label">Odoo Instance URL / IP Address</label>
                         <input 
-                            type="url" 
+                            type="text" 
                             className="form-input" 
-                            placeholder="https://mycompany.odoo.com" 
+                            placeholder="http://192.168.1.100:8069 or https://mycompany.odoo.com" 
                             value={workspace.odoo_url}
                             onChange={(e) => onChange(index, 'odoo_url', e.target.value)}
+                            onBlur={(e) => {
+                                let val = e.target.value.trim();
+                                if (val && !/^https?:\/\//i.test(val)) {
+                                    onChange(index, 'odoo_url', 'http://' + val);
+                                }
+                            }}
                             required 
                         />
                     </div>
                     
                     <div className="form-group">
-                        <label className="form-label">Database Name</label>
-                        <input 
-                            type="text" 
-                            className="form-input" 
-                            placeholder="mycompany_db" 
-                            value={workspace.odoo_db}
-                            onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
-                            required 
-                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label className="form-label">Database Name</label>
+                            <button 
+                                type="button" 
+                                onClick={fetchDatabases} 
+                                disabled={isFetchingDb || !workspace.odoo_url}
+                                style={{ background: 'none', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+                            >
+                                {isFetchingDb ? 'Fetching...' : 'Fetch Databases'}
+                            </button>
+                        </div>
+                        {availableDbs.length > 0 ? (
+                            <select 
+                                className="form-input" 
+                                value={workspace.odoo_db}
+                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
+                                required 
+                            >
+                                {availableDbs.map(db => (
+                                    <option key={db} value={db}>{db}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input 
+                                type="text" 
+                                className="form-input" 
+                                placeholder="mycompany_db" 
+                                value={workspace.odoo_db}
+                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
+                                required 
+                            />
+                        )}
+                        {dbFetchError && <div style={{ color: 'var(--accent-red)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{dbFetchError}</div>}
                     </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
