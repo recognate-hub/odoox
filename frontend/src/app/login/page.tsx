@@ -73,7 +73,7 @@ export default function LoginPage() {
             const data = await res.json();
             
             if (data.status === 'success') {
-                setSuccess("Magic code sent! Please check your inbox.");
+                setSuccess("OTP sent! Please check your inbox.");
                 setTimeout(() => {
                     setStep(2);
                     setTimeout(() => inputRefs.current[0]?.focus(), 50);
@@ -202,7 +202,7 @@ export default function LoginPage() {
                                         <svg className="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                                         Sending...
                                     </>
-                                ) : "Send Magic Code"}
+                                ) : "Send OTP"}
                             </button>
                         </form>
                     </div>
