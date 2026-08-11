@@ -5,6 +5,7 @@ import urllib.parse
 from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from config.settings import get_settings
 from core.encryption import decrypt, encrypt
 from core.logger import get_logger
 from core.supabase import get_supabase
@@ -34,10 +35,16 @@ def authorize(
     # If the user is not logged in, redirect them to the ODOOX login page
     # passing the current OAuth URL as the `next` parameter so they come back here
     if not token:
-        # Use a relative URL to preserve the frontend domain/tunnel host
+        settings = get_settings()
+        frontend_url = settings.FRONTEND_URL.rstrip('/')
+        
+        # Use an absolute URL for the `next` param to ensure we return to the backend
+        backend_url = str(request.base_url).rstrip('/')
         relative_url = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
-        next_url = urllib.parse.quote_plus(relative_url)
-        return RedirectResponse(url=f"/login?next={next_url}", status_code=303)
+        absolute_next_url = f"{backend_url}{relative_url}"
+        
+        next_url = urllib.parse.quote_plus(absolute_next_url)
+        return RedirectResponse(url=f"{frontend_url}/login?next={next_url}", status_code=303)
         
     # If the user is logged in, generate an authorization code.
     # We use a stateless encrypted payload so we don't need a DB table.

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     
     # CORS Configuration
     CORS_ORIGINS: list[str] = Field(default=[], description="List of allowed CORS origins")
+    FRONTEND_URL: str = Field(default="http://localhost:3000", description="Base URL of the frontend application for redirects")
 
     # Security
     ENCRYPTION_KEY: str = Field(min_length=32, description="Master key for encrypting tenant secrets")

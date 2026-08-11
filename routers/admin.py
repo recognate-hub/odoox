@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from config.settings import get_settings
 from core.encryption import encrypt
 from core.logger import get_logger
 from core.supabase import get_supabase
@@ -75,7 +76,9 @@ async def post_verify_otp(request: Request, email: str = Form(...), token: str =
 
 @router.get("/logout")
 def logout():
-    redirect = RedirectResponse(url="/login", status_code=303)
+    settings = get_settings()
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    redirect = RedirectResponse(url=f"{frontend_url}/login", status_code=303)
     redirect.delete_cookie("access_token")
     redirect.delete_cookie("refresh_token")
     return redirect
