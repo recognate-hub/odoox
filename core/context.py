@@ -88,6 +88,12 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
             from core.encryption import decrypt
             decrypted_json = decrypt(token[4:])
             workspace = WorkspaceContext.model_validate_json(decrypted_json)
+            # Sanitize fields in case they were saved with trailing dots/slashes
+            workspace = workspace.model_copy(update={
+                "odoo_db": workspace.odoo_db.strip().rstrip("."),
+                "odoo_url": workspace.odoo_url.strip().rstrip("/"),
+                "odoo_username": workspace.odoo_username.strip(),
+            })
             # Cache it anyway to save parsing time later
             _credentials_cache[cache_key] = (workspace, now)
             redis_key = f"{token}:{workspace_id}" if workspace_id else token
@@ -121,9 +127,9 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
         workspace_data = cast(dict[str, Any], workspace_response.data[0])
         
         workspace = WorkspaceContext(
-            odoo_url=workspace_data["odoo_url"],
-            odoo_db=workspace_data["odoo_db"],
-            odoo_username=workspace_data["odoo_username"],
+            odoo_url=workspace_data["odoo_url"].strip().rstrip("/"),
+            odoo_db=workspace_data["odoo_db"].strip().rstrip("."),
+            odoo_username=workspace_data["odoo_username"].strip(),
             odoo_password=workspace_data["odoo_password"],
             user_id=user_id,
             role=workspace_data.get("role", "Admin")  # Per-workspace RBAC role

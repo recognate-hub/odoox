@@ -184,9 +184,9 @@ def api_save_config(
         
     payload = {
         "user_id": user_id,
-        "odoo_url": odoo_url,
-        "odoo_db": odoo_db,
-        "odoo_username": odoo_username,
+        "odoo_url": odoo_url.strip().rstrip("/"),
+        "odoo_db": odoo_db.strip().rstrip("."),
+        "odoo_username": odoo_username.strip(),
         "odoo_password": final_password
     }
     
