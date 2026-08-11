@@ -16,6 +16,7 @@ class WorkspaceContext(BaseModel):
     odoo_username: str
     odoo_password: str
     user_id: str
+    role: str = "Admin"  # Per-workspace RBAC role (Admin, Sales, Manager, Support)
 
 # Context variable to hold the current request's JWT token
 current_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
@@ -55,7 +56,50 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
             if now - timestamp < CACHE_TTL_SEC:
                 return cached_workspace
             
-    # Fetch from Supabase
+    # Stateless API Key support (Permanent Tokens)
+    if token.startswith("odx_"):
+        try:
+            # Check if key is revoked — Redis cache first, then Supabase fallback
+            from core.cache import get_cached_value, set_cached_value
+            revoked_cache_key = f"revoked:{token[:64]}"  # Truncate for Redis key length
+            cached_revocation = get_cached_value(revoked_cache_key)
+            
+            if cached_revocation == "1":
+                logger.warning("Revoked API Key attempt (cached)", token=token[:20])
+                raise HTTPException(status_code=401, detail="API Key has been revoked")
+            
+            if cached_revocation != "0":  # Not cached yet — check Supabase
+                supabase_admin = get_supabase()
+                try:
+                    revoked_resp = supabase_admin.table("revoked_api_keys").select("id").eq("api_key", token).limit(1).execute()
+                    if revoked_resp.data:
+                        set_cached_value(revoked_cache_key, "1", ttl=86400)  # Cache for 24h
+                        logger.warning("Revoked API Key attempt", token=token[:20])
+                        raise HTTPException(status_code=401, detail="API Key has been revoked")
+                    else:
+                        set_cached_value(revoked_cache_key, "0", ttl=300)  # Cache "not revoked" for 5 min
+                except Exception as db_err:
+                    if "PGRST205" in str(db_err) or "does not exist" in str(db_err).lower():
+                        logger.warning("revoked_api_keys table missing, skipping revocation check")
+                        set_cached_value(revoked_cache_key, "0", ttl=300)
+                    else:
+                        raise
+
+            from core.encryption import decrypt
+            decrypted_json = decrypt(token[4:])
+            workspace = WorkspaceContext.model_validate_json(decrypted_json)
+            # Cache it anyway to save parsing time later
+            _credentials_cache[cache_key] = (workspace, now)
+            redis_key = f"{token}:{workspace_id}" if workspace_id else token
+            set_cached_workspace(redis_key, workspace, ttl=CACHE_TTL_SEC)
+            return workspace
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Invalid API Key format", error=str(e))
+            raise HTTPException(status_code=401, detail="Invalid API Key")
+
+    # Fetch from Supabase (Standard JWT Auth)
     try:
         supabase = get_supabase(token)
         user_response = supabase.auth.get_user(token)
@@ -81,7 +125,8 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
             odoo_db=workspace_data["odoo_db"],
             odoo_username=workspace_data["odoo_username"],
             odoo_password=workspace_data["odoo_password"],
-            user_id=user_id
+            user_id=user_id,
+            role=workspace_data.get("role", "Admin")  # Per-workspace RBAC role
         )
         
         # Update caches

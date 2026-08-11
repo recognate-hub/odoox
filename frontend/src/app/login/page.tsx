@@ -115,7 +115,13 @@ export default function LoginPage() {
             if (data.status === 'success') {
                 const searchParams = new URLSearchParams(window.location.search);
                 const nextUrl = searchParams.get('next');
-                router.push(nextUrl || data.redirect || '/payment');
+                const destination = nextUrl || data.redirect || '/payment';
+                // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
+                if (destination.startsWith('/oauth')) {
+                    window.location.href = destination;
+                } else {
+                    router.push(destination);
+                }
             } else if (data.status === 'conflict') {
                 setStep(3); // Go to force logout step
             } else {
@@ -142,7 +148,13 @@ export default function LoginPage() {
             if (data.status === 'success') {
                 const searchParams = new URLSearchParams(window.location.search);
                 const nextUrl = searchParams.get('next');
-                router.push(nextUrl || data.redirect || '/payment');
+                const destination = nextUrl || data.redirect || '/payment';
+                // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
+                if (destination.startsWith('/oauth')) {
+                    window.location.href = destination;
+                } else {
+                    router.push(destination);
+                }
             } else {
                 setError(data.message || "Failed to override session.");
             }

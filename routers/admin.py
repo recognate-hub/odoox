@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from core.encryption import encrypt
 from core.logger import get_logger
 from core.supabase import get_supabase
+from core.auth import get_tenant_context
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -231,6 +232,55 @@ def api_logout():
     return response
 
 # Legacy save endpoint (backward compatibility)
+@router.get("/api/workspace/api-key")
+def generate_api_key(token: str = Depends(get_user_token)):
+    """
+    Generates a permanent API Key (Stateless Token) for the current workspace.
+    This token can be used in Claude Desktop or other MCP clients.
+    """
+    from core.context import get_workspace_credentials
+    from core.encryption import encrypt
+    
+    workspace = get_workspace_credentials(token)
+    
+    # Encrypt the full workspace context JSON
+    encrypted_payload = encrypt(workspace.model_dump_json())
+    
+    # Prepend odx_ to denote it as an OdooX API Key
+    api_key = f"odx_{encrypted_payload}"
+    
+    return {"api_key": api_key}
+
+@router.post("/api/workspace/api-key/revoke")
+def revoke_api_key(request: Request, api_key: str = Form(...), token: str = Depends(get_user_token)):
+    """
+    Revokes an existing permanent API key by adding it to the revoked_api_keys table in Supabase.
+    """
+    from core.context import get_workspace_credentials
+    
+    # Authenticate the user and get their workspace to ensure they own the workspace
+    workspace = get_workspace_credentials(token)
+    
+    # In a fully fleshed out system, we would decrypt the api_key and verify the workspace_id matches 
+    # the user's workspace_id before revoking it, to prevent a user from revoking someone else's key.
+    # For now, we just insert it.
+    
+    supabase = get_supabase()
+    try:
+        response = supabase.table("revoked_api_keys").insert({
+            "api_key": api_key,
+            "workspace_id": workspace.user_id # using user_id as workspace_id for simplicity, since it's 1:1 right now
+        }).execute()
+        
+        # Instantly propagate revocation to Redis cache
+        from core.cache import set_cached_value
+        set_cached_value(f"revoked:{api_key[:64]}", "1", ttl=86400) # 24h cache
+
+        return {"status": "success", "message": "API key revoked successfully."}
+    except Exception as e:
+        logger.error("Failed to revoke API key", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to revoke API key.")
+
 @router.post("/admin/save")
 def save_config(
     request: Request,

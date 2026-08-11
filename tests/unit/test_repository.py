@@ -105,7 +105,7 @@ def test_search_products(repo, mock_connector):
     assert products[0].id == 3
     assert products[0].name == "<untrusted_crm_data>Product A</untrusted_crm_data>"
     mock_connector.get_products.assert_called_once_with(
-        domain=[["name", "ilike", "Prod"]], limit=20
+        domain=["|", ["name", "ilike", "Prod"], ["default_code", "ilike", "Prod"]], limit=20
     )
 
 

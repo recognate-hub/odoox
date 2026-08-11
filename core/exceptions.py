@@ -17,6 +17,9 @@ class OdooAuthError(OdooConnectorError):
 class OdooConnectionError(OdooConnectorError):
     """Raised when connection to Odoo server fails or times out."""
 
+class CircuitBreakerOpenError(OdooConnectorError):
+    """Raised when the circuit breaker is open and blocks connection attempts."""
+
 class OdooResourceNotFoundError(OdooConnectorError):
     """Raised when a requested resource is not found in Odoo."""
 

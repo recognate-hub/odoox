@@ -130,8 +130,8 @@
 }
 
 .plans-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    display: flex;
+    justify-content: center;
     gap: 2rem;
     max-width: 900px;
     margin: 0 auto 3rem auto;
@@ -149,7 +149,8 @@
         box-shadow: none !important;
     }
     .plans-grid {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: center;
     }
     .price-block {
         padding: 1.5rem;

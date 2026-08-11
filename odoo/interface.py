@@ -76,3 +76,22 @@ class OdooConnectorInterface(ABC):
     def send_email(self, data: dict[str, Any]) -> int:
         pass
 
+    @abstractmethod
+    def search_read_records(self, model: str, domain: list[Any] | None = None, fields: list[str] | None = None, limit: int = 100) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def create_record(self, model: str, data: dict[str, Any]) -> int:
+        pass
+
+    @abstractmethod
+    def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    def get_installed_apps(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def get_model_fields(self, model: str) -> dict[str, Any]:
+        pass

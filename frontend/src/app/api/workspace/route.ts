@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         }
 
         const url = new URL(request.url);
-        const baseUrl = `${url.protocol}//${url.host}/`;
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
         const workspaces = workspaceData ? workspaceData.map(w => ({
             id: w.id,
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
             odoo_db: w.odoo_db || "",
             odoo_username: w.odoo_username || "",
             has_password: !!w.odoo_password,
-            connection_url: `${baseUrl}sse?token=${token}&workspace_id=${w.id}`
+            connection_url: `${backendUrl}/sse?token=${token}&workspace_id=${w.id}`
         })) : [];
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -51,14 +51,14 @@ export async function GET(request: Request) {
             .eq('user_id', userId)
             .limit(1);
 
-        const planType = payments && payments.length > 0 ? payments[0].plan : 'single';
-        const limit = planType === 'team' ? 10 : 1;
+        const limit = 1;
+        const reachedLimit = workspaces.length >= limit;
 
-        return NextResponse.json({
-            status: "success",
-            workspaces: workspaces,
-            plan_type: planType,
-            limit: limit,
+        return NextResponse.json({ 
+            status: "success", 
+            workspaces,
+            connection_url: `${backendUrl}/sse`,
+            reached_limit: reachedLimit,
             token: token,
         });
 

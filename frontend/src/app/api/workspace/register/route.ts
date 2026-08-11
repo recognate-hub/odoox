@@ -26,15 +26,6 @@ export async function POST(request: NextRequest) {
 
         const userId = userResponse.user.id;
 
-        // Check plan limits
-        const { data: paymentData } = await userClient
-            .from('payments')
-            .select('plan')
-            .eq('user_id', userId)
-            .limit(1);
-
-        const isTeamPlan = paymentData && paymentData.length > 0 && paymentData[0].plan === 'team';
-
         const { data: workspaces } = await userClient
             .from('user_workspaces')
             .select('id')
@@ -42,10 +33,10 @@ export async function POST(request: NextRequest) {
 
         const workspaceCount = workspaces ? workspaces.length : 0;
 
-        if (!isTeamPlan && workspaceCount >= 1) {
+        if (workspaceCount >= 1) {
             return NextResponse.json({ 
                 status: "error", 
-                message: "Single Plan allows only 1 Odoo connection. Please upgrade to Team to add more." 
+                message: "You have reached the maximum limit of 1 connected database." 
             }, { status: 403 });
         }
 

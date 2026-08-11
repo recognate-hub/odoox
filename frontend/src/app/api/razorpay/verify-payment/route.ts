@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
             });
             const order = await rzp.orders.fetch(razorpay_order_id);
             const plan = order.notes?.plan || 'OdooX Pro - Single User';
-            const isTeam = plan.includes('Team');
 
             let userId = order.notes?.user_id;
 
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
                 message: 'Payment verified successfully',
                 payment_id: razorpay_payment_id,
                 order_id: razorpay_order_id,
-                plan: isTeam ? 'team' : 'single'
+                plan: 'single'
             });
 
             const { signWithHmac } = await import('@/lib/hmac');

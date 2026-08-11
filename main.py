@@ -119,6 +119,23 @@ def create_app() -> FastAPI:
                 await sse.handle_post_message(scope, receive, send)
         return ASGIProxyResponse()
 
+    @app.post("/sse", dependencies=[get_rate_limiter(times=50, seconds=60)])
+    async def handle_sse_post(request: Request):
+        body = await request.body()
+        logger.info(f"POST /sse body: {body}")
+        
+        await get_tenant_context(request)
+        class ASGIProxyResponse(Response):
+            async def __call__(self, scope, receive, send):
+                # We consumed the body, so we need to inject it back for sse.handle_post_message
+                # But actually, sse.handle_post_message expects to read from receive.
+                # Let's just pass it, but since body is consumed, receive will yield nothing.
+                # To avoid breaking it, let's just use a custom receive.
+                async def custom_receive():
+                    return {"type": "http.request", "body": body, "more_body": False}
+                await sse.handle_post_message(scope, custom_receive, send)
+        return ASGIProxyResponse()
+
     # Instrument FastAPI with OpenTelemetry (if available)
     if _otel_available:
         FastAPIInstrumentor.instrument_app(app)

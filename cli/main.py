@@ -118,5 +118,56 @@ def seed():
         sys.exit(1)
 
 
+@app.command()
+def generate_api_key(email: str = typer.Option(..., help="User email to generate API Key for")):
+    """Generate a stateless API Key for a specific user's workspace."""
+    from core.supabase import get_supabase
+    from core.encryption import encrypt
+    from core.context import WorkspaceContext
+    
+    console.print(f"[cyan]Looking up workspaces for {email}...[/cyan]")
+    try:
+        supabase = get_supabase() # using service role
+        
+        # 1. Fetch user by email via admin API
+        users_resp = supabase.auth.admin.list_users()
+        user_id = None
+        for u in users_resp:
+            if getattr(u, 'email', None) == email:
+                user_id = u.id
+                break
+                
+        if not user_id:
+            console.print(f"[bold red]User {email} not found in Supabase Auth.[/bold red]")
+            sys.exit(1)
+            
+        # 2. Fetch workspace
+        workspace_response = supabase.table("user_workspaces").select("*").eq("user_id", user_id).limit(1).execute()
+        if not workspace_response.data:
+            console.print(f"[bold red]No workspace found for user {email}.[/bold red]")
+            sys.exit(1)
+            
+        workspace_data = workspace_response.data[0]
+        workspace = WorkspaceContext(
+            odoo_url=workspace_data["odoo_url"],
+            odoo_db=workspace_data["odoo_db"],
+            odoo_username=workspace_data["odoo_username"],
+            odoo_password=workspace_data["odoo_password"],
+            user_id=user_id
+        )
+        
+        # 3. Encrypt payload
+        encrypted_payload = encrypt(workspace.model_dump_json())
+        api_key = f"odx_{encrypted_payload}"
+        
+        console.print("[bold green]Success! Generated API Key:[/bold green]")
+        console.print(f"[yellow]{api_key}[/yellow]")
+        console.print("\n[cyan]Use this token in your claude_desktop_config.json:[/cyan]")
+        console.print(f'  "https://your-server.com/sse?token={api_key}"')
+        
+    except Exception as e:
+        console.print(f"[bold red]Failed: {e}[/bold red]")
+        sys.exit(1)
+
 if __name__ == "__main__":
     app()

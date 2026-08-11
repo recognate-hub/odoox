@@ -46,7 +46,7 @@ class OdooRepository:
 
 
     def search_products(self, query: str, limit: int = 20) -> list[OdooProduct]:
-        domain = [["name", "ilike", query]]
+        domain = ["|", ["name", "ilike", query], ["default_code", "ilike", query]] if query else []
         return self.connector.get_products(domain=domain, limit=limit)
 
     def create_product(self, name: str, list_price: float, default_code: str | None = None, type_code: str = "service") -> int:
@@ -123,12 +123,22 @@ class OdooRepository:
             "invoice_line_ids": [
                 [0, 0, {
                     "name": description,
+                    "quantity": 1,
                     "price_unit": amount,
-                    "quantity": 1
                 }]
             ]
         }
         return self.connector.create_invoice(data)
+
+    def get_product_stock(self, product_id: int) -> list[dict[str, Any]]:
+        """
+        Retrieves the stock quantities for a specific product.
+        Returns a list of locations and their available quantities.
+        """
+        domain = [("product_id", "=", product_id)]
+        fields = ["location_id", "quantity", "reserved_quantity"]
+        records = self.connector.search_read_records("stock.quant", domain, fields, limit=50)
+        return records
 
     def send_email(self, email_to: str, subject: str, body: str) -> int:
         data = {
@@ -138,3 +148,33 @@ class OdooRepository:
             "state": "outgoing"
         }
         return self.connector.send_email(data)
+
+    def search_read_records(self, model: str, domain: list[Any] | None = None, fields: list[str] | None = None, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
+        return self.connector.search_read_records(model, domain=domain, fields=fields, limit=limit, offset=offset)
+
+    def create_record(self, model: str, data: dict[str, Any]) -> int:
+        return self.connector.create_record(model, data)
+
+    def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
+        return self.connector.update_record(model, record_id, data)
+
+    def get_installed_apps(self) -> list[dict[str, Any]]:
+        return self.connector.get_installed_apps()
+
+    def get_model_fields(self, model: str) -> dict[str, Any]:
+        return self.connector.get_model_fields(model)
+
+    def read_group(self, model: str, domain: list[Any], fields: list[str], groupby: list[str]) -> list[dict[str, Any]]:
+        return self.connector.read_group(model, domain, fields, groupby)
+
+    def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
+        return self.connector.archive_record(model, record_id, archive)
+
+    def get_attachment(self, attachment_id: int) -> dict[str, Any]:
+        return self.connector.get_attachment(attachment_id)
+
+    def create_attachment(self, data: dict[str, Any]) -> int:
+        return self.connector.create_attachment(data)
+
+    def execute_method(self, model: str, method: str, args: list[Any] | None = None, kwargs: dict[str, Any] | None = None) -> Any:
+        return self.connector.execute_method(model, method, args, kwargs)

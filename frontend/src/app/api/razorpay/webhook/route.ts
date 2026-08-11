@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
             const entity = event.payload.payment?.entity || event.payload.order?.entity;
             const razorpay_order_id = entity.order_id || entity.id;
             const plan = entity.notes?.plan || 'OdooX Pro - Single User';
-            const isTeam = plan.includes('Team');
             const userId = entity.notes?.user_id;
 
             if (userId && userId !== 'unknown') {

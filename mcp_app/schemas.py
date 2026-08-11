@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -69,3 +69,60 @@ class CreateQuoteInput(BaseModel):
     partner_id: int = Field(..., description="The ID of the customer (partner) to create the quote for.")
     order_lines: list[QuoteLineInput] = Field(..., min_length=1, description="List of products and quantities to include in the quote.")
 
+
+class SearchReadInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name (e.g. 'hr.employee', 'project.task').")
+    domain: list[list[Any]] | None = Field(None, description="The search domain to filter records.")
+    fields: list[str] | None = Field(None, description="List of specific fields to return. If omitted, all fields are returned.")
+    limit: int = Field(50, ge=1, le=200, description="The maximum number of records to return.")
+    offset: int = Field(0, ge=0, description="The number of records to skip for pagination.")
+
+
+class CreateRecordInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name.")
+    data: dict[str, Any] = Field(..., description="Dictionary of fields and values to create the record.")
+
+
+class UpdateRecordInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name.")
+    record_id: int = Field(..., gt=0, description="The ID of the record to update.")
+    data: dict[str, Any] = Field(..., description="Dictionary of fields and values to update.")
+
+class GetModelFieldsInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name to get fields for.")
+
+
+class ReadGroupInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name.")
+    domain: list[list[Any]] | None = Field(None, description="The search domain to filter records.")
+    fields: list[str] = Field(..., description="List of fields to fetch/aggregate. Must include the groupby fields.")
+    groupby: list[str] = Field(..., description="List of fields to group by.")
+
+
+class ArchiveRecordInput(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    model: str = Field(..., description="The Odoo model name.")
+    record_id: int = Field(..., gt=0, description="The ID of the record to archive/unarchive.")
+    archive: bool = Field(True, description="True to archive (active=False), False to unarchive (active=True).")
+
+
+class CreateAttachmentInput(BaseModel):
+    res_model: str = Field(..., description="The Odoo model to attach the file to.")
+    res_id: int = Field(..., description="The ID of the record.")
+    name: str = Field(..., description="The name of the file (e.g., 'document.pdf').")
+    base64_data: str = Field(..., description="The base64 encoded content of the file.")
+
+
+class ReadAttachmentInput(BaseModel):
+    attachment_id: int = Field(..., gt=0, description="The ID of the attachment to read.")
+
+class ExecuteMethodInput(BaseModel):
+    model: str = Field(..., description="The Odoo model name.")
+    method: str = Field(..., description="The method to call on the model (e.g. 'action_confirm').")
+    args: list[Any] = Field(default_factory=list, description="Positional arguments.")
+    kwargs: dict[str, Any] = Field(default_factory=dict, description="Keyword arguments.")

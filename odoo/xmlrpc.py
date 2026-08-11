@@ -12,9 +12,15 @@ from tenacity import (
 )
 
 from config.settings import Settings, get_settings
+from core.cache import redis_client
 from core.context import WorkspaceContext, get_current_token, get_workspace_credentials
 from core.encryption import decrypt
-from core.exceptions import OdooAuthError, OdooConnectionError, OdooConnectorError
+from core.exceptions import (
+    CircuitBreakerOpenError,
+    OdooAuthError,
+    OdooConnectionError,
+    OdooConnectorError,
+)
 from core.idempotency import IdempotencyCache
 from core.logger import get_logger
 from odoo.interface import OdooConnectorInterface
@@ -25,7 +31,6 @@ from schemas.odoo import (
     OdooQuote,
     OdooSalesDashboard,
 )
-from core.cache import redis_client
 
 logger = get_logger(__name__)
 
@@ -137,14 +142,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def _check_circuit_breaker(self, db_name: str):
         if redis_client:
             failures = redis_client.get(f"cb_fails:{db_name}")
-            if failures and int(failures) >= 5:
-                raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
+            if failures and int(failures) >= 3:
+                raise CircuitBreakerOpenError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
         else:
             if db_name in self._circuit_breakers:
                 local_failures, last_failure = self._circuit_breakers[db_name]
-                if local_failures >= 5:
+                if local_failures >= 3:
                     if time.time() - last_failure < 30:
-                        raise OdooConnectionError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
+                        raise CircuitBreakerOpenError(f"Circuit breaker open for {db_name}. Too many recent timeouts.")
                     else:
                         # Half-open state: reset failures to allow a test request
                         self._circuit_breakers[db_name] = (0, time.time())
@@ -334,3 +339,85 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             self._execute("mail.mail", "send", [[mail_id]])
             return mail_id
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "send_email", data, _exec)
+
+    def search_read_records(self, model: str, domain: list[Any] | None = None, fields: list[str] | None = None, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
+        domain = domain or []
+        kwargs = {"limit": limit, "offset": offset}
+        if fields:
+            kwargs["fields"] = fields
+        records = self._execute(model, "search_read", domain, **kwargs)
+        return records
+
+    def create_record(self, model: str, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute(model, "create", [data])
+        # Use idempotency key combining model and create
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, f"create_{model.replace('.', '_')}", data, _exec)
+
+    def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
+        result = self._execute(model, "write", [[record_id], data])
+        return bool(result)
+
+    def get_installed_apps(self) -> list[dict[str, Any]]:
+        workspace = self._get_workspace()
+        cache_key = f"schema:{workspace.odoo_db}:installed_apps"
+        
+        import json
+
+        from core.cache import get_cached_value, set_cached_value
+        
+        cached = get_cached_value(cache_key)
+        if cached:
+            return json.loads(cached)
+            
+        # Odoo stores installed modules in ir.module.module
+        domain = [["state", "=", "installed"]]
+        fields = ["name", "shortdesc", "application"]
+        records = self._execute("ir.module.module", "search_read", domain, fields=fields)
+        
+        set_cached_value(cache_key, json.dumps(records), ttl=86400) # 24 hours
+        return records
+
+    def get_model_fields(self, model: str) -> dict[str, Any]:
+        workspace = self._get_workspace()
+        cache_key = f"schema:{workspace.odoo_db}:model_fields:{model}"
+        
+        import json
+
+        from core.cache import get_cached_value, set_cached_value
+        
+        cached = get_cached_value(cache_key)
+        if cached:
+            return json.loads(cached)
+            
+        # fields_get returns a dict of {field_name: field_info}
+        attributes = ["string", "type", "help", "selection", "relation"]
+        fields_info = self._execute(model, "fields_get", [], attributes)
+        
+        set_cached_value(cache_key, json.dumps(fields_info), ttl=86400) # 24 hours
+        return fields_info
+
+    def read_group(self, model: str, domain: list[Any], fields: list[str], groupby: list[str]) -> list[dict[str, Any]]:
+        return self._execute(model, "read_group", domain, fields, groupby)
+
+    def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
+        result = self._execute(model, "write", [[record_id], {"active": not archive}])
+        return bool(result)
+
+    def get_attachment(self, attachment_id: int) -> dict[str, Any]:
+        records = self._execute("ir.attachment", "search_read", [["id", "=", attachment_id]], fields=["name", "datas", "mimetype", "res_model", "res_id"], limit=1)
+        if not records:
+            raise OdooConnectorError(f"Attachment {attachment_id} not found.")
+        return records[0]
+
+    def create_attachment(self, data: dict[str, Any]) -> int:
+        workspace = self._get_workspace()
+        def _exec():
+            return self._execute("ir.attachment", "create", [data])
+        return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_attachment", data, _exec)
+
+    def execute_method(self, model: str, method: str, args: list[Any] | None = None, kwargs: dict[str, Any] | None = None) -> Any:
+        args = args or []
+        kwargs = kwargs or {}
+        return self._execute(model, method, args, **kwargs)

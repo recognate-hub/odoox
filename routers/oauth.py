@@ -34,7 +34,9 @@ def authorize(
     # If the user is not logged in, redirect them to the ODOOX login page
     # passing the current OAuth URL as the `next` parameter so they come back here
     if not token:
-        next_url = urllib.parse.quote_plus(str(request.url))
+        # Use a relative URL to preserve the frontend domain/tunnel host
+        relative_url = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
+        next_url = urllib.parse.quote_plus(relative_url)
         return RedirectResponse(url=f"/login?next={next_url}", status_code=303)
         
     # If the user is logged in, generate an authorization code.

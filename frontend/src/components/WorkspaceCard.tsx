@@ -109,7 +109,7 @@ export default function WorkspaceCard({
                             value={workspace.odoo_url}
                             onChange={(e) => onChange(index, 'odoo_url', e.target.value)}
                             onBlur={(e) => {
-                                let val = e.target.value.trim();
+                                const val = e.target.value.trim();
                                 if (val && !/^https?:\/\//i.test(val)) {
                                     onChange(index, 'odoo_url', 'http://' + val);
                                 }

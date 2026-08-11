@@ -18,6 +18,10 @@ export default function UserDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
+    
+    // API Key State
+    const [apiKey, setApiKey] = useState("");
+    const [isGeneratingKey, setIsGeneratingKey] = useState(false);
 
     const fetchWorkspaces = React.useCallback(async () => {
         try {
@@ -42,6 +46,10 @@ export default function UserDashboard() {
     }, [router]);
 
     useEffect(() => {
+        const storedApiKey = localStorage.getItem('workspace_api_key');
+        if (storedApiKey) {
+            setApiKey(storedApiKey);
+        }
         fetchWorkspaces();
     }, [fetchWorkspaces]);
 
@@ -84,6 +92,8 @@ export default function UserDashboard() {
             if (data.status === 'success') {
                 setToastMessage("Workspace saved successfully!");
                 setShowToast(true);
+                setApiKey("");
+                localStorage.removeItem('workspace_api_key');
                 setTimeout(() => setShowToast(false), 3000);
                 fetchWorkspaces(); // Refresh to get proper ID and URL
             } else {
@@ -117,6 +127,8 @@ export default function UserDashboard() {
             if (data.status === 'success') {
                 setToastMessage("Workspace deleted.");
                 setShowToast(true);
+                setApiKey("");
+                localStorage.removeItem('workspace_api_key');
                 setTimeout(() => setShowToast(false), 3000);
                 fetchWorkspaces();
             } else {
@@ -130,11 +142,61 @@ export default function UserDashboard() {
     const handleLogout = async (e: React.MouseEvent) => {
         e.preventDefault();
         try {
+            localStorage.removeItem('workspace_api_key');
             await fetch('/api/logout', { method: 'POST' });
         } catch (err) {
             console.error("Logout error", err);
         } finally {
             router.push('/login');
+        }
+    };
+
+    const handleGenerateApiKey = async () => {
+        setIsGeneratingKey(true);
+        try {
+            const res = await fetch('/api/workspace/api-key');
+            const data = await res.json();
+            if (res.ok && data.api_key) {
+                setApiKey(data.api_key);
+                localStorage.setItem('workspace_api_key', data.api_key);
+                setToastMessage("API Key generated successfully.");
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 3000);
+            } else {
+                alert("Failed to generate API key.");
+            }
+        } catch (e) {
+            alert("Error generating API key.");
+        } finally {
+            setIsGeneratingKey(false);
+        }
+    };
+
+    const handleRevokeApiKey = async () => {
+        if (!apiKey) return;
+        if (!confirm("Are you sure you want to revoke this API key? Any applications using it will lose access immediately.")) return;
+        
+        try {
+            const formData = new URLSearchParams();
+            formData.append('api_key', apiKey);
+            
+            const res = await fetch('/api/workspace/api-key/revoke', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+            
+            if (res.ok) {
+                setApiKey("");
+                localStorage.removeItem('workspace_api_key');
+                setToastMessage("API Key revoked successfully.");
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 3000);
+            } else {
+                alert("Failed to revoke API key.");
+            }
+        } catch (e) {
+            alert("Error revoking API key.");
         }
     };
 
@@ -223,6 +285,136 @@ export default function UserDashboard() {
                                     onDelete={handleDelete}
                                 />
                             ))}
+
+                            {workspaces.length > 0 && (
+                                <div className="glass-card" style={{ padding: '2rem', marginTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                                    <h3 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>API Integrations</h3>
+                                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                                        Generate a permanent API Key to connect external tools like Claude Desktop directly to your Odoo environment. Keep this key safe.
+                                    </p>
+                                    
+                                    {!apiKey ? (
+                                        <button 
+                                            className="btn btn-primary" 
+                                            onClick={handleGenerateApiKey}
+                                            disabled={isGeneratingKey}
+                                        >
+                                            {isGeneratingKey ? "Generating..." : "Generate Permanent API Key"}
+                                        </button>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Raw API Key</label>
+                                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                                    <input 
+                                                        type="text" 
+                                                        value={apiKey} 
+                                                        readOnly 
+                                                        className="form-input" 
+                                                        style={{ flex: 1, fontFamily: 'monospace' }}
+                                                    />
+                                                    <button 
+                                                        className="btn btn-outline"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(apiKey);
+                                                            setToastMessage("API Key copied!");
+                                                            setShowToast(true);
+                                                            setTimeout(() => setShowToast(false), 3000);
+                                                        }}
+                                                    >
+                                                        Copy Key
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Claude Web Custom Connector URL</label>
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                                    Paste this into the <strong>Remote MCP server URL</strong> field in Claude Web. <br/>
+                                                    <em>Note: Claude Web requires HTTPS. If running locally, you must proxy localhost:8000 through ngrok (e.g. `ngrok http 8000`) and replace localhost below with your ngrok HTTPS URL.</em>
+                                                </p>
+                                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                                    <input 
+                                                        type="text" 
+                                                        value={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}`}
+                                                        readOnly 
+                                                        className="form-input" 
+                                                        style={{ flex: 1, fontFamily: 'monospace' }}
+                                                    />
+                                                    <button 
+                                                        className="btn btn-primary"
+                                                        onClick={() => {
+                                                            const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}`;
+                                                            navigator.clipboard.writeText(fullUrl);
+                                                            setToastMessage("Full URL copied!");
+                                                            setShowToast(true);
+                                                            setTimeout(() => setShowToast(false), 3000);
+                                                        }}
+                                                    >
+                                                        Copy URL
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ marginTop: '1rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Claude Desktop Configuration (claude_desktop_config.json)</label>
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>For local Claude Desktop app usage, bypassing HTTPS requirements.</p>
+                                                <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                                                    <textarea 
+                                                        value={`{
+  "mcpServers": {
+    "odoox-cloud": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}"
+      ]
+    }
+  }
+}`}
+                                                        readOnly 
+                                                        className="form-input" 
+                                                        style={{ width: '100%', fontFamily: 'monospace', minHeight: '220px', resize: 'none', padding: '1rem', background: '#000', color: '#a3e635' }}
+                                                    />
+                                                    <button 
+                                                        className="btn btn-primary"
+                                                        style={{ position: 'absolute', top: '10px', right: '10px', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                                                        onClick={() => {
+                                                            const configStr = `{
+  "mcpServers": {
+    "odoox-cloud": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}"
+      ]
+    }
+  }
+}`;
+                                                            navigator.clipboard.writeText(configStr);
+                                                            setToastMessage("Configuration copied!");
+                                                            setShowToast(true);
+                                                            setTimeout(() => setShowToast(false), 3000);
+                                                        }}
+                                                    >
+                                                        Copy Config
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ marginTop: '0.5rem' }}>
+                                                <button className="btn btn-outline" style={{ color: 'var(--accent-red)', borderColor: 'rgba(239, 68, 68, 0.3)' }} onClick={handleRevokeApiKey}>
+                                                    Revoke Key
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </main>
                 </div>

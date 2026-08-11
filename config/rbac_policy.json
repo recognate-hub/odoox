@@ -27,5 +27,11 @@
       "search_contacts",
       "get_customer_details"
     ]
+  },
+  "allowed_models": {
+    "Admin": ["*"],
+    "Sales": ["res.partner", "crm.lead", "sale.order", "product.template"],
+    "Manager": ["res.partner", "crm.lead", "sale.order", "product.template", "hr.employee"],
+    "Support": ["res.partner", "helpdesk.ticket"]
   }
 }

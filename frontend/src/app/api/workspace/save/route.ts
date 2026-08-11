@@ -40,17 +40,10 @@ export async function POST(request: Request) {
 
         // Enforce Plan Limits for NEW workspaces
         if (!workspace_id) {
-            const { data: paymentData } = await supabase
-                .from('payments')
-                .select('plan')
-                .eq('user_id', userId)
-                .limit(1);
-
-            const isTeamPlan = paymentData && paymentData.length > 0 && paymentData[0].plan === 'team';
-            if (!isTeamPlan && currentCount >= 1) {
+            if (currentCount >= 1) {
                 return NextResponse.json({ 
                     status: "error", 
-                    message: "Single Plan allows only 1 workspace. Please upgrade to Team to add more." 
+                    message: "You have reached the maximum limit of 1 connected database." 
                 }, { status: 403 });
             }
         }
@@ -88,13 +81,12 @@ export async function POST(request: Request) {
             if (updateError) throw updateError;
         } else {
             // Inserting new workspace
-            const planType = cookieStore.get('plan_type')?.value || 'single';
-            const limit = planType === 'team' ? 10 : 1;
+            const limit = 1;
             
             if (currentCount >= limit) {
                 return NextResponse.json({ 
                     status: "error", 
-                    message: `Plan limit reached. Your ${planType} plan allows up to ${limit} connected database(s).` 
+                    message: `Plan limit reached. You can only connect up to ${limit} database.` 
                 }, { status: 403 });
             }
 

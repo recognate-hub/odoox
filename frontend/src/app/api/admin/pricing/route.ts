@@ -34,24 +34,20 @@ export async function GET() {
         const { data: configData, error: configError } = await supabase
             .from('app_config')
             .select('*')
-            .in('key', ['single_plan_price', 'team_plan_price']);
+            .in('key', ['single_plan_price']);
 
         if (configError) throw configError;
 
         let singlePrice = 0;
-        let teamPrice = 0;
 
         if (configData) {
             const single = configData.find(d => d.key === 'single_plan_price');
-            const team = configData.find(d => d.key === 'team_plan_price');
             if (single) singlePrice = parseFloat(single.value);
-            if (team) teamPrice = parseFloat(team.value);
         }
 
         return NextResponse.json({
             status: "success",
-            singlePrice,
-            teamPrice
+            singlePrice
         });
 
     } catch (e: any) {
@@ -90,10 +86,10 @@ export async function POST(request: Request) {
 
         // 3. Update Prices
         const body = await request.json();
-        const { singlePrice, teamPrice } = body;
+        const { singlePrice } = body;
 
-        if (!singlePrice || !teamPrice) {
-            return NextResponse.json({ status: "error", detail: "Missing prices" }, { status: 400 });
+        if (!singlePrice) {
+            return NextResponse.json({ status: "error", detail: "Missing price" }, { status: 400 });
         }
 
         const { error: err1 } = await supabase
@@ -102,13 +98,6 @@ export async function POST(request: Request) {
             .eq('key', 'single_plan_price');
             
         if (err1) throw err1;
-
-        const { error: err2 } = await supabase
-            .from('app_config')
-            .update({ value: parseFloat(teamPrice) })
-            .eq('key', 'team_plan_price');
-
-        if (err2) throw err2;
 
         return NextResponse.json({ status: "success" });
 

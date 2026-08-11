@@ -11,6 +11,7 @@ class PolicyEngine:
     Loads declarative RBAC policies and evaluates access requests.
     """
     _policies: dict[str, list[str]] = {}
+    _allowed_models: dict[str, list[str]] = {}
     _loaded: bool = False
 
     @classmethod
@@ -25,6 +26,7 @@ class PolicyEngine:
             with open(file_path, "r") as f:
                 data = json.load(f)
                 cls._policies = data.get("roles", {})
+                cls._allowed_models = data.get("allowed_models", {})
                 cls._loaded = True
                 logger.info("Successfully loaded RBAC policies", roles=list(cls._policies.keys()))
         except Exception as e:
@@ -56,4 +58,28 @@ class PolicyEngine:
             return True
             
         logger.warning("Policy evaluation denied", role=role, action=action)
+        return False
+
+    @classmethod
+    def is_model_allowed(cls, role: str, action: str, model: str) -> bool:
+        """
+        Evaluates whether a role is permitted to access a specific model 
+        using generic tools (e.g. search_read_records).
+        """
+        if not cls._loaded:
+            cls.load_policies()
+
+        if role not in cls._allowed_models:
+            logger.warning("Model policy evaluation failed: unknown role in allowed_models", role=role, model=model)
+            return False
+
+        allowed_models_list = cls._allowed_models[role]
+
+        if "*" in allowed_models_list:
+            return True
+
+        if model in allowed_models_list:
+            return True
+
+        logger.warning("Model policy evaluation denied", role=role, action=action, model=model)
         return False

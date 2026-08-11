@@ -4,6 +4,7 @@ const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const apiUrl = rawApiUrl.replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['medicines-assignment-occasionally-basin.trycloudflare.com'],
   async rewrites() {
     return [
       // Proxy SSE calls to the FastAPI backend

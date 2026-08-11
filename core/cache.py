@@ -37,3 +37,20 @@ def set_cached_workspace(token: str, workspace: BaseModel, ttl: int = 300) -> No
         redis_client.setex(f"workspace:{token}", ttl, workspace.model_dump_json())
     except Exception as e:
         logger.warning(f"Redis set failed: {e}")
+
+def get_cached_value(key: str) -> str | None:
+    if not redis_client:
+        return None
+    try:
+        return redis_client.get(key)
+    except Exception as e:
+        logger.warning(f"Redis get_cached_value failed: {e}")
+    return None
+
+def set_cached_value(key: str, value: str, ttl: int = 3600) -> None:
+    if not redis_client:
+        return
+    try:
+        redis_client.setex(key, ttl, value)
+    except Exception as e:
+        logger.warning(f"Redis set_cached_value failed: {e}")

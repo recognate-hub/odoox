@@ -21,19 +21,19 @@ class UserContext(BaseModel):
 def get_current_user_context() -> UserContext:
     """
     Resolves the user context dynamically from the active JWT token.
-    Defaulting to 'Admin' role as requested by the user.
+    Role is read from the workspace's per-workspace role field.
     """
     try:
         token = get_current_token()
         from core.context import current_workspace_id
         workspace_id = current_workspace_id.get()
         workspace = get_workspace_credentials(token, workspace_id=workspace_id)
-        return UserContext(user_id=workspace.user_id, role="Admin")
+        return UserContext(user_id=workspace.user_id, role=workspace.role)
     except Exception as e:
         audit_logger.error("Failed to resolve user context", error=str(e))
         raise PermissionDeniedError("Could not verify identity for execution.")
 
-# In-memory rate limiting state: {user_id: [timestamps]}
+# In-memory rate limiting fallback: {user_id: [timestamps]}
 _rate_limit_state: dict[str, list[float]] = {}
 RATE_LIMIT_MAX_CALLS = 100
 RATE_LIMIT_WINDOW_SEC = 60
@@ -42,11 +42,29 @@ RATE_LIMIT_WINDOW_SEC = 60
 finops_service = FinOpsService()
 
 def _check_rate_limit(user_id: str) -> None:
+    """Enforce per-user rate limiting. Uses Redis when available, falls back to in-memory."""
+    from core.cache import redis_client
+    
+    if redis_client:
+        try:
+            window_key = int(time.time()) // RATE_LIMIT_WINDOW_SEC
+            redis_key = f"mcp_rate:{user_id}:{window_key}"
+            current = redis_client.incr(redis_key)
+            if current == 1:
+                redis_client.expire(redis_key, RATE_LIMIT_WINDOW_SEC + 1)
+            if current > RATE_LIMIT_MAX_CALLS:
+                raise RateLimitExceededError(f"User {user_id} exceeded rate limit of {RATE_LIMIT_MAX_CALLS} calls per {RATE_LIMIT_WINDOW_SEC}s.")
+            return
+        except RateLimitExceededError:
+            raise
+        except Exception as e:
+            audit_logger.warning("Redis rate limit failed, falling back to in-memory", error=str(e))
+    
+    # In-memory fallback
     now = time.time()
     if user_id not in _rate_limit_state:
         _rate_limit_state[user_id] = []
     
-    # Filter timestamps within the window
     _rate_limit_state[user_id] = [t for t in _rate_limit_state[user_id] if now - t < RATE_LIMIT_WINDOW_SEC]
     
     if len(_rate_limit_state[user_id]) >= RATE_LIMIT_MAX_CALLS:
@@ -81,6 +99,13 @@ def secure_tool(action: str | None = None):
             if not PolicyEngine.is_allowed(user.role, tool_action):
                 audit_logger.warning("Permission Denied", tool=func.__name__, action=tool_action, user_id=user.user_id)
                 raise PermissionDeniedError(f"Role {user.role} does not have permission to execute {tool_action}")
+            
+            # 2b. Model-Level RBAC Verification for Generic Tools
+            if tool_action in ["search_read_records", "create_record", "update_record", "read_group_records", "archive_record", "execute_model_method"]:
+                model_name = kwargs.get("model")
+                if model_name and not PolicyEngine.is_model_allowed(user.role, tool_action, model_name):
+                    audit_logger.warning("Model Permission Denied", tool=func.__name__, action=tool_action, model=model_name, user_id=user.user_id)
+                    raise PermissionDeniedError(f"Role {user.role} does not have permission to access model {model_name}")
                 
             # 3. Rate Limiting
             _check_rate_limit(user.user_id)

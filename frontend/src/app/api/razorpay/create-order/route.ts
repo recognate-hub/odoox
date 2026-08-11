@@ -24,8 +24,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch dynamic pricing from Supabase app_config
-        const isTeamPlan = planName.toLowerCase().includes('team');
-        const configKey = isTeamPlan ? 'team_plan_price' : 'single_plan_price';
+        const configKey = 'single_plan_price';
         let amount = 0;
 
         const { data, error } = await supabase.from('app_config').select('value').eq('key', configKey).single();

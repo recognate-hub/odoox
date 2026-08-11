@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from core.exceptions import OdooConnectionError
+from core.exceptions import OdooConnectionError, CircuitBreakerOpenError
 from core.idempotency import IdempotencyCache, _idempotency_state
 from odoo.xmlrpc import (
     TimeoutSafeTransport,
@@ -24,27 +24,31 @@ def test_timeout_transport():
 
 
 def test_circuit_breaker():
-    connector = XmlRpcOdooConnector()
-    db_name = "test_db"
-    
-    # Simulate 4 failures
-    for _ in range(4):
-        connector._record_failure(db_name)
-    
-    # Should not raise
-    connector._check_circuit_breaker(db_name)
-    
-    # 5th failure
-    connector._record_failure(db_name)
-    
-    with pytest.raises(OdooConnectionError, match="Circuit breaker open"):
+    from config.settings import get_settings
+    # Pass settings properly
+    connector = XmlRpcOdooConnector(get_settings())
+    # Override redis_client to None to test local circuit breaker
+    with patch("odoo.xmlrpc.redis_client", None):
+        db_name = "test_db"
+        
+        # Simulate 2 failures
+        for _ in range(2):
+            connector._record_failure(db_name)
+        
+        # Should not raise
         connector._check_circuit_breaker(db_name)
         
-    # Simulate time passing (half-open)
-    with patch("time.time", return_value=time.time() + 31):
-        # Should not raise, and should reset failures to 0
-        connector._check_circuit_breaker(db_name)
-        assert connector._circuit_breakers[db_name][0] == 0
+        # 3rd failure
+        connector._record_failure(db_name)
+        
+        with pytest.raises(CircuitBreakerOpenError, match="Circuit breaker open"):
+            connector._check_circuit_breaker(db_name)
+            
+        # Simulate time passing (half-open)
+        with patch("time.time", return_value=time.time() + 31):
+            # Should not raise, and should reset failures to 0
+            connector._check_circuit_breaker(db_name)
+            assert connector._circuit_breakers[db_name][0] == 0
 
 
 def test_idempotency_cache():

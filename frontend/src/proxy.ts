@@ -74,11 +74,6 @@ export default async function proxy(request: NextRequest) {
         if (!token) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
-        
-        const isSessionValid = await checkDeviceSession(request, token);
-        if (!isSessionValid) {
-            return NextResponse.redirect(new URL('/login?session_expired=true', request.url));
-        }
 
         const isPaid = await checkPaymentStatus(request);
         if (!isPaid) {
@@ -93,11 +88,6 @@ export default async function proxy(request: NextRequest) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
 
-        const isSessionValid = await checkDeviceSession(request, token);
-        if (!isSessionValid) {
-            return NextResponse.redirect(new URL('/login?session_expired=true', request.url));
-        }
-
         const isPaid = await checkPaymentStatus(request);
         if (isPaid) {
             return NextResponse.redirect(new URL('/userdashboard', request.url));
@@ -108,14 +98,11 @@ export default async function proxy(request: NextRequest) {
     // Public Routes (Login only)
     if (pathname === '/login') {
         if (token) {
-            const isSessionValid = await checkDeviceSession(request, token);
-            if (isSessionValid) {
-                const isPaid = await checkPaymentStatus(request);
-                if (isPaid) {
-                    return NextResponse.redirect(new URL('/userdashboard', request.url));
-                } else {
-                    return NextResponse.redirect(new URL('/payment', request.url));
-                }
+            const isPaid = await checkPaymentStatus(request);
+            if (isPaid) {
+                return NextResponse.redirect(new URL('/userdashboard', request.url));
+            } else {
+                return NextResponse.redirect(new URL('/payment', request.url));
             }
         }
     }

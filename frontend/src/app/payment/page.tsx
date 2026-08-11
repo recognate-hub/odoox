@@ -21,17 +21,14 @@ export default function PaymentPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [singlePrice, setSinglePrice] = useState<number | null>(null);
-    const [teamPrice, setTeamPrice] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchPrices = async () => {
             try {
-                const { data, error } = await supabase.from('app_config').select('*').in('key', ['single_plan_price', 'team_plan_price']);
+                const { data, error } = await supabase.from('app_config').select('*').in('key', ['single_plan_price']);
                 if (data && !error) {
                     const single = data.find(d => d.key === 'single_plan_price');
-                    const team = data.find(d => d.key === 'team_plan_price');
                     if (single) setSinglePrice(parseFloat(single.value));
-                    if (team) setTeamPrice(parseFloat(team.value));
                 }
             } catch (err) {
                 console.error('Could not fetch dynamic prices');
@@ -263,66 +260,7 @@ export default function PaymentPage() {
                         </ul>
                     </div>
 
-                    {/* Team Plan */}
-                    <div className="pricing-card featured delay-2">
-                        <div className="plan-header-section">
-                            <div className="tier-name">Team / Agency</div>
-                            <p className="tier-desc">Complete access to the AI-powered Odoo MCP Gateway for your entire team.</p>
-                        </div>
 
-                        <div className="price-block">
-                            <div className="price-container">
-                                <span className="currency">₹</span>
-                                <span className="price">{teamPrice === null ? '...' : teamPrice}</span>
-                            </div>
-                            <div className="billing-note">One-time payment · Valid for 5 years</div>
-                        </div>
-
-                        {isCheckingAuth ? (
-                            <button className="btn btn-primary btn-outline" disabled>
-                                <span className="spinner"></span>
-                            </button>
-                        ) : !isAuthenticated ? (
-                            <button className="btn btn-primary btn-outline" onClick={() => router.push('/login')}>
-                                Login to Continue
-                            </button>
-                        ) : (
-                            <button 
-                                className="btn btn-primary" 
-                                style={{ width: '100%' }}
-                                onClick={() => teamPrice !== null && handlePayment(teamPrice, 'OdooX Pro - Team')}
-                                disabled={isLoading || isCheckingAuth || teamPrice === null}
-                            >
-                                {isLoading && selectedPlanPrice === teamPrice ? (
-                                    <>
-                                        <span className="spinner"></span>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    `Select Team Plan`
-                                )}
-                            </button>
-                        )}
-
-                        <div className="features-divider">
-                            <span>Everything in Single, plus</span>
-                        </div>
-
-                        <ul className="features-list">
-                            <li className="feature-item">
-                                <CheckIcon /> Connect up to 10 Odoo Databases
-                            </li>
-                            <li className="feature-item">
-                                <CheckIcon /> Sub-50ms Global Edge Routing
-                            </li>
-                            <li className="feature-item">
-                                <CheckIcon /> End-to-End AES-256 Encryption
-                            </li>
-                            <li className="feature-item">
-                                <CheckIcon /> Priority Email & Chat Support
-                            </li>
-                        </ul>
-                    </div>
                 </div>
 
                 <div className="trust-footer">

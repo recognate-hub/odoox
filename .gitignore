@@ -66,3 +66,4 @@ test_odoo.py
 manual_test.py
 db.sqlite3
 node_modules/
+cloudflared.exe

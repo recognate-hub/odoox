@@ -24,19 +24,9 @@ export async function POST(request: NextRequest) {
 
         const userId = data.session.user.id;
 
-        // Check for active sessions using user's token
-        const { getSupabaseWithToken } = await import('@/lib/supabase');
-        const userClient = getSupabaseWithToken(data.session.access_token);
-
-        const { data: activeSessionData } = await userClient
-            .from('active_sessions')
-            .select('device_session_id')
-            .eq('user_id', userId)
-            .limit(1);
-
         const response = NextResponse.json({ 
-            status: activeSessionData && activeSessionData.length > 0 ? "conflict" : "success",
-            message: activeSessionData && activeSessionData.length > 0 ? "You are already logged in on another device." : "Login successful"
+            status: "success",
+            message: "Login successful"
         });
 
         // Always set access_token cookie
@@ -49,17 +39,21 @@ export async function POST(request: NextRequest) {
             path: '/'
         });
 
-        if (activeSessionData && activeSessionData.length > 0) {
-            return response; // Return conflict immediately, do not set other cookies yet
+        // Set refresh_token cookie (needed by OAuth authorize endpoint)
+        if (data.session.refresh_token) {
+            response.cookies.set({
+                name: 'refresh_token',
+                value: data.session.refresh_token,
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                path: '/'
+            });
         }
 
         // If no conflict, proceed with session creation
         const { randomUUID } = await import('crypto');
         const deviceSessionId = randomUUID();
-
-        await userClient
-            .from('active_sessions')
-            .insert({ user_id: userId, device_session_id: deviceSessionId });
 
         response.cookies.set({
             name: 'device_session_id',
@@ -75,7 +69,13 @@ export async function POST(request: NextRequest) {
         
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''; 
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
+
+        if (!supabaseServiceKey) {
+            console.error("SUPABASE_SERVICE_ROLE_KEY is missing. Admin client cannot be initialized safely.");
+            return NextResponse.json({ status: "error", message: "Server misconfiguration" }, { status: 500 });
+        }
+
         const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
         const { data: paymentData } = await adminClient
