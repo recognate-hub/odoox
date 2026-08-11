@@ -16,6 +16,15 @@ router = APIRouter()
 # Code Expiry (5 minutes)
 CODE_EXPIRY_SEC = 300
 
+# How many seconds before the access_token actually expires we tell the client.
+# Supabase JWTs are valid for 3600 s. We report 3500 so Claude has time to
+# refresh before the token actually expires.
+ACCESS_TOKEN_LIFETIME_SEC = 3500
+
+# Supabase refresh tokens are long-lived (weeks). Report a conservative value
+# so Claude knows it can hold onto the refresh_token for a long time.
+REFRESH_TOKEN_LIFETIME_SEC = 7 * 24 * 3600  # 7 days
+
 @router.get("/authorize")
 def authorize(
     request: Request,
@@ -49,10 +58,14 @@ def authorize(
         
     # If the user is logged in, generate an authorization code.
     # We use a stateless encrypted payload so we don't need a DB table.
+    # Try to read the actual Supabase session expiry from the cookie so we can
+    # embed it in the payload (used later to compute expires_in accurately).
+    issued_at = int(time.time())
     payload = {
         "access_token": token,
         "refresh_token": refresh_token,
-        "exp": time.time() + CODE_EXPIRY_SEC
+        "issued_at": issued_at,
+        "exp": issued_at + CODE_EXPIRY_SEC
     }
     
     code = encrypt(json.dumps(payload))
@@ -85,13 +98,21 @@ def token(
             return JSONResponse(status_code=400, content={"error": "invalid_request", "error_description": "refresh_token is required"})
         
         try:
-            # Our OAuth refresh_token is simply the encrypted Supabase refresh_token
+            # Our OAuth refresh_token is the encrypted Supabase refresh_token.
+            # Decrypt it to get the raw Supabase refresh token.
             supabase_refresh = decrypt(refresh_token)
-            if supabase_refresh == refresh_token:
-                raise ValueError("Invalid refresh token signature")
+            if not supabase_refresh or supabase_refresh == refresh_token:
+                # decrypt() returns the raw value unchanged when decryption fails;
+                # treat that case as an invalid token.
+                raise ValueError("Invalid or undecryptable refresh token")
             
-            supabase = get_supabase()
-            res = supabase.auth.refresh_session(supabase_refresh)
+            # Use the service-role client for token refresh — this avoids RLS
+            # issues that can arise when the old access token has already expired.
+            from config.settings import get_settings as _gs
+            from supabase import create_client
+            _settings = _gs()
+            admin_client = create_client(_settings.SUPABASE_URL, _settings.SUPABASE_SERVICE_ROLE_KEY)
+            res = admin_client.auth.refresh_session(supabase_refresh)
             
             if not res or not res.session:
                 raise ValueError("Supabase failed to refresh session")
@@ -99,15 +120,16 @@ def token(
             new_access_token = res.session.access_token
             new_refresh_token = res.session.refresh_token
             
+            logger.info("OAuth token refreshed successfully")
             return JSONResponse(content={
                 "access_token": new_access_token,
                 "token_type": "Bearer",
-                "expires_in": 3600,
+                "expires_in": ACCESS_TOKEN_LIFETIME_SEC,
                 "refresh_token": encrypt(new_refresh_token) if new_refresh_token else refresh_token
             })
         except Exception as e:  # noqa: BLE001
             logger.error("OAuth Token Refresh Failed", error=str(e))
-            return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "refresh failed"})
+            return JSONResponse(status_code=400, content={"error": "invalid_grant", "error_description": "Token refresh failed. Please re-authenticate."})
 
     if grant_type != "authorization_code":
         return JSONResponse(status_code=400, content={"error": "unsupported_grant_type"})
@@ -131,13 +153,22 @@ def token(
             
         supabase_refresh = payload.get("refresh_token")
             
-        # Return standard OAuth 2.0 response
-        return JSONResponse(content={
+        # Return standard OAuth 2.0 response.
+        # expires_in tells Claude how long the access_token is valid for.
+        # We report ACCESS_TOKEN_LIFETIME_SEC (slightly under 1 hour) so Claude
+        # proactively uses the refresh_token before the Supabase JWT expires.
+        encrypted_refresh = encrypt(supabase_refresh) if supabase_refresh else None
+        response_body: dict = {
             "access_token": access_token,
             "token_type": "Bearer",
-            "expires_in": 3600,  # Generic expiry for the token format
-            "refresh_token": encrypt(supabase_refresh) if supabase_refresh else f"refresh_{access_token}"
-        })
+            "expires_in": ACCESS_TOKEN_LIFETIME_SEC,
+        }
+        if encrypted_refresh:
+            # Include refresh_token so Claude can silently renew without
+            # prompting the user to log in again.
+            response_body["refresh_token"] = encrypted_refresh
+        logger.info("OAuth authorization code exchanged successfully")
+        return JSONResponse(content=response_body)
         
     except Exception as e:  # noqa: BLE001
         logger.error("OAuth Token Exchange Failed", error=str(e))

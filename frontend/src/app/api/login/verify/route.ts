@@ -24,114 +24,68 @@ export async function POST(request: NextRequest) {
 
         const userId = data.session.user.id;
 
-        const response = NextResponse.json({ 
-            status: "success",
-            message: "Login successful"
-        });
-
-        // Always set access_token cookie
-        response.cookies.set({
-            name: 'access_token',
-            value: data.session.access_token,
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            path: '/'
-        });
-
-        // Set refresh_token cookie (needed by OAuth authorize endpoint)
-        if (data.session.refresh_token) {
-            response.cookies.set({
-                name: 'refresh_token',
-                value: data.session.refresh_token,
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                path: '/'
-            });
-        }
-
-        // If no conflict, proceed with session creation
-        const { randomUUID } = await import('crypto');
-        const deviceSessionId = randomUUID();
-
-        response.cookies.set({
-            name: 'device_session_id',
-            value: deviceSessionId,
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60
-        });
-
-        let hasPaid = false;
-        
+        // --- Payment check ---
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!supabaseServiceKey) {
-            console.error("SUPABASE_SERVICE_ROLE_KEY is missing. Admin client cannot be initialized safely.");
+            console.error("SUPABASE_SERVICE_ROLE_KEY is missing.");
             return NextResponse.json({ status: "error", message: "Server misconfiguration" }, { status: 500 });
         }
 
         const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-
         const { data: paymentData } = await adminClient
             .from('payments')
             .select('id')
             .eq('user_id', userId)
             .limit(1);
 
-        if (paymentData && paymentData.length > 0) {
-            hasPaid = true;
-        }
-
+        const hasPaid = !!(paymentData && paymentData.length > 0);
         const redirectUrl = hasPaid ? "/userdashboard" : "/payment";
+
+        // Build a SINGLE response object so all Set-Cookie headers are guaranteed
+        // to be sent together. The old code created a second NextResponse and then
+        // tried to copy cookies from the first — but Next.js queues Set-Cookie
+        // headers internally and .getAll() does NOT capture them all, causing the
+        // access_token and refresh_token cookies to be silently dropped. Without
+        // those cookies, the OAuth /authorize endpoint sees no token and redirects
+        // the user back to the login page immediately after a successful OTP.
+        const cookieDefaults = {
+            httpOnly: true,
+            sameSite: 'lax' as const,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+        };
+
         const finalResponse = NextResponse.json({ status: "success", redirect: redirectUrl });
 
-        // Copy cookies from original response
-        const cookies = response.cookies.getAll();
-        for (const cookie of cookies) {
-            finalResponse.cookies.set(cookie);
+        // Auth cookies (session-length — expire when browser closes)
+        finalResponse.cookies.set({ name: 'access_token', value: data.session.access_token, ...cookieDefaults });
+
+        if (data.session.refresh_token) {
+            finalResponse.cookies.set({ name: 'refresh_token', value: data.session.refresh_token, ...cookieDefaults });
         }
 
-        // Set is_paid cookie if they have paid
+        // Device session cookie (persistent, 7 days)
+        const { randomUUID } = await import('crypto');
+        finalResponse.cookies.set({
+            name: 'device_session_id',
+            value: randomUUID(),
+            ...cookieDefaults,
+            maxAge: 7 * 24 * 60 * 60,
+        });
+
+        // Payment cookies (persistent, 7 days)
         if (hasPaid) {
             const { signWithHmac } = await import('@/lib/hmac');
             const signature = await signWithHmac(userId);
 
-            finalResponse.cookies.set({
-                name: 'paid_user_id',
-                value: userId,
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                path: '/',
-                maxAge: 7 * 24 * 60 * 60
-            });
-
-            finalResponse.cookies.set({
-                name: 'payment_signature',
-                value: signature,
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                path: '/',
-                maxAge: 7 * 24 * 60 * 60
-            });
-
-            finalResponse.cookies.set({
-                name: 'is_paid',
-                value: 'true',
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                path: '/',
-                maxAge: 7 * 24 * 60 * 60
-            });
+            finalResponse.cookies.set({ name: 'paid_user_id',       value: userId,     ...cookieDefaults, maxAge: 7 * 24 * 60 * 60 });
+            finalResponse.cookies.set({ name: 'payment_signature',   value: signature,  ...cookieDefaults, maxAge: 7 * 24 * 60 * 60 });
+            finalResponse.cookies.set({ name: 'is_paid',             value: 'true',     ...cookieDefaults, maxAge: 7 * 24 * 60 * 60 });
         }
+
         return finalResponse;
     } catch (e: any) {
         console.error("OTP Verify Error", e);

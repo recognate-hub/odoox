@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useEffect, useRef, useState } from 'react';
 import './login.css';
 
 export default function OAuthLoginPage() {
@@ -12,9 +10,39 @@ export default function OAuthLoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    
-    const router = useRouter();
+    // True while we check if the user already has a valid session
+    const [checkingSession, setCheckingSession] = useState(true);
+
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    // Grab the `?next` URL once — this is the backend OAuth authorize URL that
+    // Claude is waiting for. In the OAuth flow this is always present.
+    const getNextUrl = () => {
+        if (typeof window === 'undefined') return null;
+        return new URLSearchParams(window.location.search).get('next');
+    };
+
+    // On mount: if the user already has a valid session, skip the form entirely
+    // and redirect straight back to Claude via the `?next` URL.
+    useEffect(() => {
+        const checkExistingSession = async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const nextUrl = getNextUrl();
+                    if (nextUrl) {
+                        // Already logged in — complete the OAuth handshake immediately
+                        window.location.href = nextUrl;
+                        return;
+                    }
+                }
+            } catch {
+                // No session or network error — show the login form
+            }
+            setCheckingSession(false);
+        };
+        checkExistingSession();
+    }, []);
 
     const handleCodeChange = (index: number, value: string) => {
         if (value.length > 1) value = value.slice(-1);
@@ -22,7 +50,7 @@ export default function OAuthLoginPage() {
         newCode[index] = value;
         setCode(newCode);
         if (value !== '' && index < 5) inputRefs.current[index + 1]?.focus();
-        
+
         if (newCode.every(d => d !== '')) {
             setTimeout(() => document.getElementById('verify-btn')?.click(), 50);
         }
@@ -51,7 +79,7 @@ export default function OAuthLoginPage() {
 
     const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!email || !email.includes('@')) {
             setError("Please enter a valid email address.");
             return;
@@ -60,7 +88,7 @@ export default function OAuthLoginPage() {
         setIsLoading(true);
         setError('');
         setSuccess('');
-        
+
         const formData = new URLSearchParams();
         formData.append('email', email);
 
@@ -71,7 +99,7 @@ export default function OAuthLoginPage() {
                 body: formData.toString()
             });
             const data = await res.json();
-            
+
             if (data.status === 'success') {
                 setSuccess("OTP sent! Please check your inbox.");
                 setTimeout(() => {
@@ -81,7 +109,7 @@ export default function OAuthLoginPage() {
             } else {
                 setError(data.message || "Failed to send OTP");
             }
-        } catch (err) {
+        } catch {
             setError("Network error. Make sure the backend is running.");
         } finally {
             setIsLoading(false);
@@ -91,15 +119,15 @@ export default function OAuthLoginPage() {
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         const token = code.join('');
-        
+
         if (token.length !== 6) {
             setError('Please enter the full 6-digit code.');
             return;
         }
-        
+
         setIsLoading(true);
         setError('');
-        
+
         const formData = new URLSearchParams();
         formData.append('email', email);
         formData.append('token', token);
@@ -111,20 +139,25 @@ export default function OAuthLoginPage() {
                 body: formData.toString()
             });
             const data = await res.json();
-            
+
             if (data.status === 'success') {
-                const searchParams = new URLSearchParams(window.location.search);
-                const nextUrl = searchParams.get('next');
-                const destination = nextUrl || data.redirect || '/payment';
-                // Always use full page navigation to ensure fresh auth cookies are recognized 
-                // by the server rendering and to properly follow external OAuth redirects.
-                window.location.href = destination;
+                // In the OAuth flow there is always a `?next` pointing to the
+                // backend /authorize URL. Always go there — never fall back to
+                // the dashboard, because Claude is waiting for the auth code.
+                const nextUrl = getNextUrl();
+                if (nextUrl) {
+                    window.location.href = nextUrl;
+                } else {
+                    // Fallback: no `?next` means the user landed here directly;
+                    // send them to their dashboard.
+                    window.location.href = data.redirect || '/userdashboard';
+                }
             } else if (data.status === 'conflict') {
-                setStep(3); // Go to force logout step
+                setStep(3);
             } else {
                 setError(data.message || "Invalid code.");
             }
-        } catch (err) {
+        } catch {
             setError("Network error. Make sure the backend is running.");
         } finally {
             setIsLoading(false);
@@ -141,18 +174,18 @@ export default function OAuthLoginPage() {
                 method: 'POST'
             });
             const data = await res.json();
-            
+
             if (data.status === 'success') {
-                const searchParams = new URLSearchParams(window.location.search);
-                const nextUrl = searchParams.get('next');
-                const destination = nextUrl || data.redirect || '/payment';
-                // Always use full page navigation to ensure fresh auth cookies are recognized
-                // by the server rendering and to properly follow external OAuth redirects.
-                window.location.href = destination;
+                const nextUrl = getNextUrl();
+                if (nextUrl) {
+                    window.location.href = nextUrl;
+                } else {
+                    window.location.href = data.redirect || '/userdashboard';
+                }
             } else {
                 setError(data.message || "Failed to override session.");
             }
-        } catch (err) {
+        } catch {
             setError("Network error.");
         } finally {
             setIsLoading(false);
@@ -167,11 +200,15 @@ export default function OAuthLoginPage() {
         setCode(['', '', '', '', '', '']);
     };
 
+    // Render nothing while checking for an existing session to avoid
+    // flashing the login form before the redirect fires.
+    if (checkingSession) return null;
+
     return (
         <div className="login-theme">
             <div className="bg-grid"></div>
             <div className="bg-glow"></div>
-            
+
             <div className="login-wrapper">
                 <div className="login-card">
                     <div className="login-header">
@@ -190,17 +227,17 @@ export default function OAuthLoginPage() {
                         <form onSubmit={handleRequestOtp}>
                             <div className="form-group">
                                 <label className="form-label" htmlFor="email">Email Address</label>
-                                <input 
-                                    type="email" 
-                                    id="email" 
-                                    className="form-input" 
-                                    required 
+                                <input
+                                    type="email"
+                                    id="email"
+                                    className="form-input"
+                                    required
                                     placeholder="name@company.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
-                            
+
                             <button type="submit" className="btn btn-primary btn-block" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
@@ -235,7 +272,7 @@ export default function OAuthLoginPage() {
                                     ))}
                                 </div>
                             </div>
-                            
+
                             <button id="verify-btn" type="submit" className="btn btn-primary btn-block mt-3" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
@@ -262,7 +299,7 @@ export default function OAuthLoginPage() {
                         </form>
                     </div>
 
-                    {/* Step 3: Force Logout */}
+                    {/* Step 3: Force Logout (active session on another device) */}
                     <div className={`step-container ${step === 3 ? 'step-visible' : 'step-hidden'}`}>
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                             <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Active Session Detected</h4>
@@ -270,7 +307,7 @@ export default function OAuthLoginPage() {
                                 You are currently logged in on another device. For security reasons, you can only have one active session at a time.
                             </p>
                         </div>
-                        <button 
+                        <button
                             className="btn btn-danger btn-block"
                             onClick={handleForceLogout}
                             disabled={isLoading}
@@ -282,7 +319,7 @@ export default function OAuthLoginPage() {
                                 </>
                             ) : "Force Logout Other Device"}
                         </button>
-                        <button 
+                        <button
                             className="btn btn-outline btn-block mt-3"
                             onClick={handleBack}
                             disabled={isLoading}

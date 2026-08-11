@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import './login.css';
@@ -12,9 +12,30 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [checkingSession, setCheckingSession] = useState(true);
     
     const router = useRouter();
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    // If the user already has a valid session, skip the login form and send
+    // them directly to their destination.
+    useEffect(() => {
+        const checkExistingSession = async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    // Already logged in — check payment status via cookie
+                    const isPaid = document.cookie.includes('is_paid=true');
+                    window.location.href = isPaid ? '/userdashboard' : '/payment';
+                    return;
+                }
+            } catch {
+                // No session or network error — show the login form normally
+            }
+            setCheckingSession(false);
+        };
+        checkExistingSession();
+    }, []);
 
     const handleCodeChange = (index: number, value: string) => {
         if (value.length > 1) value = value.slice(-1);
@@ -166,6 +187,10 @@ export default function LoginPage() {
         setSuccess('');
         setCode(['', '', '', '', '', '']);
     };
+
+    // Render nothing while checking for an existing session to avoid
+    // briefly flashing the login form before the redirect fires.
+    if (checkingSession) return null;
 
     return (
         <div className="login-theme">
