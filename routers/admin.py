@@ -279,10 +279,16 @@ def revoke_api_key(request: Request, api_key: str = Form(...), token: str = Depe
     
     supabase = get_supabase()
     try:
-        response = supabase.table("revoked_api_keys").insert({
-            "api_key": api_key,
-            "workspace_id": workspace.user_id # using user_id as workspace_id for simplicity, since it's 1:1 right now
-        }).execute()
+        try:
+            response = supabase.table("revoked_api_keys").insert({
+                "api_key": api_key,
+                "workspace_id": workspace.user_id # using user_id as workspace_id for simplicity, since it's 1:1 right now
+            }).execute()
+        except Exception as db_err:
+            if "PGRST205" in str(db_err) or "does not exist" in str(db_err).lower():
+                logger.warning("revoked_api_keys table missing, skipping DB insertion and relying on Redis cache")
+            else:
+                raise db_err
         
         # Instantly propagate revocation to Redis cache
         from core.cache import set_cached_value
