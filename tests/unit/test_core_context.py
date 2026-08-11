@@ -99,8 +99,9 @@ def test_get_workspace_credentials_supabase_no_workspace(mock_get_supa, mock_get
     mock_db_resp.data = []
     mock_supa.table().select().eq().execute.return_value = mock_db_resp
     
-    with pytest.raises(RuntimeError, match="404"):
-        get_workspace_credentials("token")
+    with pytest.raises(HTTPException) as exc_info:
+        get_workspace_credentials("test-token")
+    assert exc_info.value.status_code == 404
 
 @patch("core.cache.get_cached_value")
 def test_redis_cached_api_key_revocation_revoked(mock_get_cached_value):
