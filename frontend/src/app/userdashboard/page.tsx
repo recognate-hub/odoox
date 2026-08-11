@@ -22,6 +22,9 @@ export default function UserDashboard() {
     // API Key State
     const [apiKey, setApiKey] = useState("");
     const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+    
+    // Frontend URL for SSE
+    const [frontendUrl, setFrontendUrl] = useState("");
 
     const fetchWorkspaces = React.useCallback(async () => {
         try {
@@ -46,6 +49,9 @@ export default function UserDashboard() {
     }, [router]);
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setFrontendUrl(window.location.origin);
+        }
         const storedApiKey = localStorage.getItem('workspace_api_key');
         if (storedApiKey) {
             setApiKey(storedApiKey);
@@ -331,12 +337,12 @@ export default function UserDashboard() {
                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Claude Web Custom Connector URL</label>
                                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                                                     Paste this into the <strong>Remote MCP server URL</strong> field in Claude Web. <br/>
-                                                    <em>Note: Claude Web requires HTTPS. If running locally, you must proxy localhost:8000 through ngrok (e.g. `ngrok http 8000`) and replace localhost below with your ngrok HTTPS URL.</em>
+                                                    <em>Note: Claude Web requires HTTPS. If running locally, you must proxy localhost:3000 through ngrok (e.g. `ngrok http 3000`) and replace localhost below with your ngrok HTTPS URL.</em>
                                                 </p>
                                                 <div style={{ display: 'flex', gap: '1rem' }}>
                                                     <input 
                                                         type="text" 
-                                                        value={`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}`}
+                                                        value={`${frontendUrl}/sse?token=${apiKey}`}
                                                         readOnly 
                                                         className="form-input" 
                                                         style={{ flex: 1, fontFamily: 'monospace' }}
@@ -344,7 +350,7 @@ export default function UserDashboard() {
                                                     <button 
                                                         className="btn btn-primary"
                                                         onClick={() => {
-                                                            const fullUrl = `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}`;
+                                                            const fullUrl = `${frontendUrl}/sse?token=${apiKey}`;
                                                             navigator.clipboard.writeText(fullUrl);
                                                             setToastMessage("Full URL copied!");
                                                             setShowToast(true);
@@ -369,7 +375,7 @@ export default function UserDashboard() {
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}"
+        "${frontendUrl}/sse?token=${apiKey}"
       ]
     }
   }
@@ -390,7 +396,7 @@ export default function UserDashboard() {
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}"
+        "${frontendUrl}/sse?token=${apiKey}"
       ]
     }
   }
