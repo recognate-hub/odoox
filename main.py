@@ -113,7 +113,10 @@ def create_app() -> FastAPI:
 
     @app.post("/messages", dependencies=[get_rate_limiter(times=50, seconds=60)])
     async def handle_messages_post(request: Request):
-        await get_tenant_context(request)
+        # We DO NOT call get_tenant_context here because the MCP client (Claude) 
+        # POSTs to this endpoint with only a sessionId, not the token. 
+        # Security is maintained because the sessionId is a secure UUID, and the 
+        # actual tool execution runs in the context of the GET /sse request which IS authenticated.
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
                 await sse.handle_post_message(scope, receive, send)
