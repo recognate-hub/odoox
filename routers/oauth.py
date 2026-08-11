@@ -9,6 +9,7 @@ from config.settings import get_settings
 from core.encryption import decrypt, encrypt
 from core.logger import get_logger
 from core.supabase import get_supabase
+from supabase import create_client
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -108,9 +109,7 @@ def token(
             
             # Use the service-role client for token refresh — this avoids RLS
             # issues that can arise when the old access token has already expired.
-            from config.settings import get_settings as _gs
-            from supabase import create_client
-            _settings = _gs()
+            _settings = get_settings()
             admin_client = create_client(_settings.SUPABASE_URL, _settings.SUPABASE_SERVICE_ROLE_KEY)
             res = admin_client.auth.refresh_session(supabase_refresh)
             

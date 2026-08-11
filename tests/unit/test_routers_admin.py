@@ -53,7 +53,8 @@ def test_logout():
     response = client.get("/logout", follow_redirects=False)
     assert response.status_code == 303
     assert "set-cookie" in response.headers
-    assert response.headers["location"] == "/login"
+    # The redirect includes the full FRONTEND_URL prefix (e.g. http://localhost:3000/login)
+    assert "/login" in response.headers["location"]
 
 @patch("routers.admin.get_supabase")
 def test_get_current_user_success(mock_get_supabase):

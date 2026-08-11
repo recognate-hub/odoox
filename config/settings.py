@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     # Supabase (Multi-Tenant)
     SUPABASE_URL: str | None = Field(default=None, description="Supabase project URL")
     SUPABASE_KEY: str | None = Field(default=None, description="Supabase API key")
+    SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service role key for admin operations")
     # Redis Configuration
     REDIS_URL: str | None = Field(default=None, description="Redis connection URL for caching and rate limiting")
     
