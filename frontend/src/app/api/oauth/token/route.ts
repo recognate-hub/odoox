@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
     try {
         const contentType = request.headers.get('content-type') || '';
-        let body;
+        let body: URLSearchParams;
         
         if (contentType.includes('application/x-www-form-urlencoded')) {
             const formData = await request.formData();
