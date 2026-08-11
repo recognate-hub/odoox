@@ -141,4 +141,4 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
         raise
     except Exception as e:
         logger.error("Error fetching dynamic workspace credentials", error=str(e))
-        raise RuntimeError(f"Could not fetch workspace credentials: {e!s}")
+        raise HTTPException(status_code=401, detail=f"Could not fetch workspace credentials: {e!s}")

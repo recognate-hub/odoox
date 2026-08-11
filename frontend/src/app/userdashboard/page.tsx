@@ -163,7 +163,7 @@ export default function UserDashboard() {
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 3000);
             } else {
-                alert("Failed to generate API key.");
+                alert("Failed to generate API key: " + (data.detail || data.message || "Unknown error"));
             }
         } catch (e) {
             alert("Error generating API key.");

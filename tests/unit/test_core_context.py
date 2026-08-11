@@ -81,8 +81,11 @@ def test_get_workspace_credentials_supabase_invalid_token(mock_get_supa, mock_ge
     mock_get_supa.return_value = mock_supa
     mock_supa.auth.get_user.return_value = None
     
-    with pytest.raises(RuntimeError, match="Invalid token"):
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as excinfo:
         get_workspace_credentials("token")
+    assert excinfo.value.status_code == 401
+    assert "Invalid token" in str(excinfo.value.detail)
 
 @patch("core.context.get_cached_workspace")
 @patch("core.context.get_supabase")

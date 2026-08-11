@@ -13,7 +13,10 @@ def test_get_kek_long(mock_get_key):
 @patch("core.kms.SecretsManager.get_active_key")
 def test_get_kek_short(mock_get_key):
     mock_get_key.return_value = "short"
-    expected = base64.urlsafe_b64encode(b"short".ljust(32, b' '))
+    import hashlib
+    import base64
+    key_hash = hashlib.sha256(b"short").digest()
+    expected = base64.urlsafe_b64encode(key_hash)
     assert KMSClient._get_kek() == expected
 
 @patch("core.kms.KMSClient._get_kek")

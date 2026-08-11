@@ -17,9 +17,19 @@ class KMSClient:
     def _get_kek() -> bytes:
         # Fallback to local ENCRYPTION_KEY if no external KMS is configured
         key = SecretsManager.get_active_key()
-        if len(key) < 32:
-            key = base64.urlsafe_b64encode(key.encode('utf-8').ljust(32, b' ')).decode('utf-8')
-        return key.encode('utf-8')
+        try:
+            import base64
+            # Test if it's valid urlsafe base64 and decodes to exactly 32 bytes
+            decoded = base64.urlsafe_b64decode(key.encode('utf-8'))
+            if len(decoded) != 32:
+                raise ValueError
+            return key.encode('utf-8')
+        except Exception:
+            import hashlib
+            import base64
+            # Hash any invalid key into a perfect 32-byte base64 string
+            key_hash = hashlib.sha256(key.encode('utf-8')).digest()
+            return base64.urlsafe_b64encode(key_hash)
 
     @classmethod
     def generate_data_key(cls) -> tuple[bytes, str]:
