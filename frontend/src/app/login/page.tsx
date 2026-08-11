@@ -116,12 +116,9 @@ export default function LoginPage() {
                 const searchParams = new URLSearchParams(window.location.search);
                 const nextUrl = searchParams.get('next');
                 const destination = nextUrl || data.redirect || '/payment';
-                // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
-                if (destination.startsWith('/oauth') || destination.startsWith('http://') || destination.startsWith('https://')) {
-                    window.location.href = destination;
-                } else {
-                    router.push(destination);
-                }
+                // Always use full page navigation to ensure fresh auth cookies are recognized 
+                // by the server rendering and to properly follow external OAuth redirects.
+                window.location.href = destination;
             } else if (data.status === 'conflict') {
                 setStep(3); // Go to force logout step
             } else {
@@ -149,12 +146,9 @@ export default function LoginPage() {
                 const searchParams = new URLSearchParams(window.location.search);
                 const nextUrl = searchParams.get('next');
                 const destination = nextUrl || data.redirect || '/payment';
-                // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
-                if (destination.startsWith('/oauth') || destination.startsWith('http://') || destination.startsWith('https://')) {
-                    window.location.href = destination;
-                } else {
-                    router.push(destination);
-                }
+                // Always use full page navigation to ensure fresh auth cookies are recognized
+                // by the server rendering and to properly follow external OAuth redirects.
+                window.location.href = destination;
             } else {
                 setError(data.message || "Failed to override session.");
             }

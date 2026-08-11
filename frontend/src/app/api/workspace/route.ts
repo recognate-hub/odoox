@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
         const { data: payments, error: payError } = await adminSupabase
             .from('payments')
-            .select('plan')
+            .select('id')
             .eq('user_id', userId)
             .limit(1);
 
