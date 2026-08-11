@@ -30,7 +30,8 @@ export async function GET(request: Request) {
         }
 
         const url = new URL(request.url);
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
 
         const workspaces = workspaceData ? workspaceData.map(w => ({
             id: w.id,

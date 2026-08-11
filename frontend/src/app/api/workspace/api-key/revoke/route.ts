@@ -17,7 +17,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ status: "error", detail: "api_key is required" }, { status: 400 });
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         
         // Backend expects form data for this route
         const formData = new URLSearchParams();

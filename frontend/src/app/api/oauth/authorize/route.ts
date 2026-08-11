@@ -9,7 +9,8 @@ export async function GET(request: Request) {
         const token = cookieStore.get('access_token')?.value;
         const refresh_token = cookieStore.get('refresh_token')?.value;
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         
         // Append all search params from the frontend request to the backend request
         const backendRequestUrl = new URL(`${backendUrl}/authorize`);

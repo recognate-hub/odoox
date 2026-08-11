@@ -336,7 +336,7 @@ export default function UserDashboard() {
                                                 <div style={{ display: 'flex', gap: '1rem' }}>
                                                     <input 
                                                         type="text" 
-                                                        value={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}`}
+                                                        value={`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}`}
                                                         readOnly 
                                                         className="form-input" 
                                                         style={{ flex: 1, fontFamily: 'monospace' }}
@@ -344,7 +344,7 @@ export default function UserDashboard() {
                                                     <button 
                                                         className="btn btn-primary"
                                                         onClick={() => {
-                                                            const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}`;
+                                                            const fullUrl = `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}`;
                                                             navigator.clipboard.writeText(fullUrl);
                                                             setToastMessage("Full URL copied!");
                                                             setShowToast(true);
@@ -369,7 +369,7 @@ export default function UserDashboard() {
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}"
+        "${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}"
       ]
     }
   }
@@ -390,7 +390,7 @@ export default function UserDashboard() {
         "-y",
         "odoox-mcp-connector",
         "--url",
-        "${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/sse?token=${apiKey}"
+        "${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/sse?token=${apiKey}"
       ]
     }
   }

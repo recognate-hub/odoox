@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
     try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         const res = await fetch(`${backendUrl}/health`, {
             method: 'GET',
             // Increase timeout or ignore cache

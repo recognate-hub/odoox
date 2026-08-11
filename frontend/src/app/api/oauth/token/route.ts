@@ -21,7 +21,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "invalid_request", error_description: "Unsupported content type" }, { status: 400 });
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         
         const res = await fetch(`${backendUrl}/token`, {
             method: 'POST',
