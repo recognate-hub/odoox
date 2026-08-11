@@ -117,7 +117,7 @@ export default function LoginPage() {
                 const nextUrl = searchParams.get('next');
                 const destination = nextUrl || data.redirect || '/payment';
                 // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
-                if (destination.startsWith('/oauth')) {
+                if (destination.startsWith('/oauth') || destination.startsWith('http://') || destination.startsWith('https://')) {
                     window.location.href = destination;
                 } else {
                     router.push(destination);
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 const nextUrl = searchParams.get('next');
                 const destination = nextUrl || data.redirect || '/payment';
                 // OAuth redirects need full page navigation to follow the rewrite proxy's 303 redirect
-                if (destination.startsWith('/oauth')) {
+                if (destination.startsWith('/oauth') || destination.startsWith('http://') || destination.startsWith('https://')) {
                     window.location.href = destination;
                 } else {
                     router.push(destination);
