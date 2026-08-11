@@ -43,8 +43,9 @@ def authorize(
         relative_url = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
         absolute_next_url = f"{backend_url}{relative_url}"
         
-        next_url = urllib.parse.quote_plus(absolute_next_url)
-        return RedirectResponse(url=f"{frontend_url}/login?next={next_url}", status_code=303)
+        from urllib.parse import quote
+        login_url = f"{frontend_url}/oauth/login?next={quote(absolute_next_url)}"
+        return RedirectResponse(url=login_url)
         
     # If the user is logged in, generate an authorization code.
     # We use a stateless encrypted payload so we don't need a DB table.
