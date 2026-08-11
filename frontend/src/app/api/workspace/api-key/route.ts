@@ -10,7 +10,8 @@ export async function GET(request: Request) {
             return NextResponse.json({ status: "error", detail: "Not authenticated" }, { status: 401 });
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = backendUrlRaw.endsWith('/') ? backendUrlRaw.slice(0, -1) : backendUrlRaw;
         
         const res = await fetch(`${backendUrl}/api/workspace/api-key`, {
             method: 'GET',
