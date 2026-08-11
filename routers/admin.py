@@ -195,6 +195,14 @@ def api_save_config(
             supabase.table("user_workspaces").update(payload).eq("id", workspace_id).execute()
         else:
             supabase.table("user_workspaces").insert(payload).execute()
+            
+        # Force refresh the cache so subsequent requests (like API key generation) get the new credentials
+        try:
+            from core.context import get_workspace_credentials
+            get_workspace_credentials(token, workspace_id, force_refresh=True)
+        except Exception as e:
+            logger.warning(f"Failed to refresh cache after save: {e}")
+            
         return {"status": "success", "message": "Configuration saved successfully."}
     except Exception as e:
         logger.error("DB Save Error", error=str(e))
@@ -244,7 +252,8 @@ def generate_api_key(token: str = Depends(get_user_token)):
     from core.context import get_workspace_credentials
     from core.encryption import encrypt
     
-    workspace = get_workspace_credentials(token)
+    # Force a refresh to ensure the newly generated key doesn't use a stale cached password
+    workspace = get_workspace_credentials(token, force_refresh=True)
     
     # Encrypt the full workspace context JSON
     encrypted_payload = encrypt(workspace.model_dump_json())
