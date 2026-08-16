@@ -45,20 +45,30 @@ export default function StickyFeatures() {
             {features.map((feature, index) => {
               const start = index / features.length;
               const end = (index + 1) / features.length;
-              const fadeStart = start - 0.1;
-              const fadeEnd = end + 0.1;
+              const fadeInStart = Math.max(0, start - 0.05);
+              const fadeInEnd = Math.min(1, start + 0.05);
+              const fadeOutStart = Math.max(0, end - 0.05);
+              const fadeOutEnd = Math.min(1, end + 0.05);
+              
+              // Ensure strictly increasing array for Framer Motion to prevent WAAPI offset errors
+              const inputArray = [
+                fadeInStart,
+                Math.max(fadeInStart + 0.01, fadeInEnd),
+                Math.max(fadeInStart + 0.02, fadeOutStart),
+                Math.max(fadeInStart + 0.03, fadeOutEnd)
+              ];
 
               // eslint-disable-next-line react-hooks/rules-of-hooks
               const opacity = useTransform(
                 scrollYProgress,
-                [fadeStart, start, end - 0.1, fadeEnd],
+                inputArray,
                 [0, 1, 1, 0]
               );
 
               // eslint-disable-next-line react-hooks/rules-of-hooks
               const y = useTransform(
                 scrollYProgress,
-                [fadeStart, start, end - 0.1, fadeEnd],
+                inputArray,
                 [40, 0, 0, -40]
               );
 
@@ -99,10 +109,22 @@ export default function StickyFeatures() {
                   const start = index / features.length;
                   const end = (index + 1) / features.length;
                   
+                  const fadeInStart = Math.max(0, start - 0.05);
+                  const fadeInEnd = Math.min(1, start + 0.05);
+                  const fadeOutStart = Math.max(0, end - 0.05);
+                  const fadeOutEnd = Math.min(1, end + 0.05);
+                  
+                  const inputArray = [
+                    fadeInStart,
+                    Math.max(fadeInStart + 0.01, fadeInEnd),
+                    Math.max(fadeInStart + 0.02, fadeOutStart),
+                    Math.max(fadeInStart + 0.03, fadeOutEnd)
+                  ];
+
                   // eslint-disable-next-line react-hooks/rules-of-hooks
                   const opacity = useTransform(
                     scrollYProgress,
-                    [start - 0.1, start, end - 0.1, end + 0.1],
+                    inputArray,
                     [0, 1, 1, 0]
                   );
 
