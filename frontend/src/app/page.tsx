@@ -3,6 +3,7 @@ import styles from "./Home.module.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import SignOutButton from "@/components/SignOutButton";
+import GsapPinnedScroll from "@/components/GsapPinnedScroll";
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -50,6 +51,7 @@ export default async function Home() {
       </header>
 
       <main className={styles.main}>
+        <GsapPinnedScroll>
         {/* Hero Section */}
         <section className={styles.hero}>
           <div className={styles.announcement}>
@@ -240,7 +242,7 @@ export default async function Home() {
             )}
           </div>
         </section>
-
+        </GsapPinnedScroll>
       </main>
 
       <footer className={styles.footer}>
