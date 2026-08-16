@@ -39,31 +39,31 @@ export default async function Home() {
       <FaqSection />
 
       {/* Bottom CTA Banner */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-20 relative">
-        <div className="rounded-3xl border border-lime-500/30 bg-gradient-to-r from-lime-950/40 via-zinc-900 to-emerald-950/40 p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl">
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+        <div className="rounded-3xl border border-lime-500/30 bg-gradient-to-r from-lime-950/40 via-zinc-900 to-emerald-950/40 p-8 sm:p-14 lg:p-16 text-center relative overflow-hidden shadow-2xl">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-lime-500/10 via-transparent to-transparent pointer-events-none" />
-          <div className="relative z-10 max-w-3xl mx-auto">
+          <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-6">
               <Sparkles className="w-3.5 h-3.5" /> Instant 3-Minute Deployment
             </span>
-            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
               Ready to automate your Odoo ERP with Claude?
             </h2>
-            <p className="text-zinc-300 text-lg mb-8">
-              Join leading teams connecting AI agents to enterprise data with zero custom code.
+            <p className="text-base sm:text-lg text-zinc-300 mb-8 max-w-2xl">
+              Join leading enterprise teams connecting AI agents to production data with zero custom code.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
               {!hasToken ? (
                 <Link
                   href="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-black bg-gradient-to-r from-lime-400 to-emerald-400 hover:scale-105 transition-all shadow-[0_0_30px_rgba(163,230,53,0.4)]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-sm text-black bg-gradient-to-r from-lime-400 to-emerald-400 hover:scale-105 transition-all shadow-[0_0_30px_rgba(163,230,53,0.4)]"
                 >
                   Get Started Free <ArrowRight className="w-4 h-4" />
                 </Link>
               ) : (
                 <Link
                   href="/userdashboard"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-black bg-gradient-to-r from-lime-400 to-emerald-400 hover:scale-105 transition-all shadow-[0_0_30px_rgba(163,230,53,0.4)]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-sm text-black bg-gradient-to-r from-lime-400 to-emerald-400 hover:scale-105 transition-all shadow-[0_0_30px_rgba(163,230,53,0.4)]"
                 >
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -74,7 +74,7 @@ export default async function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="w-full border-t border-white/10 bg-black py-12 px-6">
+      <footer className="w-full border-t border-white/10 bg-black py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="OdooX" className="h-6 w-auto opacity-70" />
@@ -86,7 +86,8 @@ export default async function Home() {
             All MCP Gateways Operational (XML-RPC 200 OK)
           </div>
 
-          <div className="flex gap-6 text-sm text-zinc-400">
+          <div className="flex gap-6 text-xs sm:text-sm text-zinc-400">
+            <Link href="#playground" className="hover:text-white transition-colors">Demo</Link>
             <Link href="#features" className="hover:text-white transition-colors">Features</Link>
             <Link href="#security" className="hover:text-white transition-colors">Security</Link>
             <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>

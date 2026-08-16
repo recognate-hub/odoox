@@ -5,22 +5,22 @@ import { ShieldCheck, Lock, Server, Key, Cpu, Zap, ArrowRight } from "lucide-rea
 
 export default function SecurityShowcase() {
   return (
-    <section id="security" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-24 relative">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 via-zinc-900/50 to-zinc-950 p-8 sm:p-14 relative overflow-hidden shadow-2xl">
+    <section id="security" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 via-zinc-900/50 to-zinc-950 p-6 sm:p-12 lg:p-16 relative overflow-hidden shadow-2xl">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
           {/* Left Description */}
           <div className="lg:col-span-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
               <ShieldCheck className="w-3.5 h-3.5" /> Zero-Trust Architecture
             </span>
 
-            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
               Enterprise Security Built In From Day One.
             </h2>
 
-            <p className="text-zinc-400 text-base sm:text-lg mb-8 leading-relaxed">
+            <p className="text-zinc-400 text-sm sm:text-base mb-8 leading-relaxed">
               OdooX enforces multi-tenant isolation, Supabase JWT verification, and encrypted token injection. Claude never sees your database master credentials.
             </p>
 
@@ -56,7 +56,7 @@ export default function SecurityShowcase() {
             <div className="w-full space-y-3 font-mono text-xs">
               <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3">
-                  <Cpu className="w-5 h-5 text-lime-400" />
+                  <Cpu className="w-5 h-5 text-lime-400 shrink-0" />
                   <div>
                     <div className="text-white font-bold">Claude 3.5 Sonnet</div>
                     <div className="text-zinc-500 text-[11px]">Desktop App / API Client</div>
@@ -74,7 +74,7 @@ export default function SecurityShowcase() {
               <div className="p-4 rounded-2xl bg-lime-950/30 border border-lime-500/30 flex items-center justify-between shadow-xl relative overflow-hidden">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-lime-400"></div>
                 <div className="flex items-center gap-3">
-                  <Zap className="w-5 h-5 text-lime-400" />
+                  <Zap className="w-5 h-5 text-lime-400 shrink-0" />
                   <div>
                     <div className="text-white font-bold">OdooX MCP Security Layer</div>
                     <div className="text-zinc-400 text-[11px]">JWT Auth + Pydantic Schema Validation</div>
@@ -91,7 +91,7 @@ export default function SecurityShowcase() {
 
               <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3">
-                  <Server className="w-5 h-5 text-emerald-400" />
+                  <Server className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div>
                     <div className="text-white font-bold">Odoo ERP Instance</div>
                     <div className="text-zinc-500 text-[11px]">Native XML-RPC (v12-v18)</div>

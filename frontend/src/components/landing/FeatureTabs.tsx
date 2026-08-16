@@ -89,12 +89,15 @@ export default function FeatureTabs() {
   const current = FEATURES.find((f) => f.id === activeTab) || FEATURES[0];
 
   return (
-    <section id="features" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-28 relative">
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+    <section id="features" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+      <div className="text-center max-w-3xl mx-auto mb-14">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-4">
+          <Zap className="w-3.5 h-3.5" /> Native MCP Pillars
+        </span>
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
           Built for Enterprise Performance & Scale
         </h2>
-        <p className="text-zinc-400 text-lg">
+        <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto">
           Unleash the full power of your ERP. OdooX equips AI agents with direct, secure, and instant operational tools.
         </p>
       </div>
@@ -108,7 +111,7 @@ export default function FeatureTabs() {
             <button
               key={feature.id}
               onClick={() => setActiveTab(feature.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-full text-sm font-semibold transition-all ${
+              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 isActive
                   ? "bg-gradient-to-r from-lime-400 to-emerald-400 text-black shadow-[0_0_20px_rgba(163,230,53,0.3)] scale-105"
                   : "bg-zinc-900/80 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5"
@@ -125,15 +128,15 @@ export default function FeatureTabs() {
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 p-8 lg:p-12 backdrop-blur-xl shadow-2xl relative overflow-hidden"
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 p-6 sm:p-10 lg:p-12 backdrop-blur-xl shadow-2xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-96 h-96 bg-lime-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Content */}
             <div className="lg:col-span-7">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-6">
@@ -144,14 +147,14 @@ export default function FeatureTabs() {
                 {current.headline}
               </h3>
 
-              <p className="text-zinc-400 text-base sm:text-lg mb-8 leading-relaxed">
+              <p className="text-zinc-400 text-sm sm:text-base mb-8 leading-relaxed">
                 {current.description}
               </p>
 
               <div className="space-y-3">
                 {current.highlights.map((point, index) => (
-                  <div key={index} className="flex items-start gap-3 text-sm text-zinc-300">
-                    <CheckCircle2 className="w-5 h-5 text-lime-400 shrink-0 mt-0.5" />
+                  <div key={index} className="flex items-start gap-3 text-xs sm:text-sm text-zinc-300">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-lime-400 shrink-0 mt-0.5" />
                     <span>{point}</span>
                   </div>
                 ))}
@@ -160,12 +163,12 @@ export default function FeatureTabs() {
 
             {/* Right Code Display */}
             <div className="lg:col-span-5">
-              <div className="rounded-2xl border border-white/10 bg-black/90 p-6 font-mono text-xs text-lime-300 shadow-2xl relative">
+              <div className="rounded-2xl border border-white/10 bg-black/90 p-5 sm:p-6 font-mono text-xs text-lime-300 shadow-2xl relative">
                 <div className="flex items-center justify-between text-zinc-500 text-[11px] pb-3 mb-4 border-b border-white/10">
                   <span>{current.id}_mcp_tool.ts</span>
                   <span className="text-lime-400">TypeScript / Python</span>
                 </div>
-                <pre className="overflow-x-auto leading-relaxed text-zinc-300">
+                <pre className="overflow-x-auto leading-relaxed text-zinc-300 text-xs">
                   <code>{current.codeSnippet}</code>
                 </pre>
               </div>

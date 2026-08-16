@@ -2,21 +2,21 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, Sparkles, Zap } from "lucide-react";
+import { Check, Zap } from "lucide-react";
 
 export default function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
 
   return (
-    <section id="pricing" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-24 relative">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+    <section id="pricing" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+      <div className="text-center max-w-3xl mx-auto mb-14">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-4">
           <Zap className="w-3.5 h-3.5" /> Simple Enterprise Pricing
         </span>
-        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
           Start Free. Scale Production Unlimited.
         </h2>
-        <p className="text-zinc-400 text-lg mb-8">
+        <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto mb-8">
           Deploy your Odoo MCP gateway in minutes. No credit card required to start testing.
         </p>
 
@@ -41,7 +41,7 @@ export default function PricingSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
         {/* Developer Tier */}
         <div className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 flex flex-col justify-between hover:border-white/20 transition-all">
           <div>

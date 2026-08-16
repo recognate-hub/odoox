@@ -31,17 +31,20 @@ export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-20 relative">
-      <div className="text-center mb-14">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+      <div className="text-center max-w-3xl mx-auto mb-14">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-4">
           <HelpCircle className="w-3.5 h-3.5" /> Got Questions?
         </span>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
           Frequently Asked Questions
         </h2>
+        <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto">
+          Everything you need to know about setting up OdooX with Claude.
+        </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         {FAQS.map((faq, idx) => {
           const isOpen = openIndex === idx;
           return (
@@ -51,10 +54,10 @@ export default function FaqSection() {
             >
               <button
                 onClick={() => setOpenIndex(isOpen ? null : idx)}
-                className="w-full px-6 py-5 flex items-center justify-between text-left font-semibold text-white text-base hover:text-lime-400 transition-colors"
+                className="w-full px-6 py-5 flex items-center justify-between text-left font-semibold text-white text-sm sm:text-base hover:text-lime-400 transition-colors gap-4"
               >
                 <span>{faq.q}</span>
-                <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform duration-300 ${isOpen ? "rotate-180 text-lime-400" : ""}`} />
+                <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform duration-300 shrink-0 ${isOpen ? "rotate-180 text-lime-400" : ""}`} />
               </button>
 
               <AnimatePresence>
@@ -65,7 +68,7 @@ export default function FaqSection() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                    <div className="px-6 pb-6 text-xs sm:text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
                       {faq.a}
                     </div>
                   </motion.div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wrench, Shield, ArrowUpRight, Check, Code2 } from "lucide-react";
+import { Wrench, Shield, ArrowUpRight, Code2 } from "lucide-react";
 
 interface MCPTool {
   name: string;
@@ -75,33 +75,33 @@ export default function ToolRegistryGrid() {
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
 
   return (
-    <section id="tools" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-24 relative">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+    <section id="tools" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+      <div className="text-center max-w-3xl mx-auto mb-14">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-400 text-xs font-semibold uppercase tracking-wider mb-4">
           <Wrench className="w-3.5 h-3.5" /> Complete Tool Catalog
         </span>
-        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
           12+ Native MCP Tools Ready Out of the Box
         </h2>
-        <p className="text-zinc-400 text-lg">
+        <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto">
           Expose every core Odoo workflow to Claude with strong typing, Pydantic validation, and fine-grained RBAC.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {MCP_TOOLS.map((tool) => (
           <motion.div
             key={tool.name}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             onClick={() => setSelectedTool(tool)}
-            className="group cursor-pointer rounded-2xl border border-white/10 bg-zinc-900/60 p-5 hover:bg-zinc-900/90 hover:border-lime-500/40 transition-all flex flex-col justify-between"
+            className="group cursor-pointer rounded-2xl border border-white/10 bg-zinc-900/60 p-5 hover:bg-zinc-900/90 hover:border-lime-500/40 transition-all flex flex-col justify-between h-full"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="font-mono text-sm font-semibold text-lime-400 group-hover:text-lime-300 transition-colors">
                   {tool.name}
                 </span>
-                <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-lime-400 transition-colors" />
+                <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-lime-400 transition-colors shrink-0" />
               </div>
 
               <p className="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
@@ -132,7 +132,7 @@ export default function ToolRegistryGrid() {
               <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
                 <div className="flex items-center gap-2">
                   <Code2 className="w-5 h-5 text-lime-400" />
-                  <h3 className="font-mono text-lg font-bold text-white">{selectedTool.name}</h3>
+                  <h3 className="font-mono text-base sm:text-lg font-bold text-white">{selectedTool.name}</h3>
                 </div>
                 <button
                   onClick={() => setSelectedTool(null)}
@@ -145,7 +145,7 @@ export default function ToolRegistryGrid() {
               <div className="space-y-4 font-sans text-sm">
                 <div>
                   <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider block mb-1">Description</span>
-                  <p className="text-zinc-300">{selectedTool.description}</p>
+                  <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">{selectedTool.description}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
@@ -157,7 +157,7 @@ export default function ToolRegistryGrid() {
                   </div>
                   <div>
                     <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider block mb-1">Required Role</span>
-                    <span className="font-mono text-xs text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-500/20 inline-block flex items-center gap-1">
+                    <span className="font-mono text-xs text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-500/20 inline-flex items-center gap-1">
                       <Shield className="w-3 h-3" /> {selectedTool.role}
                     </span>
                   </div>
