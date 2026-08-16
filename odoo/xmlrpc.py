@@ -40,6 +40,7 @@ except Exception:
 
 from contextlib import nullcontext
 
+
 def _span(name: str):
     if tracer:
         return tracer.start_as_current_span(name)

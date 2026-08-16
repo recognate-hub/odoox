@@ -3,7 +3,6 @@ import styles from "./Home.module.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import SignOutButton from "@/components/SignOutButton";
-import GsapPinnedScroll from "@/components/GsapPinnedScroll";
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -51,50 +50,72 @@ export default async function Home() {
       </header>
 
       <main className={styles.main}>
-        <GsapPinnedScroll>
-        {/* Hero Section */}
-        <section className={styles.hero}>
-          <div className={styles.announcement}>
-            <span className={styles.announcementBadge}>New</span>
-            <span>OdooX now supports Claude 3.5 Sonnet Integration →</span>
-          </div>
-          <h1 className={styles.title}>
-            The infrastructure for <br />
-            <span className={styles.titleGradient}>AI-driven ERP</span>
-          </h1>
-          <p className={styles.description}>
-            Connect Claude and other LLMs directly to your Odoo backend using the standard Model Context Protocol. Zero latency, military-grade security.
-          </p>
-          <div className={styles.heroActions}>
-            {!hasToken ? (
-                <Link href="/login" className={styles.primaryButton}>
-                  Start Building
-                </Link>
-            ) : isPaid ? (
-                <Link href="/userdashboard" className={styles.primaryButton}>
-                  Go to Dashboard
-                </Link>
-            ) : (
-                <Link href="/payment" className={styles.primaryButton} style={{ background: 'var(--accent-red)' }}>
-                  Unlock Pro Access
-                </Link>
-            )}
+        {/* Redesigned Hero Section */}
+        <section className={styles.heroSplit}>
+          <div className={styles.heroLeft}>
+            <div className={styles.announcement}>
+              <span className={styles.announcementBadge}>v2.0 Live</span>
+              <span>The Next Generation of AI ERP →</span>
+            </div>
+            <h1 className={styles.titleLeft}>
+              Transform Odoo into an <br />
+              <span className={styles.titleGradient}>Autonomous Engine</span>
+            </h1>
+            <p className={styles.descriptionLeft}>
+              Connect Claude natively to your Odoo backend using the standard Model Context Protocol. Zero latency, zero setup, military-grade security. Stop clicking menus and start conversing with your data.
+            </p>
+            <div className={styles.heroActionsLeft}>
+              {!hasToken ? (
+                  <Link href="/login" className={styles.primaryButton}>
+                    Start Building Free
+                  </Link>
+              ) : isPaid ? (
+                  <Link href="/userdashboard" className={styles.primaryButton}>
+                    Open Dashboard
+                  </Link>
+              ) : (
+                  <Link href="/payment" className={styles.primaryButton} style={{ background: 'var(--accent-red)' }}>
+                    Unlock Pro Access
+                  </Link>
+              )}
+              <Link href="#features" className={styles.secondaryButton}>
+                Explore Features
+              </Link>
+            </div>
           </div>
           
-          <div className={styles.heroArch}>
-            <div className={styles.archNode}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              <span>Claude</span>
-            </div>
-            <div className={styles.archFlow}></div>
-            <div className={styles.archNode}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-              <span>OdooX Gateway</span>
-            </div>
-            <div className={`${styles.archFlow} ${styles.reverse}`}></div>
-            <div className={styles.archNode}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              <span>Odoo ERP</span>
+          <div className={styles.heroRight}>
+            <div className={styles.glassContainer}>
+              <div className={styles.floatingCard1}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.dotGroup}>
+                    <span></span><span></span><span></span>
+                  </div>
+                  <div className={styles.cardTitle}>Claude MCP Stream</div>
+                </div>
+                <div className={styles.cardBody}>
+                  <div className={styles.pulseLine}></div>
+                  <div className={styles.pulseLine} style={{ width: '80%', animationDelay: '0.2s' }}></div>
+                  <div className={styles.pulseLine} style={{ width: '60%', animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+              
+              <div className={styles.floatingCard2}>
+                <div className={styles.connectionLine}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>Odoo Native ERP</div>
+                </div>
+                <div className={styles.cardBody}>
+                  <div className={styles.statRow}>
+                    <span>Sales</span><span className={styles.statValue}>+24%</span>
+                  </div>
+                  <div className={styles.statRow}>
+                    <span>Leads</span><span className={styles.statValue}>142</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -242,7 +263,6 @@ export default async function Home() {
             )}
           </div>
         </section>
-        </GsapPinnedScroll>
       </main>
 
       <footer className={styles.footer}>

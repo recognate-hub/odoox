@@ -30,7 +30,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # Allowed Odoo comparison operators (exhaustive list)
 type OdooOperator = str  # One of the values below at runtime
 

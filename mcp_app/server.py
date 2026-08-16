@@ -43,17 +43,17 @@ def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
 mcp = FastMCP("ODOOX")
 
 # Register all tools — importing each module triggers the @mcp.tool() decorators
-import mcp_app.tools.crm  # noqa: F401, E402
-import mcp_app.tools.contacts  # noqa: F401, E402
-import mcp_app.tools.sales  # noqa: F401, E402
-import mcp_app.tools.inventory  # noqa: F401, E402
-import mcp_app.tools.invoicing  # noqa: F401, E402
-import mcp_app.tools.calendar  # noqa: F401, E402
-import mcp_app.tools.discuss  # noqa: F401, E402
-import mcp_app.tools.dashboards  # noqa: F401, E402
-import mcp_app.tools.generic  # noqa: F401, E402
-import mcp_app.tools.reports  # noqa: F401, E402
-import mcp_app.tools.production  # noqa: F401, E402
-import mcp_app.tools.purchase  # noqa: F401, E402
-import mcp_app.tools.quality  # noqa: F401, E402
+import mcp_app.tools.calendar
+import mcp_app.tools.contacts
+import mcp_app.tools.crm
+import mcp_app.tools.dashboards
+import mcp_app.tools.discuss
+import mcp_app.tools.generic
+import mcp_app.tools.inventory
+import mcp_app.tools.invoicing
+import mcp_app.tools.production
+import mcp_app.tools.purchase
+import mcp_app.tools.quality
+import mcp_app.tools.reports
+import mcp_app.tools.sales  # noqa: F401
 

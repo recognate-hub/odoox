@@ -7,12 +7,12 @@ from pydantic import BaseModel
 
 from core.context import get_current_token, get_workspace_credentials
 from core.exceptions import (
-    PermissionDeniedError,
-    RateLimitExceededError,
-    SessionExpiredError,
     FinOpsBudgetExceededException,
     OdooResourceNotFoundError,
     OdooValidationError,
+    PermissionDeniedError,
+    RateLimitExceededError,
+    SessionExpiredError,
 )
 from core.logger import get_logger
 from core.policy import PolicyEngine
@@ -145,7 +145,7 @@ def secure_tool(action: str | None = None):
                     execution_time_ms=round((time.time() - start_time) * 1000, 2)
                 )
                 return result
-            except SessionExpiredError as e:
+            except SessionExpiredError:
                 # JWT expired mid-session. Surface a clear reconnect prompt
                 audit_logger.warning(
                     "Session expired during tool execution",
@@ -173,7 +173,7 @@ def secure_tool(action: str | None = None):
                 if "connection" in error_str or "xmlrpc" in error_str or "access denied" in error_str or "protocolerror" in error_str:
                     return {"status": "error", "message": "Failed to connect to Odoo ERP. Please verify your credentials and connection URL in the Dashboard."}
                 
-                return {"status": "error", "message": f"Unexpected error during tool execution: {str(e)}"}
+                return {"status": "error", "message": f"Unexpected error during tool execution: {e!s}"}
                 
         return wrapper
     return decorator

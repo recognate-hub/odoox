@@ -3,7 +3,6 @@ from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-
 # ── Model safety ────────────────────────────────────────────────────
 # Odoo internal models that should NEVER be accessed through generic
 # MCP tools.  Restricting these prevents an LLM from accidentally
