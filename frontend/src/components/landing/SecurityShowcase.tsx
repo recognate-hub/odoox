@@ -5,13 +5,14 @@ import { ShieldCheck, Lock, Server, Key, Cpu, Zap, ArrowRight } from "lucide-rea
 
 export default function SecurityShowcase() {
   return (
-    <section id="security" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 via-zinc-900/50 to-zinc-950 p-6 sm:p-12 lg:p-16 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
+    <section id="security" className="w-full relative py-20 sm:py-32 border-y border-white/5 bg-[#080808]">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[400px] bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          
           {/* Left Description */}
-          <div className="lg:col-span-6">
+          <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
               <ShieldCheck className="w-3.5 h-3.5" /> Zero-Trust Architecture
             </span>
@@ -20,30 +21,30 @@ export default function SecurityShowcase() {
               Enterprise Security Built In From Day One.
             </h2>
 
-            <p className="text-zinc-400 text-sm sm:text-base mb-8 leading-relaxed">
+            <p className="text-zinc-400 text-base sm:text-lg mb-10 leading-relaxed">
               OdooX enforces multi-tenant isolation, Supabase JWT verification, and encrypted token injection. Claude never sees your database master credentials.
             </p>
 
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="p-2.5 rounded-xl bg-lime-500/10 text-lime-400 shrink-0">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-lime-500/10 text-lime-400 shrink-0 border border-lime-500/20">
                   <Key className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-white text-sm mb-1">Fernet Secret Encryption</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-semibold text-white text-base mb-1">Fernet Secret Encryption</h4>
+                  <p className="text-sm text-zinc-400 leading-relaxed">
                     Database credentials and API tokens are encrypted symmetrically at rest using 256-bit Fernet keys.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0 border border-emerald-500/20">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-white text-sm mb-1">Supabase Tenant Isolation</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-semibold text-white text-base mb-1">Supabase Tenant Isolation</h4>
+                  <p className="text-sm text-zinc-400 leading-relaxed">
                     Every SSE connection validates user JWT context, ensuring multi-tenant isolation and per-user session policies.
                   </p>
                 </div>
@@ -52,14 +53,15 @@ export default function SecurityShowcase() {
           </div>
 
           {/* Right Flow Visualization */}
-          <div className="lg:col-span-6 flex flex-col items-center justify-center">
-            <div className="w-full space-y-3 font-mono text-xs">
-              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 flex items-center justify-between shadow-lg">
+          <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto">
+            <div className="w-full space-y-4 font-mono text-xs">
+              
+              <div className="p-5 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3">
                   <Cpu className="w-5 h-5 text-lime-400 shrink-0" />
                   <div>
-                    <div className="text-white font-bold">Claude 3.5 Sonnet</div>
-                    <div className="text-zinc-500 text-[11px]">Desktop App / API Client</div>
+                    <div className="text-white font-bold text-sm">Claude 3.5 Sonnet</div>
+                    <div className="text-zinc-500">Desktop App / API Client</div>
                   </div>
                 </div>
                 <span className="text-lime-400 text-[10px] bg-lime-950/60 px-2 py-0.5 rounded border border-lime-500/30">
@@ -67,17 +69,17 @@ export default function SecurityShowcase() {
                 </span>
               </div>
 
-              <div className="flex justify-center my-1">
-                <ArrowRight className="w-4 h-4 text-zinc-600 rotate-90" />
+              <div className="flex justify-center my-2">
+                <ArrowRight className="w-5 h-5 text-zinc-600 rotate-90" />
               </div>
 
-              <div className="p-4 rounded-2xl bg-lime-950/30 border border-lime-500/30 flex items-center justify-between shadow-xl relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-lime-400"></div>
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-lime-950/40 border border-lime-500/30 flex items-center justify-between shadow-2xl relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-lime-400 to-emerald-400"></div>
                 <div className="flex items-center gap-3">
                   <Zap className="w-5 h-5 text-lime-400 shrink-0" />
                   <div>
-                    <div className="text-white font-bold">OdooX MCP Security Layer</div>
-                    <div className="text-zinc-400 text-[11px]">JWT Auth + Pydantic Schema Validation</div>
+                    <div className="text-white font-bold text-sm">OdooX Security Gateway</div>
+                    <div className="text-emerald-400/80">JWT + Schema Validation</div>
                   </div>
                 </div>
                 <span className="text-emerald-400 text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
@@ -85,24 +87,26 @@ export default function SecurityShowcase() {
                 </span>
               </div>
 
-              <div className="flex justify-center my-1">
-                <ArrowRight className="w-4 h-4 text-zinc-600 rotate-90" />
+              <div className="flex justify-center my-2">
+                <ArrowRight className="w-5 h-5 text-zinc-600 rotate-90" />
               </div>
 
-              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 flex items-center justify-between shadow-lg">
+              <div className="p-5 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3">
                   <Server className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div>
-                    <div className="text-white font-bold">Odoo ERP Instance</div>
-                    <div className="text-zinc-500 text-[11px]">Native XML-RPC (v12-v18)</div>
+                    <div className="text-white font-bold text-sm">Odoo ERP Instance</div>
+                    <div className="text-zinc-500">Native XML-RPC (v12-v18)</div>
                   </div>
                 </div>
                 <span className="text-zinc-400 text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10">
                   Direct Response
                 </span>
               </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </section>
