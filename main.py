@@ -6,6 +6,7 @@ from mcp.server.sse import SseServerTransport
 
 from config.settings import get_settings
 from core.auth import get_tenant_context
+from core.context import current_token, current_workspace_id
 from core.logger import get_logger
 from mcp_app.server import mcp
 from routers.admin import router as admin_router
@@ -66,7 +67,7 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan
     )
-    
+
     # Add CORS middleware for the MCP Inspector
     app.add_middleware(
         CORSMiddleware,
@@ -75,16 +76,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Mount Static Files
     app.mount("/static", StaticFiles(directory="static"), name="static")
-    
+
     # Include standard REST routers
     app.include_router(health_router, tags=["Health"])
     app.include_router(admin_router, tags=["Admin"])
     app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
     app.include_router(oauth_metadata_router, tags=["OAuth Metadata"])
-    
+
     @app.get("/", tags=["Root"])
     async def get_root():
         return {
@@ -93,10 +94,28 @@ def create_app() -> FastAPI:
             "version": "1.0.0",
             "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application."
         }
-    
+
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get("/sse", dependencies=[Depends(get_tenant_context), get_rate_limiter(times=50, seconds=60)])
     async def handle_sse(request: Request):
+        # Re-extract and re-set the token directly inside the handler body.
+        # Depends(get_tenant_context) validates the token and populates the ContextVar,
+        # but mcp._mcp_server.run() spawns internal async tasks/threads that copy
+        # the contextvars context at *their* creation point. By explicitly setting
+        # the token here — inside the function that wraps connect_sse — we guarantee
+        # the token is present in the context that all MCP-dispatched tool calls inherit.
+        auth_header = request.headers.get("Authorization")
+        token = (
+            auth_header.split(" ")[1]
+            if auth_header and auth_header.startswith("Bearer ")
+            else request.query_params.get("token")
+        )
+        workspace_id = request.query_params.get("workspace_id")
+        # These set() calls update the context for the current coroutine and any
+        # threads/tasks spawned from it (contextvars are copy-on-write inherited).
+        current_token.set(token)
+        current_workspace_id.set(workspace_id)
+
         async with sse.connect_sse(
             request.scope, request.receive, request._send
         ) as streams:
@@ -124,19 +143,10 @@ def create_app() -> FastAPI:
 
     @app.post("/sse", dependencies=[get_rate_limiter(times=50, seconds=60)])
     async def handle_sse_post(request: Request):
-        body = await request.body()
-        logger.info(f"POST /sse body: {body}")
-        
         await get_tenant_context(request)
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
-                # We consumed the body, so we need to inject it back for sse.handle_post_message
-                # But actually, sse.handle_post_message expects to read from receive.
-                # Let's just pass it, but since body is consumed, receive will yield nothing.
-                # To avoid breaking it, let's just use a custom receive.
-                async def custom_receive():
-                    return {"type": "http.request", "body": body, "more_body": False}
-                await sse.handle_post_message(scope, custom_receive, send)
+                await sse.handle_post_message(scope, receive, send)
         return ASGIProxyResponse()
 
     # Instrument FastAPI with OpenTelemetry (if available)

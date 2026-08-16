@@ -1,8 +1,19 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from odoo.xmlrpc import XmlRpcOdooConnector, get_transport, TimeoutSafeTransport, TimeoutTransport
-from core.exceptions import OdooConnectorError, OdooConnectionError, OdooAuthError, CircuitBreakerOpenError
-import xmlrpc.client
+
+from core.exceptions import (
+    CircuitBreakerOpenError,
+    OdooAuthError,
+    OdooConnectorError,
+)
+from odoo.xmlrpc import (
+    TimeoutSafeTransport,
+    TimeoutTransport,
+    XmlRpcOdooConnector,
+    get_transport,
+)
+
 
 def test_get_transport():
     assert isinstance(get_transport("https://test"), TimeoutSafeTransport)

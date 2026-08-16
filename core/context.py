@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 from core.cache import get_cached_workspace, set_cached_workspace
+from core.exceptions import SessionExpiredError
 from core.logger import get_logger
 from core.supabase import get_supabase
 
@@ -28,7 +29,11 @@ current_workspace_id: contextvars.ContextVar[str | None] = contextvars.ContextVa
 
 # In-memory TTL Cache: { (token, workspace_id): (WorkspaceContext, timestamp) }
 _credentials_cache: dict[tuple[str, str | None], tuple[WorkspaceContext, float]] = {}
-CACHE_TTL_SEC = 300  # 5 minutes
+# Cache credentials for 55 minutes. Supabase JWTs expire at 60 minutes by default.
+# Re-validating every 5 min meant the expiry error hit mid-session unpredictably.
+# At 55 min the cache expires, validation runs once, and if the token is expired
+# we raise a clear SessionExpiredError instead of a cryptic 401.
+CACHE_TTL_SEC = 55 * 60  # 55 minutes
 
 def get_current_token() -> str:
     token = current_token.get()
@@ -146,5 +151,19 @@ def get_workspace_credentials(token: str, workspace_id: str | None = None, force
     except HTTPException:
         raise
     except Exception as e:
+        error_str = str(e).lower()
+        # Supabase returns "token has expired" or "jwt expired" for stale JWTs.
+        # Detect this specifically so callers can show a clear reconnect prompt
+        # instead of a cryptic auth failure.
+        if any(phrase in error_str for phrase in ("token has expired", "jwt expired", "token expired")):
+            logger.warning(
+                "JWT session expired during active SSE connection. "
+                "User must reconnect to obtain a fresh token.",
+                error=str(e)
+            )
+            raise SessionExpiredError(
+                "Your session has expired (JWT lifetime reached). "
+                "Please disconnect and reconnect the OdooX server in Claude Desktop to continue."
+            )
         logger.error("Error fetching dynamic workspace credentials", error=str(e))
         raise HTTPException(status_code=401, detail=f"Could not fetch workspace credentials: {e!s}")

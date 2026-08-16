@@ -1,7 +1,17 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
-from core.context import get_current_token, get_workspace_credentials, WorkspaceContext, current_token, _credentials_cache
+
+from core.context import (
+    CACHE_TTL_SEC,
+    WorkspaceContext,
+    _credentials_cache,
+    current_token,
+    get_current_token,
+    get_workspace_credentials,
+)
+
 
 @pytest.fixture(autouse=True)
 def clear_caches():
@@ -71,7 +81,7 @@ def test_get_workspace_credentials_from_supabase_success(mock_set, mock_get_supa
     assert result.user_id == "user123"
     assert result.role == "Manager"
     assert ("token", "ws1") in _credentials_cache
-    mock_set.assert_called_once_with("token:ws1", result, ttl=300)
+    mock_set.assert_called_once_with("token:ws1", result, ttl=CACHE_TTL_SEC)
 
 @patch("core.context.get_cached_workspace")
 @patch("core.context.get_supabase")
@@ -111,8 +121,9 @@ def test_redis_cached_api_key_revocation_revoked(mock_get_cached_value):
     # If redis says it's revoked, it should fail immediately
     mock_get_cached_value.return_value = "1"
     
-    from core.context import get_workspace_credentials
     from fastapi import HTTPException
+
+    from core.context import get_workspace_credentials
     with pytest.raises(HTTPException, match="API Key has been revoked"):
         # We need to pass an odx_ token to trigger this branch
         get_workspace_credentials("odx_testkey", force_refresh=True)

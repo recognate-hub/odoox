@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service role key for admin operations")
     # Redis Configuration
     REDIS_URL: str | None = Field(default=None, description="Redis connection URL for caching and rate limiting")
+    STRICT_REDIS_FINOPS: bool = Field(default=False, description="If True, missing Redis will crash FinOps instead of using in-memory fallback")
     
     # CORS Configuration
     CORS_ORIGINS: list[str] = Field(default=[], description="List of allowed CORS origins")

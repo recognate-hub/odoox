@@ -1,8 +1,16 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from pydantic import BaseModel
+
 import core.cache
-from core.cache import get_cached_workspace, set_cached_workspace, get_cached_value, set_cached_value
+from core.cache import (
+    get_cached_value,
+    get_cached_workspace,
+    set_cached_value,
+    set_cached_workspace,
+)
+
 
 class DummyModel(BaseModel):
     name: str

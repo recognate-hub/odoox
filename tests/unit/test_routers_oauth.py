@@ -1,10 +1,11 @@
-import pytest
-from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-from main import app
-import time
 import json
+import time
+from unittest.mock import MagicMock, patch
+
+from fastapi.testclient import TestClient
+
 from core.encryption import encrypt
+from main import app
 
 client = TestClient(app)
 

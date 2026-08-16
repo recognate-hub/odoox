@@ -1,8 +1,8 @@
-import pytest
-import os
+from unittest.mock import MagicMock, mock_open, patch
+
 from typer.testing import CliRunner
+
 from cli.main import app
-from unittest.mock import patch, MagicMock, mock_open
 
 runner = CliRunner()
 

@@ -1,7 +1,10 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from core.supabase import get_supabase
+
 import core.supabase
+from core.supabase import get_supabase
+
 
 @pytest.fixture(autouse=True)
 def clear_supabase_client():

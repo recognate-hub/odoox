@@ -1,4 +1,3 @@
-import base64
 
 from cryptography.fernet import Fernet
 
@@ -25,8 +24,8 @@ class KMSClient:
                 raise ValueError
             return key.encode('utf-8')
         except Exception:
-            import hashlib
             import base64
+            import hashlib
             # Hash any invalid key into a perfect 32-byte base64 string
             key_hash = hashlib.sha256(key.encode('utf-8')).digest()
             return base64.urlsafe_b64encode(key_hash)

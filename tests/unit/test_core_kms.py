@@ -1,8 +1,10 @@
-import pytest
 import base64
 from unittest.mock import patch
+
 from cryptography.fernet import Fernet
+
 from core.kms import KMSClient
+
 
 @patch("core.kms.SecretsManager.get_active_key")
 def test_get_kek_long(mock_get_key):
@@ -13,8 +15,8 @@ def test_get_kek_long(mock_get_key):
 @patch("core.kms.SecretsManager.get_active_key")
 def test_get_kek_short(mock_get_key):
     mock_get_key.return_value = "short"
-    import hashlib
     import base64
+    import hashlib
     key_hash = hashlib.sha256(b"short").digest()
     expected = base64.urlsafe_b64encode(key_hash)
     assert KMSClient._get_kek() == expected

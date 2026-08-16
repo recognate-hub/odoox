@@ -1,5 +1,6 @@
 from typing import Any
 
+from core.domain_builder import Domain
 from odoo.interface import OdooConnectorInterface
 from schemas.odoo import (
     OdooContact,
@@ -20,20 +21,20 @@ class OdooRepository:
         self.connector = connector
 
     def get_active_leads(self, name_query: str | None = None, stage_id: int | None = None, limit: int = 100) -> list[OdooLead]:
-        domain: list[Any] = [["type", "=", "opportunity"]]
+        d = Domain().eq("type", "opportunity")
         if name_query:
-            domain.append(["name", "ilike", name_query])
+            d.ilike("name", name_query)
         if stage_id:
-            domain.append(["stage_id", "=", stage_id])
-        return self.connector.get_leads(domain=domain, limit=limit)
+            d.eq("stage_id", stage_id)
+        return self.connector.get_leads(domain=d.build(), limit=limit)
 
     def get_lead_by_id(self, lead_id: int) -> OdooLead | None:
-        domain = [["id", "=", lead_id]]
+        domain = Domain().eq("id", lead_id).build()
         leads = self.connector.get_leads(domain=domain, limit=1)
         return leads[0] if leads else None
 
     def search_contacts_by_name(self, name_query: str, limit: int = 20) -> list[OdooContact]:
-        domain = [["name", "ilike", name_query]]
+        domain = Domain().ilike("name", name_query).build()
         return self.connector.search_contacts(domain=domain, limit=limit)
 
     def create_contact(self, name: str, email: str | None = None, phone: str | None = None, is_company: bool = False) -> int:
@@ -46,7 +47,13 @@ class OdooRepository:
 
 
     def search_products(self, query: str, limit: int = 20) -> list[OdooProduct]:
-        domain = ["|", ["name", "ilike", query], ["default_code", "ilike", query]] if query else []
+        if query:
+            domain = Domain.or_(
+                Domain().ilike("name", query),
+                Domain().ilike("default_code", query),
+            ).build()
+        else:
+            domain = Domain().build()
         return self.connector.get_products(domain=domain, limit=limit)
 
     def create_product(self, name: str, list_price: float, default_code: str | None = None, type_code: str = "service") -> int:
@@ -57,10 +64,10 @@ class OdooRepository:
 
 
     def get_recent_quotes(self, partner_id: int | None = None, limit: int = 10) -> list[OdooQuote]:
-        domain = []
+        d = Domain()
         if partner_id:
-            domain.append(["partner_id", "=", partner_id])
-        return self.connector.get_quotes(domain=domain, limit=limit)
+            d.eq("partner_id", partner_id)
+        return self.connector.get_quotes(domain=d.build(), limit=limit)
 
     def create_quote(self, partner_id: int, order_lines: list[dict]) -> int:
         formatted_lines = []
@@ -73,7 +80,7 @@ class OdooRepository:
                 line_dict["price_unit"] = line["price_unit"]
             # Odoo uses [0, 0, dict] for creating new related records
             formatted_lines.append([0, 0, line_dict])
-            
+
         data = {
             "partner_id": partner_id,
             "order_line": formatted_lines
@@ -135,10 +142,9 @@ class OdooRepository:
         Retrieves the stock quantities for a specific product.
         Returns a list of locations and their available quantities.
         """
-        domain = [("product_id", "=", product_id)]
+        domain = Domain().eq("product_id", product_id).build()
         fields = ["location_id", "quantity", "reserved_quantity"]
-        records = self.connector.search_read_records("stock.quant", domain, fields, limit=50)
-        return records
+        return self.connector.search_read_records("stock.quant", domain, fields, limit=50)
 
     def send_email(self, email_to: str, subject: str, body: str) -> int:
         data = {
@@ -178,3 +184,224 @@ class OdooRepository:
 
     def execute_method(self, model: str, method: str, args: list[Any] | None = None, kwargs: dict[str, Any] | None = None) -> Any:
         return self.connector.execute_method(model, method, args, kwargs)
+
+    def batch_create_records(self, model: str, records: list[dict[str, Any]]) -> list[int]:
+        """Create multiple records in a single XML-RPC call."""
+        def _exec():
+            return self.connector.execute_method(model, "create", [records])
+        # Using execute_method to bypass the single-dict wrapper in connector.create_record
+        return _exec()
+        
+    def batch_update_records(self, model: str, record_ids: list[int], data: dict[str, Any]) -> bool:
+        """Update multiple records with the same data in a single XML-RPC call."""
+        return self.connector.execute_method(model, "write", [record_ids, data])
+
+    def post_message(self, res_model: str, res_id: int, body: str, message_type: str = "comment") -> int:
+        data = {
+            "model": res_model,
+            "res_id": res_id,
+            "body": body,
+            "message_type": message_type,
+        }
+        return self.connector.create_record("mail.message", data)
+
+    def create_channel(self, name: str, channel_type: str = "channel") -> int:
+        data = {
+            "name": name,
+            "channel_type": channel_type,
+        }
+        return self.connector.create_record("discuss.channel", data)
+
+    def create_purchase_order(self, partner_id: int, order_lines: list[dict]) -> int:
+        formatted_lines = []
+        for line in order_lines:
+            line_dict = {
+                "product_id": line["product_id"],
+                "product_qty": line["product_qty"],
+            }
+            if line.get("price_unit") is not None:
+                line_dict["price_unit"] = line["price_unit"]
+            formatted_lines.append([0, 0, line_dict])
+
+        data = {
+            "partner_id": partner_id,
+            "order_line": formatted_lines
+        }
+        return self.connector.create_record("purchase.order", data)
+
+    def get_purchase_orders(self, partner_id: int | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        d = Domain()
+        if partner_id:
+            d.eq("partner_id", partner_id)
+        return self.connector.search_read_records("purchase.order", domain=d.build(), limit=limit)
+
+    def create_manufacturing_order(self, product_id: int, product_qty: float) -> int:
+        data = {
+            "product_id": product_id,
+            "product_qty": product_qty,
+        }
+        return self.connector.create_record("mrp.production", data)
+
+    def get_manufacturing_orders(self, limit: int = 20) -> list[dict[str, Any]]:
+        return self.connector.search_read_records("mrp.production", domain=Domain().build(), limit=limit)
+
+    def create_stock_move(self, name: str, product_id: int, product_uom_qty: float, location_id: int, location_dest_id: int) -> int:
+        data = {
+            "name": name,
+            "product_id": product_id,
+            "product_uom_qty": product_uom_qty,
+            "location_id": location_id,
+            "location_dest_id": location_dest_id,
+        }
+        return self.connector.create_record("stock.move", data)
+
+    def get_inventory_valuation(self, product_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if product_id:
+            d.eq("product_id", product_id)
+        return self.connector.search_read_records("stock.valuation.layer", domain=d.build(), limit=limit)
+
+    def create_quality_alert(self, name: str, product_id: int, team_id: int | None = None, priority: str = "0") -> int:
+        data = {
+            "name": name,
+            "product_id": product_id,
+            "priority": priority,
+        }
+        if team_id:
+            data["team_id"] = team_id
+        return self.connector.create_record("quality.alert", data)
+
+    def get_quality_checks(self, product_id: int | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        d = Domain()
+        if product_id:
+            d.eq("product_id", product_id)
+        return self.connector.search_read_records("quality.check", domain=d.build(), limit=limit)
+
+    # ── Discuss (mail) ─────────────────────────────────────────────────
+    def get_messages(self, res_model: str | None = None, res_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if res_model:
+            d.eq("model", res_model)
+        if res_id:
+            d.eq("res_id", res_id)
+        fields = ["body", "message_type", "author_id", "date", "model", "res_id", "subject"]
+        return self.connector.search_read_records("mail.message", domain=d.build(), fields=fields, limit=limit)
+
+    def get_channels(self, limit: int = 50) -> list[dict[str, Any]]:
+        fields = ["name", "channel_type", "channel_member_ids", "description"]
+        return self.connector.search_read_records("discuss.channel", domain=[], fields=fields, limit=limit)
+
+    def get_channel_messages(self, channel_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain().eq("res_id", channel_id).eq("model", "discuss.channel")
+        fields = ["body", "author_id", "date", "message_type"]
+        return self.connector.search_read_records("mail.message", domain=d.build(), fields=fields, limit=limit)
+
+    # ── Calendar ───────────────────────────────────────────────────────
+    def get_meetings(self, partner_id: int | None = None, start_date: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if partner_id:
+            d.eq("partner_ids", partner_id)
+        if start_date:
+            d.gte("start", start_date)
+        fields = ["name", "start", "stop", "partner_ids", "description", "location", "allday"]
+        return self.connector.search_read_records("calendar.event", domain=d.build(), fields=fields, limit=limit)
+
+    def update_meeting(self, meeting_id: int, data: dict[str, Any]) -> bool:
+        return self.connector.update_record("calendar.event", meeting_id, data)
+
+    def delete_meeting(self, meeting_id: int) -> bool:
+        return self.connector.execute_method("calendar.event", "unlink", [[meeting_id]])
+
+    # ── Quality ────────────────────────────────────────────────────────
+    def get_quality_alerts(self, product_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if product_id:
+            d.eq("product_id", product_id)
+        fields = ["name", "product_id", "team_id", "stage_id", "priority", "description", "create_date"]
+        return self.connector.search_read_records("quality.alert", domain=d.build(), fields=fields, limit=limit)
+
+    def update_quality_alert(self, alert_id: int, data: dict[str, Any]) -> bool:
+        return self.connector.update_record("quality.alert", alert_id, data)
+
+    def get_quality_points(self, limit: int = 50) -> list[dict[str, Any]]:
+        fields = ["name", "product_ids", "picking_type_ids", "measure_on", "test_type_id", "team_id"]
+        return self.connector.search_read_records("quality.point", domain=[], fields=fields, limit=limit)
+
+    # ── Production / Manufacturing ─────────────────────────────────────
+    def update_manufacturing_order(self, mo_id: int, data: dict[str, Any]) -> bool:
+        return self.connector.update_record("mrp.production", mo_id, data)
+
+    def confirm_manufacturing_order(self, mo_id: int) -> Any:
+        return self.connector.execute_method("mrp.production", "action_confirm", [[mo_id]])
+
+    def get_bill_of_materials(self, product_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if product_id:
+            d.eq("product_tmpl_id", product_id)
+        fields = ["product_tmpl_id", "product_qty", "code", "type", "bom_line_ids"]
+        return self.connector.search_read_records("mrp.bom", domain=d.build(), fields=fields, limit=limit)
+
+    def get_work_orders(self, mo_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if mo_id:
+            d.eq("production_id", mo_id)
+        fields = ["name", "production_id", "workcenter_id", "state", "date_start", "date_finished", "duration"]
+        return self.connector.search_read_records("mrp.workorder", domain=d.build(), fields=fields, limit=limit)
+
+    # ── Pre-Production (Planning) ──────────────────────────────────────
+    def get_workcenters(self, limit: int = 50) -> list[dict[str, Any]]:
+        fields = ["name", "code", "active", "capacity", "time_efficiency", "working_state"]
+        return self.connector.search_read_records("mrp.workcenter", domain=[], fields=fields, limit=limit)
+
+    def get_routings(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Get BOM operations (routings) — Odoo 17+ stores these on mrp.routing.workcenter."""
+        fields = ["name", "workcenter_id", "bom_id", "time_cycle_manual", "sequence"]
+        return self.connector.search_read_records("mrp.routing.workcenter", domain=[], fields=fields, limit=limit)
+
+    # ── Purchase ───────────────────────────────────────────────────────
+    def update_purchase_order(self, po_id: int, data: dict[str, Any]) -> bool:
+        return self.connector.update_record("purchase.order", po_id, data)
+
+    def confirm_purchase_order(self, po_id: int) -> Any:
+        return self.connector.execute_method("purchase.order", "button_confirm", [[po_id]])
+
+    def get_purchase_order_lines(self, po_id: int) -> list[dict[str, Any]]:
+        d = Domain().eq("order_id", po_id)
+        fields = ["product_id", "product_qty", "price_unit", "price_subtotal", "date_planned", "qty_received"]
+        return self.connector.search_read_records("purchase.order.line", domain=d.build(), fields=fields, limit=200)
+
+    def get_vendor_bills(self, partner_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain().eq("move_type", "in_invoice")
+        if partner_id:
+            d.eq("partner_id", partner_id)
+        fields = ["name", "partner_id", "amount_total", "state", "invoice_date", "payment_state"]
+        return self.connector.search_read_records("account.move", domain=d.build(), fields=fields, limit=limit)
+
+    # ── Invoicing ──────────────────────────────────────────────────────
+    def get_invoices(self, partner_id: int | None = None, state: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain().eq("move_type", "out_invoice")
+        if partner_id:
+            d.eq("partner_id", partner_id)
+        if state:
+            d.eq("state", state)
+        fields = ["name", "partner_id", "amount_total", "amount_residual", "state", "invoice_date", "payment_state"]
+        return self.connector.search_read_records("account.move", domain=d.build(), fields=fields, limit=limit)
+
+    def post_invoice(self, invoice_id: int) -> Any:
+        return self.connector.execute_method("account.move", "action_post", [[invoice_id]])
+
+    def register_payment(self, invoice_id: int, amount: float, journal_id: int) -> dict[str, Any]:
+        """Register a payment against an invoice using the payment wizard."""
+        wizard_data = {
+            "payment_type": "inbound",
+            "partner_type": "customer",
+            "amount": amount,
+            "journal_id": journal_id,
+        }
+        wizard_id = self.connector.create_record("account.payment.register", wizard_data)
+        return self.connector.execute_method("account.payment.register", "action_create_payments", [[wizard_id]])
+
+    def get_payment_journals(self) -> list[dict[str, Any]]:
+        d = Domain().eq("type", "bank")
+        fields = ["name", "type", "currency_id"]
+        return self.connector.search_read_records("account.journal", domain=d.build(), fields=fields, limit=20)

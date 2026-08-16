@@ -23,6 +23,10 @@ class CircuitBreakerOpenError(OdooConnectorError):
 class OdooResourceNotFoundError(OdooConnectorError):
     """Raised when a requested resource is not found in Odoo."""
 
+class OdooValidationError(OdooConnectorError):
+    """Raised when Odoo rejects a request due to a validation error
+    (e.g. missing required field, constraint violation).
+    These are permanent failures and must NOT be retried."""
 
 # --- Claude Errors ---
 class ClaudeAPIError(BaseAppError):
@@ -38,6 +42,10 @@ class PermissionDeniedError(BaseAppError):
 
 class RateLimitExceededError(BaseAppError):
     """Raised when a user/role has exceeded their rate limit."""
+
+class SessionExpiredError(BaseAppError):
+    """Raised when a JWT session token has expired during an active SSE connection.
+    The user must disconnect and reconnect to obtain a fresh token."""
 
 
 # --- Validation Errors ---

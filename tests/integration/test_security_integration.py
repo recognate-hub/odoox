@@ -187,13 +187,14 @@ class TestAuditLoggingIntegration:
     @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="error_user", role="Admin"))
     @patch("mcp_app.security.audit_logger")
     def test_failed_invocation_logs_error(self, mock_audit_logger, mock_context):
-        """Test that a failed tool call produces an error audit log."""
+        """Test that a failed tool call produces an error audit log and returns a structured error dict."""
         @secure_tool()
         def failing_tool():
             raise ValueError("Something went wrong")
 
-        with pytest.raises(ValueError):
-            failing_tool()
+        result = failing_tool()
+        assert result["status"] == "error"
+        assert "Unexpected error" in result["message"]
 
         # Should have logged request and then failure
         mock_audit_logger.error.assert_called_once()

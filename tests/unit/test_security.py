@@ -1,7 +1,15 @@
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from mcp_app.security import secure_tool, _check_rate_limit, _rate_limit_state, UserContext
+
 from core.exceptions import PermissionDeniedError, RateLimitExceededError
+from mcp_app.security import (
+    UserContext,
+    _check_rate_limit,
+    _rate_limit_state,
+    secure_tool,
+)
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limit():

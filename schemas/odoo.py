@@ -90,3 +90,61 @@ class OdooSalesDashboard(OdooBaseModel):
     active_leads_count: int = 0
     quotes_count: int = 0
     win_rate_percentage: float = 0.0
+
+
+class OdooMessage(OdooBaseModel):
+    id: int
+    body: str | None = None
+    date: str | None = None
+    author_id: list | None = None
+    res_id: int | None = None
+    model: str | None = None
+
+
+class OdooChannel(OdooBaseModel):
+    id: int
+    name: str | None = None
+    channel_type: str | None = None
+
+
+class OdooPurchaseOrder(OdooBaseModel):
+    id: int
+    name: str
+    partner_id: list | None = None
+    state: str
+    amount_total: float = 0.0
+    date_order: str | None = None
+
+
+class OdooManufacturingOrder(OdooBaseModel):
+    id: int
+    name: str
+    product_id: list | None = None
+    product_qty: float = 0.0
+    state: str
+    date_planned_start: str | None = None
+
+
+class OdooStockMove(OdooBaseModel):
+    id: int
+    name: str
+    product_id: list | None = None
+    product_uom_qty: float = 0.0
+    location_id: list | None = None
+    location_dest_id: list | None = None
+    state: str
+
+
+class OdooQualityAlert(OdooBaseModel):
+    id: int
+    name: str
+    product_id: list | None = None
+    team_id: list | None = None
+    priority: str | None = None
+
+
+class OdooQualityCheck(OdooBaseModel):
+    id: int
+    name: str
+    product_id: list | None = None
+    quality_state: str | None = None

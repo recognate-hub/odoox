@@ -1,8 +1,7 @@
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from services.finops import FinOpsService
-import time
-from datetime import datetime, timezone
+
 
 @patch("core.cache.redis_client")
 def test_finops_record_invocation_redis(mock_redis_client):

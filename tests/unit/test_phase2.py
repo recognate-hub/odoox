@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from core.exceptions import OdooConnectionError, CircuitBreakerOpenError
+from core.exceptions import CircuitBreakerOpenError
 from core.idempotency import IdempotencyCache, _idempotency_state
 from odoo.xmlrpc import (
     TimeoutSafeTransport,

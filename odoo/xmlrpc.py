@@ -32,6 +32,19 @@ from schemas.odoo import (
     OdooSalesDashboard,
 )
 
+try:
+    from opentelemetry import trace
+    tracer = trace.get_tracer(__name__)
+except Exception:
+    tracer = None
+
+from contextlib import nullcontext
+
+def _span(name: str):
+    if tracer:
+        return tracer.start_as_current_span(name)
+    return nullcontext()
+
 logger = get_logger(__name__)
 
 class TimeoutTransport(xmlrpc.client.Transport):
@@ -57,7 +70,7 @@ class TimeoutSafeTransport(xmlrpc.client.SafeTransport):
                 kwargs["context"] = context
             else:
                 logger.warning("mTLS certificates not found at specified paths. Falling back to default SSL context.")
-                
+
         super().__init__(*args, **kwargs)
         self.timeout = timeout
 
@@ -107,7 +120,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         Implements an auto-retry mechanism if authentication fails due to stale cached credentials.
         """
         token = get_current_token()
-        
+
         # If not forcing a refresh and we already authenticated this token, reuse the uid
         if not force_refresh and redis_client:
             cached_uid = redis_client.get(f"odoo_uid:{token}")
@@ -115,29 +128,31 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 return int(cached_uid)
         elif not force_refresh and token in self._uids:
             return self._uids[token]
-            
+
         workspace = self._get_workspace(force_refresh=force_refresh)
         common = self._get_common(workspace)
-        
-        try:
-            uid = common.authenticate(workspace.odoo_db, workspace.odoo_username, decrypt(workspace.odoo_password), {})
-            if not uid:
-                # If we haven't forced a refresh yet, try refreshing the credentials from DB
-                if not force_refresh:
-                    logger.warning("Odoo Auth failed with cached credentials. Forcing refresh from database.")
-                    return self._authenticate(force_refresh=True)
-                raise OdooAuthError(f"Authentication failed for user {workspace.odoo_username} on database {workspace.odoo_db}")
-                
-            logger.info("Successfully authenticated with Odoo via XML-RPC for tenant", db=workspace.odoo_db)
-            if redis_client:
-                redis_client.setex(f"odoo_uid:{token}", 86400, str(uid))
-            else:
-                self._uids[token] = uid
-            return uid
-            
-        except (OSError, xmlrpc.client.ProtocolError, xmlrpc.client.Fault) as e:
-            logger.error("Odoo authentication exception", error=str(e))
-            raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {e!s}") from e
+
+        with _span("xmlrpc.authenticate") as span:
+            try:
+                uid = common.authenticate(workspace.odoo_db, workspace.odoo_username, decrypt(workspace.odoo_password), {})
+                if not uid:
+                    if not force_refresh:
+                        logger.warning("Odoo Auth failed with cached credentials. Forcing refresh from database.")
+                        return self._authenticate(force_refresh=True)
+                    raise OdooAuthError(f"Authentication failed for user {workspace.odoo_username} on database {workspace.odoo_db}")
+
+                logger.info("Successfully authenticated with Odoo via XML-RPC for tenant", db=workspace.odoo_db)
+                if redis_client:
+                    redis_client.setex(f"odoo_uid:{token}", 86400, str(uid))
+                else:
+                    self._uids[token] = uid
+                return uid
+
+            except (OSError, xmlrpc.client.ProtocolError, xmlrpc.client.Fault) as e:
+                if span:
+                    span.record_exception(e)
+                logger.error("Odoo authentication exception", error=str(e))
+                raise OdooConnectionError(f"Failed to connect or authenticate with Odoo: {e!s}") from e
 
     def _check_circuit_breaker(self, db_name: str):
         if redis_client:
@@ -173,30 +188,68 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type((OSError, xmlrpc.client.ProtocolError, OdooConnectionError)))
     def _execute(self, model: str, method: str, *args, **kwargs) -> Any:
-        """Execute a method on an Odoo model."""
+        """Execute a method on an Odoo model.
+
+        Fault classification:
+        - Access Denied / AuthenticationError → refresh credentials and retry once
+        - ValidationError / MissingError / UserError → permanent, surface immediately
+        - Network errors (OSError, ProtocolError) → retryable via @retry decorator
+        """
         workspace = self._get_workspace()
         self._check_circuit_breaker(workspace.odoo_db)
-        
+
         uid = self._authenticate()
         models = self._get_models(workspace)
-        
-        try:
-            result = models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
-            self._record_success(workspace.odoo_db)
-            return result
-        except xmlrpc.client.Fault as e:
-            self._record_success(workspace.odoo_db) # Fault means Odoo responded, not a timeout
-            # If Odoo throws an Access Denied / Auth fault during execute, we should also try to recover
-            if "Access Denied" in str(e) or "AuthenticationError" in str(e):
-                logger.warning("Odoo execute_kw failed with Access Denied. Forcing auth refresh.")
-                uid = self._authenticate(force_refresh=True)
-                workspace = self._get_workspace()
-                return models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
-            raise OdooConnectorError(f"Error executing {method} on {model}: {e!s}") from e
-        except (OSError, xmlrpc.client.ProtocolError) as e:
-            self._record_failure(workspace.odoo_db)
-            logger.error("Odoo execute_kw exception", model=model, method=method, error=str(e))
-            raise OdooConnectionError(f"Error executing {method} on {model}: {e!s}") from e
+
+        with _span(f"xmlrpc.execute.{model}.{method}") as span:
+            if span:
+                span.set_attribute("odoo.model", model)
+                span.set_attribute("odoo.method", method)
+                span.set_attribute("odoo.db", workspace.odoo_db)
+
+            try:
+                result = models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
+                self._record_success(workspace.odoo_db)
+                return result
+            except xmlrpc.client.Fault as e:
+                self._record_success(workspace.odoo_db)  # Fault means Odoo responded, not a timeout
+                fault_str = str(e)
+                if span:
+                    span.record_exception(e)
+
+                # ── Retryable: stale credentials ────────────────────────
+                if "Access Denied" in fault_str or "AuthenticationError" in fault_str:
+                    logger.warning("Odoo execute_kw failed with Access Denied. Forcing auth refresh.")
+                    uid = self._authenticate(force_refresh=True)
+                    workspace = self._get_workspace()
+                    return models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
+
+                # ── Permanent: Odoo validation / business logic errors ──
+                permanent_markers = (
+                    "ValidationError",
+                    "MissingError",          # Record deleted mid-request
+                    "UserError",             # Business-rule violation
+                    "except_orm",            # Legacy Odoo ORM exception
+                    "null value in column",  # PostgreSQL NOT NULL constraint
+                )
+                if any(marker in fault_str for marker in permanent_markers):
+                    from core.exceptions import OdooValidationError
+                    logger.warning(
+                        "Permanent Odoo fault — not retrying",
+                        model=model, method=method, fault=fault_str[:300],
+                    )
+                    raise OdooValidationError(
+                        f"Odoo rejected {method} on {model}: {fault_str}"
+                    ) from e
+
+                # ── Unknown fault — surface as generic connector error ──
+                raise OdooConnectorError(f"Error executing {method} on {model}: {e!s}") from e
+            except (OSError, xmlrpc.client.ProtocolError) as e:
+                if span:
+                    span.record_exception(e)
+                self._record_failure(workspace.odoo_db)
+                logger.error("Odoo execute_kw exception", model=model, method=method, error=str(e))
+                raise OdooConnectionError(f"Error executing {method} on {model}: {e!s}") from e
 
     def get_leads(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooLead]:
         domain = domain or []
@@ -297,17 +350,17 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def get_sales_dashboard(self) -> OdooSalesDashboard:
         active_leads = self._execute("crm.lead", "search_count", [["type", "=", "opportunity"]])
-        
+
         try:
             quotes = self._execute("sale.order", "search_count", [["state", "in", ["draft", "sent"]]])
-            
+
             won_orders = self._execute(
                 "sale.order", "search_read",
                 [["state", "in", ["sale", "done"]]],
                 fields=["amount_total"]
             )
             total_revenue = sum(order.get("amount_total", 0.0) for order in won_orders)
-            
+
             all_orders_count = self._execute("sale.order", "search_count", [])
             win_rate = (len(won_orders) / all_orders_count * 100.0) if all_orders_count > 0 else 0.0
         except OdooConnectorError as e:
@@ -342,11 +395,10 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def search_read_records(self, model: str, domain: list[Any] | None = None, fields: list[str] | None = None, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
         domain = domain or []
-        kwargs = {"limit": limit, "offset": offset}
+        kwargs: dict[str, Any] = {"limit": limit, "offset": offset}
         if fields:
             kwargs["fields"] = fields
-        records = self._execute(model, "search_read", domain, **kwargs)
-        return records
+        return self._execute(model, "search_read", domain, **kwargs)
 
     def create_record(self, model: str, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()
@@ -362,39 +414,39 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def get_installed_apps(self) -> list[dict[str, Any]]:
         workspace = self._get_workspace()
         cache_key = f"schema:{workspace.odoo_db}:installed_apps"
-        
+
         import json
 
         from core.cache import get_cached_value, set_cached_value
-        
+
         cached = get_cached_value(cache_key)
         if cached:
             return json.loads(cached)
-            
+
         # Odoo stores installed modules in ir.module.module
         domain = [["state", "=", "installed"]]
         fields = ["name", "shortdesc", "application"]
         records = self._execute("ir.module.module", "search_read", domain, fields=fields)
-        
+
         set_cached_value(cache_key, json.dumps(records), ttl=86400) # 24 hours
         return records
 
     def get_model_fields(self, model: str) -> dict[str, Any]:
         workspace = self._get_workspace()
         cache_key = f"schema:{workspace.odoo_db}:model_fields:{model}"
-        
+
         import json
 
         from core.cache import get_cached_value, set_cached_value
-        
+
         cached = get_cached_value(cache_key)
         if cached:
             return json.loads(cached)
-            
+
         # fields_get returns a dict of {field_name: field_info}
         attributes = ["string", "type", "help", "selection", "relation"]
         fields_info = self._execute(model, "fields_get", [], attributes)
-        
+
         set_cached_value(cache_key, json.dumps(fields_info), ttl=86400) # 24 hours
         return fields_info
 

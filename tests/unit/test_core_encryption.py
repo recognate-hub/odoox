@@ -1,8 +1,9 @@
-import pytest
-import base64
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from cryptography.fernet import Fernet
-from core.encryption import encrypt, decrypt, _get_active_fernet, _get_retired_fernets
+
+from core.encryption import _get_active_fernet, _get_retired_fernets, decrypt, encrypt
+
 
 def test_encrypt_empty():
     assert encrypt("") == ""

@@ -1,9 +1,9 @@
+import os
 from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from core.exceptions import FinOpsBudgetExceededException
 from core.logger import get_logger
-import os
 
 logger = get_logger(__name__)
 
@@ -27,6 +27,8 @@ class FinOpsService:
         Initialize the FinOps service with the global daily budget.
         """
         self.daily_budget_limit = daily_budget_limit
+        from config.settings import get_settings
+        self.strict_redis = get_settings().STRICT_REDIS_FINOPS
 
     @property
     def today(self) -> str:
@@ -41,6 +43,10 @@ class FinOpsService:
                 return int(val) if val else 0
             except Exception as e:
                 logger.warning(f"Redis get failed for FinOps, falling back to in-memory: {e}")
+                if self.strict_redis:
+                    raise RuntimeError("Redis is required for FinOps in production but is unavailable.") from e
+        elif self.strict_redis:
+            raise RuntimeError("Redis is required for FinOps in production but is not configured.")
         
         # In-memory fallback
         if tenant_id not in self._usage_store or self.today not in self._usage_store[tenant_id]:
@@ -69,9 +75,13 @@ class FinOpsService:
                 usage_to_log = new_usage
             except Exception as e:
                 logger.warning(f"Redis incr failed for FinOps, falling back to in-memory: {e}")
+                if self.strict_redis:
+                    raise RuntimeError("Redis is required for FinOps in production but is unavailable.") from e
                 self._record_in_memory(tenant_id)
                 usage_to_log = self._usage_store[tenant_id][self.today]
         else:
+            if self.strict_redis:
+                raise RuntimeError("Redis is required for FinOps in production but is not configured.")
             self._record_in_memory(tenant_id)
             usage_to_log = self._usage_store[tenant_id][self.today]
         

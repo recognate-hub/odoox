@@ -4,12 +4,11 @@ import urllib.parse
 
 from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from supabase import create_client
 
 from config.settings import get_settings
 from core.encryption import decrypt, encrypt
 from core.logger import get_logger
-from core.supabase import get_supabase
-from supabase import create_client
 
 logger = get_logger(__name__)
 router = APIRouter()

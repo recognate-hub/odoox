@@ -1,7 +1,10 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
+from core.exceptions import OdooAuthError, OdooConnectionError
 from odoo.xmlrpc import XmlRpcOdooConnector
-from core.exceptions import OdooConnectionError, OdooAuthError
+
 
 @patch("odoo.xmlrpc.get_settings")
 @patch("odoo.xmlrpc.get_current_token")

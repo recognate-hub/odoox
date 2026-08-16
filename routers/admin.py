@@ -5,7 +5,6 @@ from config.settings import get_settings
 from core.encryption import encrypt
 from core.logger import get_logger
 from core.supabase import get_supabase
-from core.auth import get_tenant_context
 
 logger = get_logger(__name__)
 router = APIRouter()

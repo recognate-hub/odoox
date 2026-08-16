@@ -1,7 +1,13 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from mcp_app.security import _check_rate_limit, RATE_LIMIT_WINDOW_SEC, RATE_LIMIT_MAX_CALLS
 import time
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from mcp_app.security import (
+    RATE_LIMIT_MAX_CALLS,
+    _check_rate_limit,
+)
+
 
 @pytest.fixture
 def mock_redis():
@@ -46,8 +52,8 @@ def test_fallback_rate_limit_allowed():
 
 @patch("core.cache.redis_client", None)
 def test_fallback_rate_limit_blocked():
-    from mcp_app.security import _rate_limit_state
     from core.exceptions import RateLimitExceededError
+    from mcp_app.security import _rate_limit_state
     
     user_id = "test_fallback_blocked"
     # Setup state to be at limit

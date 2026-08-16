@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 import pytest
-from fastapi import Request, HTTPException
-from unittest.mock import patch, MagicMock
+from fastapi import HTTPException, Request
+
 from core.auth import get_tenant_context
 from core.context import current_token, current_workspace_id
+
 
 @pytest.mark.asyncio
 async def test_get_tenant_context_with_bearer_token():

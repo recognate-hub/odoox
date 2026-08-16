@@ -1,5 +1,5 @@
-import pytest
 from odoo.interface import OdooConnectorInterface
+
 
 class DummyConnector(OdooConnectorInterface):
     def get_leads(self, domain=None, limit=100):

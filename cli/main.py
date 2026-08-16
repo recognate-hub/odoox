@@ -121,9 +121,9 @@ def seed():
 @app.command()
 def generate_api_key(email: str = typer.Option(..., help="User email to generate API Key for")):
     """Generate a stateless API Key for a specific user's workspace."""
-    from core.supabase import get_supabase
-    from core.encryption import encrypt
     from core.context import WorkspaceContext
+    from core.encryption import encrypt
+    from core.supabase import get_supabase
     
     console.print(f"[cyan]Looking up workspaces for {email}...[/cyan]")
     try:
@@ -149,10 +149,10 @@ def generate_api_key(email: str = typer.Option(..., help="User email to generate
             
         workspace_data = workspace_response.data[0]
         workspace = WorkspaceContext(
-            odoo_url=workspace_data["odoo_url"],
-            odoo_db=workspace_data["odoo_db"],
-            odoo_username=workspace_data["odoo_username"],
-            odoo_password=workspace_data["odoo_password"],
+            odoo_url=str(workspace_data["odoo_url"]),
+            odoo_db=str(workspace_data["odoo_db"]),
+            odoo_username=str(workspace_data["odoo_username"]),
+            odoo_password=str(workspace_data["odoo_password"]),
             user_id=user_id
         )
         

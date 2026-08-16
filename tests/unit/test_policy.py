@@ -1,8 +1,11 @@
-import pytest
-from core.policy import PolicyEngine
 import json
-import tempfile
 import os
+import tempfile
+
+import pytest
+
+from core.policy import PolicyEngine
+
 
 @pytest.fixture
 def policy_file():

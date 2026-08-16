@@ -6,7 +6,14 @@ from typing import Any
 from pydantic import BaseModel
 
 from core.context import get_current_token, get_workspace_credentials
-from core.exceptions import PermissionDeniedError, RateLimitExceededError
+from core.exceptions import (
+    PermissionDeniedError,
+    RateLimitExceededError,
+    SessionExpiredError,
+    FinOpsBudgetExceededException,
+    OdooResourceNotFoundError,
+    OdooValidationError,
+)
 from core.logger import get_logger
 from core.policy import PolicyEngine
 from services.finops import FinOpsService
@@ -25,6 +32,18 @@ def get_current_user_context() -> UserContext:
     """
     try:
         token = get_current_token()
+    except RuntimeError:
+        # current_token ContextVar is None — the SSE context was not propagated
+        # into this thread. This is a server-side context propagation bug, not
+        # a client auth failure. Log clearly so it's easy to distinguish.
+        audit_logger.error(
+            "Auth context not propagated into MCP tool thread. "
+            "current_token ContextVar is None."
+        )
+        raise PermissionDeniedError(
+            "Server auth context error: token not available in tool execution context."
+        )
+    try:
         from core.context import current_workspace_id
         workspace_id = current_workspace_id.get()
         workspace = get_workspace_credentials(token, workspace_id=workspace_id)
@@ -126,6 +145,20 @@ def secure_tool(action: str | None = None):
                     execution_time_ms=round((time.time() - start_time) * 1000, 2)
                 )
                 return result
+            except SessionExpiredError as e:
+                # JWT expired mid-session. Surface a clear reconnect prompt
+                audit_logger.warning(
+                    "Session expired during tool execution",
+                    tool=func.__name__,
+                    user_id=user.user_id,
+                )
+                return {"status": "error", "message": "⚠️ Your OdooX session has expired. Please disconnect and reconnect the 'odoox' server in Claude Desktop."}
+            except (FinOpsBudgetExceededException, PermissionDeniedError, RateLimitExceededError) as e:
+                audit_logger.warning(f"Policy rejection: {e}", tool=func.__name__, user_id=user.user_id)
+                return {"status": "error", "message": str(e)}
+            except (OdooResourceNotFoundError, OdooValidationError) as e:
+                audit_logger.warning(f"Odoo error: {e}", tool=func.__name__, user_id=user.user_id)
+                return {"status": "error", "message": str(e)}
             except Exception as e:
                 # 6. Audit Logging (Failure)
                 audit_logger.error(
@@ -138,9 +171,9 @@ def secure_tool(action: str | None = None):
                 
                 error_str = str(e).lower()
                 if "connection" in error_str or "xmlrpc" in error_str or "access denied" in error_str or "protocolerror" in error_str:
-                    raise RuntimeError("Failed to connect to Odoo ERP. Please verify your credentials and connection URL in the Dashboard.") from e
+                    return {"status": "error", "message": "Failed to connect to Odoo ERP. Please verify your credentials and connection URL in the Dashboard."}
                 
-                raise
+                return {"status": "error", "message": f"Unexpected error during tool execution: {str(e)}"}
                 
         return wrapper
     return decorator

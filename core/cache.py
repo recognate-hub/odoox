@@ -19,7 +19,11 @@ if settings.REDIS_URL:
         logger.error(f"Failed to connect to Redis: {e}. Falling back to in-memory cache.")
         redis_client = None
 
-def get_cached_workspace(token: str, cls: type[BaseModel]) -> BaseModel | None:
+from typing import TypeVar
+
+T = TypeVar("T", bound=BaseModel)
+
+def get_cached_workspace(token: str, cls: type[T]) -> T | None:
     if not redis_client:
         return None
     try:
