@@ -97,18 +97,18 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Enhanced Features Section - Zig Zag Layout */}
-        <section className={styles.featuresContainer} id="features">
+        {/* Scrubbed Bento Grid Gallery */}
+        <section className={styles.bentoGrid} id="features">
           
-          {/* Feature 1: CRM - Text Left, Visual Right */}
-          <div className={styles.featureRow}>
-            <div className={styles.featureText}>
-              <h3 className={styles.featureTitle}>Autonomous Sales Pipelines</h3>
-              <p className={styles.featureDescription}>
+          {/* Feature 1: Large Code Block (8 columns) */}
+          <div className={`${styles.bentoItem} ${styles.colSpan8}`}>
+            <div className={styles.bentoHeader}>
+              <h3 className={styles.bentoTitle}>Autonomous Sales Pipelines</h3>
+              <p className={styles.bentoDescription}>
                 Expose `create_lead`, `update_lead`, and `get_leads` directly to Claude. Let AI agents manage your pipeline automatically through secure MCP routes, following up and tracking without human intervention.
               </p>
             </div>
-            <div className={styles.featureVisual}>
+            <div className={styles.bentoVisual}>
               <div className={styles.codeBlock}>
                 <code>
                   <span className={styles.codeDim}>Claude &gt;</span> Call tool: create_lead<br/>
@@ -116,7 +116,6 @@ export default async function Home() {
                   <span className={styles.codeHighlight}>{"{"}</span><br/>
                   &nbsp;&nbsp;&quot;name&quot;: &quot;Enterprise Deal&quot;,<br/>
                   &nbsp;&nbsp;&quot;email&quot;: &quot;ceo@acme.com&quot;,<br/>
-                  &nbsp;&nbsp;&quot;description&quot;: &quot;Generated from email thread.&quot;<br/>
                   <span className={styles.codeHighlight}>{"}"}</span><br/>
                   <br/>
                   <span className={styles.codeDim}>OdooX &gt;</span> Lead #145 Created.
@@ -125,56 +124,44 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Feature 2: Inventory & Calendar - Visual Left, Text Right */}
-          <div className={`${styles.featureRow} ${styles.reverse}`}>
-            <div className={styles.featureText}>
-              <h3 className={styles.featureTitle}>Real-time Operations AI</h3>
-              <p className={styles.featureDescription}>
-                Grant instant access to `get_products`, `get_sales_dashboard`, and `schedule_meeting`. Ask Claude to analyze stock levels, predict shortages dynamically, and autonomously book appointments into your Odoo calendar.
+          {/* Feature 2: Compatibility Metrics (4 columns) */}
+          <div className={`${styles.bentoItem} ${styles.colSpan4}`}>
+            <div className={styles.bentoHeader}>
+              <h3 className={styles.bentoTitle}>Universal Compatibility</h3>
+              <p className={styles.bentoDescription}>
+                Zero setup. Works perfectly with Odoo v12 through v17 using standard XML-RPC.
               </p>
             </div>
-            <div className={styles.featureVisual}>
-              <div style={{ width: '100%' }}>
-                <div className={styles.miniChart}>
-                  <div className={styles.chartBar} style={{ height: '30%', animationDelay: '0.1s' }}></div>
-                  <div className={styles.chartBar} style={{ height: '50%', animationDelay: '0.2s' }}></div>
-                  <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '80%', animationDelay: '0.3s' }}></div>
-                  <div className={styles.chartBar} style={{ height: '40%', animationDelay: '0.4s' }}></div>
-                  <div className={styles.chartBar} style={{ height: '60%', animationDelay: '0.5s' }}></div>
-                  <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '100%', animationDelay: '0.6s' }}></div>
-                </div>
-                <div className={styles.miniCalendar} style={{ marginTop: '2rem' }}>
-                  <div className={styles.calDay}></div>
-                  <div className={styles.calDay}></div>
-                  <div className={`${styles.calDay} ${styles.booked}`}></div>
-                  <div className={styles.calDay}></div>
-                  <div className={`${styles.calDay} ${styles.booked}`} style={{ animationDelay: '0.5s' }}></div>
-                  <div className={styles.calDay}></div>
-                  <div className={styles.calDay}></div>
-                  <div className={styles.calDay}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 3: Compatibility - Text Left, Visual Right */}
-          <div className={styles.featureRow}>
-            <div className={styles.featureText}>
-              <h3 className={styles.featureTitle}>Universal Compatibility. Zero Setup.</h3>
-              <p className={styles.featureDescription}>
-                Works seamlessly with Odoo v12 through v17. No custom Odoo modules required on your server. It just works, powered by native XML-RPC under the hood.
-              </p>
-            </div>
-            <div className={styles.featureVisual}>
+            <div className={styles.bentoVisualFull}>
               <div className={styles.metrics}>
                 <div className={styles.metric}>
-                  <div className={styles.metricValue}>v12-v17</div>
-                  <div className={styles.metricLabel}>Supported Versions</div>
+                  <div className={styles.metricValue}>v12-17</div>
+                  <div className={styles.metricLabel}>Supported</div>
                 </div>
                 <div className={styles.metric}>
                   <div className={styles.metricValue}>12+</div>
                   <div className={styles.metricLabel}>Native Tools</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 3: Real-time Operations (12 columns full width / or 8 columns again) */}
+          <div className={`${styles.bentoItem} ${styles.colSpan12}`} style={{ gridColumn: 'span 12', flexDirection: 'row', gap: '2rem' }}>
+            <div className={styles.bentoHeader} style={{ flex: 1 }}>
+              <h3 className={styles.bentoTitle}>Real-time Operations AI</h3>
+              <p className={styles.bentoDescription}>
+                Grant instant access to `get_products`, `get_sales_dashboard`, and `schedule_meeting`. Ask Claude to analyze stock levels, predict shortages dynamically, and autonomously book appointments into your Odoo calendar.
+              </p>
+            </div>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div className={styles.miniChart} style={{ width: '100%', maxWidth: '300px', margin: '0 auto', marginTop: '2rem' }}>
+                <div className={styles.chartBar} style={{ height: '30%', animationDelay: '0.1s' }}></div>
+                <div className={styles.chartBar} style={{ height: '50%', animationDelay: '0.2s' }}></div>
+                <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '80%', animationDelay: '0.3s' }}></div>
+                <div className={styles.chartBar} style={{ height: '40%', animationDelay: '0.4s' }}></div>
+                <div className={styles.chartBar} style={{ height: '60%', animationDelay: '0.5s' }}></div>
+                <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '100%', animationDelay: '0.6s' }}></div>
               </div>
             </div>
           </div>
