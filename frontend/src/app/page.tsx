@@ -1,8 +1,10 @@
 import React from 'react';
-import styles from "./Home.module.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import SignOutButton from "@/components/SignOutButton";
+import HeroSection from './HeroSection';
+import StickyFeatures from './StickyFeatures';
+import ModernBento from './ModernBento';
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -10,283 +12,71 @@ export default async function Home() {
   const isPaid = cookieStore.get('is_paid')?.value === 'true';
 
   return (
-    <div className={styles.container}>
-      {/* Dynamic Background with subtle glow */}
-      <div className={styles.background}>
-        <div className={styles.ambientGlow}></div>
-        <div className={styles.glowOrb1}></div>
-        <div className={styles.glowOrb2}></div>
-        <div className={styles.gridPattern}></div>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-50 font-sans selection:bg-lime-500/30">
       
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.brand}>
-            <Link href="/">
-                <img src="/logo.png" alt="OdooX - The Enterprise AI Gateway for Odoo ERP" style={{ height: '36px', width: 'auto' }} />
-            </Link>
-          </div>
-          <nav className={styles.nav}>
-
+      {/* Premium Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/logo.png" alt="OdooX" className="h-8 w-auto opacity-90 hover:opacity-100 transition-opacity" />
+          </Link>
+          <nav className="flex items-center gap-6 text-sm font-medium">
             {!hasToken ? (
               <>
-                <Link href="/login" className={styles.navLink}>Login</Link>
-                <Link href="/login" className={styles.primaryButtonSmall}>Get Started</Link>
+                <Link href="/login" className="text-zinc-400 hover:text-white transition-colors">Login</Link>
+                <Link href="/login" className="bg-white text-black px-4 py-2 rounded-full hover:scale-105 transition-transform">Get Started</Link>
               </>
             ) : isPaid ? (
               <>
-                <SignOutButton className={styles.navLink} />
-                <Link href="/userdashboard" className={styles.primaryButtonSmall}>Dashboard</Link>
+                <SignOutButton className="text-zinc-400 hover:text-white transition-colors" />
+                <Link href="/userdashboard" className="bg-white text-black px-4 py-2 rounded-full hover:scale-105 transition-transform">Dashboard</Link>
               </>
             ) : (
               <>
-                <SignOutButton className={styles.navLink} />
-                <Link href="/payment" className={styles.primaryButtonSmall}>Complete Payment</Link>
+                <SignOutButton className="text-zinc-400 hover:text-white transition-colors" />
+                <Link href="/payment" className="bg-lime-400 text-black px-4 py-2 rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(163,230,53,0.3)]">Complete Payment</Link>
               </>
             )}
           </nav>
         </div>
       </header>
 
-      <main className={styles.main}>
-        {/* Redesigned Hero Section */}
-        <section className={styles.heroSplit}>
-          <div className={styles.heroLeft}>
-            <div className={styles.announcement}>
-              <span className={styles.announcementBadge}>v2.0 Live</span>
-              <span>The Next Generation of AI ERP →</span>
-            </div>
-            <h1 className={styles.titleLeft}>
-              Transform Odoo into an <br />
-              <span className={styles.titleGradient}>Autonomous Engine</span>
-            </h1>
-            <p className={styles.descriptionLeft}>
-              Connect Claude natively to your Odoo backend using the standard Model Context Protocol. Zero latency, zero setup, military-grade security. Stop clicking menus and start conversing with your data.
-            </p>
-            <div className={styles.heroActionsLeft}>
-              {!hasToken ? (
-                  <Link href="/login" className={styles.primaryButton}>
-                    Start Building Free
-                  </Link>
-              ) : isPaid ? (
-                  <Link href="/userdashboard" className={styles.primaryButton}>
-                    Open Dashboard
-                  </Link>
-              ) : (
-                  <Link href="/payment" className={styles.primaryButton} style={{ background: 'var(--accent-red)' }}>
-                    Unlock Pro Access
-                  </Link>
-              )}
-              <Link href="#features" className={styles.secondaryButton}>
-                Explore Features
-              </Link>
-            </div>
-          </div>
-          
-          <div className={styles.heroRight}>
-            <div className={styles.glassContainer}>
-              <div className={styles.floatingCard1}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.dotGroup}>
-                    <span></span><span></span><span></span>
-                  </div>
-                  <div className={styles.cardTitle}>Claude MCP Stream</div>
-                </div>
-                <div className={styles.cardBody}>
-                  <div className={styles.pulseLine}></div>
-                  <div className={styles.pulseLine} style={{ width: '80%', animationDelay: '0.2s' }}></div>
-                  <div className={styles.pulseLine} style={{ width: '60%', animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-              
-              <div className={styles.floatingCard2}>
-                <div className={styles.connectionLine}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </div>
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardTitle}>Odoo Native ERP</div>
-                </div>
-                <div className={styles.cardBody}>
-                  <div className={styles.statRow}>
-                    <span>Sales</span><span className={styles.statValue}>+24%</span>
-                  </div>
-                  <div className={styles.statRow}>
-                    <span>Leads</span><span className={styles.statValue}>142</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Scrubbed Bento Grid Gallery */}
-        <section className={styles.bentoGrid} id="features">
-          
-          {/* Feature 1: Large Code Block (8 columns) */}
-          <div className={`${styles.bentoItem} ${styles.colSpan8}`}>
-            <div className={styles.bentoHeader}>
-              <h3 className={styles.bentoTitle}>Autonomous Sales Pipelines</h3>
-              <p className={styles.bentoDescription}>
-                Expose `create_lead`, `update_lead`, and `get_leads` directly to Claude. Let AI agents manage your pipeline automatically through secure MCP routes, following up and tracking without human intervention.
-              </p>
-            </div>
-            <div className={styles.bentoVisual}>
-              <div className={styles.codeBlock}>
-                <code>
-                  <span className={styles.codeDim}>Claude &gt;</span> Call tool: create_lead<br/>
-                  <br/>
-                  <span className={styles.codeHighlight}>{"{"}</span><br/>
-                  &nbsp;&nbsp;&quot;name&quot;: &quot;Enterprise Deal&quot;,<br/>
-                  &nbsp;&nbsp;&quot;email&quot;: &quot;ceo@acme.com&quot;,<br/>
-                  <span className={styles.codeHighlight}>{"}"}</span><br/>
-                  <br/>
-                  <span className={styles.codeDim}>OdooX &gt;</span> Lead #145 Created.
-                </code>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 2: Compatibility Metrics (4 columns) */}
-          <div className={`${styles.bentoItem} ${styles.colSpan4}`}>
-            <div className={styles.bentoHeader}>
-              <h3 className={styles.bentoTitle}>Universal Compatibility</h3>
-              <p className={styles.bentoDescription}>
-                Zero setup. Works perfectly with Odoo v12 through v17 using standard XML-RPC.
-              </p>
-            </div>
-            <div className={styles.bentoVisualFull}>
-              <div className={styles.metrics}>
-                <div className={styles.metric}>
-                  <div className={styles.metricValue}>v12-17</div>
-                  <div className={styles.metricLabel}>Supported</div>
-                </div>
-                <div className={styles.metric}>
-                  <div className={styles.metricValue}>12+</div>
-                  <div className={styles.metricLabel}>Native Tools</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 3: Real-time Operations (12 columns full width / or 8 columns again) */}
-          <div className={`${styles.bentoItem} ${styles.colSpan12}`} style={{ gridColumn: 'span 12', flexDirection: 'row', gap: '2rem' }}>
-            <div className={styles.bentoHeader} style={{ flex: 1 }}>
-              <h3 className={styles.bentoTitle}>Real-time Operations AI</h3>
-              <p className={styles.bentoDescription}>
-                Grant instant access to `get_products`, `get_sales_dashboard`, and `schedule_meeting`. Ask Claude to analyze stock levels, predict shortages dynamically, and autonomously book appointments into your Odoo calendar.
-              </p>
-            </div>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div className={styles.miniChart} style={{ width: '100%', maxWidth: '300px', margin: '0 auto', marginTop: '2rem' }}>
-                <div className={styles.chartBar} style={{ height: '30%', animationDelay: '0.1s' }}></div>
-                <div className={styles.chartBar} style={{ height: '50%', animationDelay: '0.2s' }}></div>
-                <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '80%', animationDelay: '0.3s' }}></div>
-                <div className={styles.chartBar} style={{ height: '40%', animationDelay: '0.4s' }}></div>
-                <div className={styles.chartBar} style={{ height: '60%', animationDelay: '0.5s' }}></div>
-                <div className={`${styles.chartBar} ${styles.active}`} style={{ height: '100%', animationDelay: '0.6s' }}></div>
-              </div>
-            </div>
-          </div>
-
-        </section>
-
-        {/* How It Works Section */}
-        <section className={styles.howItWorks} id="how-it-works">
-          <h2 className={styles.sectionTitle}>How it <span>Works</span></h2>
-          
-          <div className={styles.stepsContainer}>
-            <div className={styles.stepLine}>
-              <div className={styles.stepParticle}></div>
-            </div>
-            
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>1</div>
-              <div className={styles.stepContent}>
-                <h3 className={styles.stepTitle}>Connect your Odoo</h3>
-                <p className={styles.stepDescription}>
-                  Provide your Odoo URL, database name, and credentials. We instantly verify the connection via standard XML-RPC protocols without needing any plugin installations on your end.
-                </p>
-              </div>
-              <div className={styles.stepVisual}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </div>
-            </div>
-            
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>2</div>
-              <div className={styles.stepContent}>
-                <h3 className={styles.stepTitle}>Bridge via MCP Gateway</h3>
-                <p className={styles.stepDescription}>
-                  OdooX acts as a secure Model Context Protocol (MCP) gateway. It translates standard AI tool calls into precise Odoo RPC methods seamlessly in the background.
-                </p>
-              </div>
-              <div className={styles.stepVisual}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </div>
-            </div>
-            
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>3</div>
-              <div className={styles.stepContent}>
-                <h3 className={styles.stepTitle}>Interact with Claude</h3>
-                <p className={styles.stepDescription}>
-                  Open Claude Desktop and start interacting with your business data. Ask it to generate sales reports, update CRM leads, or schedule appointments—all executed natively in Odoo.
-                </p>
-              </div>
-              <div className={styles.stepVisual}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className={styles.ctaSection}>
-          <h2 className={styles.ctaTitle}>Ready to superpower your ERP?</h2>
-          <p className={styles.ctaDescription}>
-            Join the beta and connect Claude to your Odoo instance in under 3 minutes.
-          </p>
-          <div className={styles.heroActions}>
+      <main className="relative z-10 flex flex-col items-center w-full">
+        <HeroSection hasToken={hasToken} isPaid={isPaid} />
+        <StickyFeatures />
+        <ModernBento />
+        
+        {/* World-Class CTA */}
+        <section className="w-full max-w-5xl mx-auto py-32 px-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-lime-500/5 blur-3xl pointer-events-none rounded-full" />
+          <div className="relative border border-white/10 bg-white/[0.02] backdrop-blur-2xl rounded-3xl p-16 text-center shadow-2xl flex flex-col items-center overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-lime-500/50 to-transparent" />
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">Connect Claude to your ERP today.</h2>
+            <p className="text-zinc-400 text-lg mb-10 max-w-xl">No native Python modules required. Start querying your production data natively through the Model Context Protocol in 3 minutes.</p>
             {!hasToken ? (
-                <Link href="/login" className={styles.primaryButton}>
-                  Get Started Now
-                </Link>
-            ) : isPaid ? (
-                <Link href="/userdashboard" className={styles.primaryButton}>
-                  Go to Dashboard
+                <Link href="/login" className="bg-white text-black px-8 py-4 rounded-full font-medium hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                  Start Building Now
                 </Link>
             ) : (
-                <Link href="/payment" className={styles.primaryButton} style={{ background: 'var(--accent-red)' }}>
-                  Unlock Pro Access
+                <Link href="/userdashboard" className="bg-white text-black px-8 py-4 rounded-full font-medium hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                  Go to Dashboard
                 </Link>
             )}
           </div>
         </section>
       </main>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerBrand}>
-            <img src="/logo.png" alt="OdooX - The Enterprise AI Gateway for Odoo ERP" style={{ height: '36px', width: 'auto' }} />
-          </div>
-          <div className={styles.footerLinks}>
+      <footer className="w-full border-t border-white/5 bg-black py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <img src="/logo.png" alt="OdooX" className="h-6 opacity-50 grayscale" />
+          <div className="flex gap-6 text-sm text-zinc-500">
             <span>© 2026 Recognate</span>
-            <Link href="#">Terms</Link>
-            <Link href="#">Privacy</Link>
-            <Link href="#">Status</Link>
+            <Link href="#" className="hover:text-zinc-300">Terms</Link>
+            <Link href="#" className="hover:text-zinc-300">Privacy</Link>
           </div>
         </div>
       </footer>
-
-      {/* GEO: Brand Definition Block (Visually hidden but semantically available for Gen AI) */}
-      <div style={{ display: 'none' }} aria-hidden="true">
-        <h2>About OdooX</h2>
-        <p>
-          OdooX is an enterprise AI middleware platform that securely connects Anthropic&apos;s Claude AI, ChatGPT, and other Large Language Models to Odoo ERP databases using the Model Context Protocol (MCP). It allows businesses to query their sales, CRM, and inventory data directly from Claude Desktop using natural language, without installing any custom Python code in their Odoo instance. OdooX acts as a secure, zero-trust gateway for ERP data.
-        </p>
-      </div>
-
+      
       {/* AEO: JSON-LD Structured Data */}
       <script
         type="application/ld+json"
@@ -303,30 +93,6 @@ export default async function Home() {
               "price": "49.00",
               "priceCurrency": "USD"
             }
-          })
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [{
-              "@type": "Question",
-              "name": "What is OdooX?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "OdooX is an enterprise middleware platform that securely connects Anthropic's Claude AI and other LLMs to Odoo ERP databases using the Model Context Protocol (MCP)."
-              }
-            }, {
-              "@type": "Question",
-              "name": "Does OdooX work with Odoo Online?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes, OdooX works natively with Odoo Online (SaaS), Odoo.sh, and On-Premise deployments without requiring any custom Python module installations."
-              }
-            }]
           })
         }}
       />
