@@ -35,7 +35,12 @@ def test_token_no_code():
     assert response.status_code == 400
     assert response.json()["error"] == "invalid_request"
 
-def test_token_auth_code_success():
+@patch("routers.oauth.get_workspace_credentials")
+def test_token_auth_code_success(mock_get_workspace):
+    mock_workspace = MagicMock()
+    mock_workspace.model_dump_json.return_value = '{"user_id": "123"}'
+    mock_get_workspace.return_value = mock_workspace
+
     payload = {
         "access_token": "acc",
         "refresh_token": "ref",
@@ -44,7 +49,7 @@ def test_token_auth_code_success():
     code = encrypt(json.dumps(payload))
     response = client.post("/oauth/token", data={"grant_type": "authorization_code", "code": code})
     assert response.status_code == 200
-    assert response.json()["access_token"] == "acc"
+    assert response.json()["access_token"].startswith("odx_")
 
 def test_token_auth_code_expired():
     payload = {

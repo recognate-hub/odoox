@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from supabase import create_client
 
 from config.settings import get_settings
+from core.context import get_workspace_credentials
 from core.encryption import decrypt, encrypt
 from core.logger import get_logger
 
@@ -159,23 +160,21 @@ def token(
         if not access_token:
             raise ValueError("Missing access token in payload")
             
-        supabase_refresh = payload.get("refresh_token")
-            
-        # Return standard OAuth 2.0 response.
-        # expires_in tells Claude how long the access_token is valid for.
-        # We report ACCESS_TOKEN_LIFETIME_SEC (slightly under 1 hour) so Claude
-        # proactively uses the refresh_token before the Supabase JWT expires.
-        encrypted_refresh = encrypt(supabase_refresh) if supabase_refresh else None
+        # Convert the short-lived Supabase JWT into a permanent odx_ API key
+        # so Claude Desktop never needs to refresh it. This avoids race conditions
+        # with the browser rotating the refresh token.
+        workspace = get_workspace_credentials(access_token)
+        odx_token = "odx_" + encrypt(workspace.model_dump_json())
+        
+        # We don't return a refresh_token, and we set a 10 year expiry.
+        # This completely eliminates the need for Claude Desktop to refresh the token,
+        # solving the "Connection Expired" issues permanently.
         response_body: dict = {
-            "access_token": access_token,
+            "access_token": odx_token,
             "token_type": "Bearer",
-            "expires_in": ACCESS_TOKEN_LIFETIME_SEC,
+            "expires_in": 315360000,
         }
-        if encrypted_refresh:
-            # Include refresh_token so Claude can silently renew without
-            # prompting the user to log in again.
-            response_body["refresh_token"] = encrypted_refresh
-        logger.info("OAuth authorization code exchanged successfully")
+        logger.info("OAuth authorization code exchanged for permanent odx_ key")
         return JSONResponse(content=response_body)
         
     except Exception as e:  # noqa: BLE001
