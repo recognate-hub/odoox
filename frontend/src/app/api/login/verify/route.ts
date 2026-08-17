@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
             path: '/',
         };
 
-        const finalResponse = NextResponse.json({ status: "success", redirect: redirectUrl });
+        const finalResponse = NextResponse.json({ 
+            status: "success", 
+            redirect: redirectUrl,
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token || null
+        });
 
         // Auth cookies (session-length — expire when browser closes)
         finalResponse.cookies.set({ name: 'access_token', value: data.session.access_token, ...cookieDefaults });

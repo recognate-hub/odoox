@@ -31,19 +31,24 @@ def authorize(
     client_id: str = Query(...),
     redirect_uri: str = Query(...),
     response_type: str = Query("code"),
-    state: str | None = Query(None)
+    state: str | None = Query(None),
+    token: str | None = Query(None),
+    refresh_token: str | None = Query(None)
 ):
     """
     Standard OAuth 2.0 Authorization Endpoint.
     Redirects to login if unauthenticated.
     Generates a short-lived auth code if authenticated.
     """
-    token = request.cookies.get("access_token")
-    refresh_token = request.cookies.get("refresh_token")
+    cookie_token = request.cookies.get("access_token")
+    cookie_refresh = request.cookies.get("refresh_token")
+    
+    actual_token = token or cookie_token
+    actual_refresh = refresh_token or cookie_refresh
     
     # If the user is not logged in, redirect them to the ODOOX login page
     # passing the current OAuth URL as the `next` parameter so they come back here
-    if not token:
+    if not actual_token:
         settings = get_settings()
         frontend_url = settings.FRONTEND_URL.rstrip('/')
         
@@ -62,8 +67,8 @@ def authorize(
     # embed it in the payload (used later to compute expires_in accurately).
     issued_at = int(time.time())
     payload = {
-        "access_token": token,
-        "refresh_token": refresh_token,
+        "access_token": actual_token,
+        "refresh_token": actual_refresh,
         "issued_at": issued_at,
         "exp": issued_at + CODE_EXPIRY_SEC
     }
@@ -76,7 +81,12 @@ def authorize(
     if state:
         redirect_with_code += f"&state={urllib.parse.quote(state)}"
         
-    return RedirectResponse(url=redirect_with_code, status_code=303)
+    response = RedirectResponse(url=redirect_with_code, status_code=303)
+    if token:
+        response.set_cookie("access_token", token, max_age=3600, httponly=True, samesite="lax")
+    if refresh_token:
+        response.set_cookie("refresh_token", refresh_token, max_age=7*24*3600, httponly=True, samesite="lax")
+    return response
 
 
 @router.post("/token")
@@ -191,11 +201,15 @@ async def register(request: Request):
     
     auth_method = data.get("token_endpoint_auth_method", "client_secret_basic")
 
+    provided_grant_types = data.get("grant_types", ["authorization_code", "refresh_token"])
+    if "refresh_token" not in provided_grant_types:
+        provided_grant_types.append("refresh_token")
+
     response_content = {
         "client_id": client_id,
         "client_id_issued_at": int(time.time()),
         "redirect_uris": data.get("redirect_uris", []),
-        "grant_types": data.get("grant_types", ["authorization_code", "refresh_token"]),
+        "grant_types": provided_grant_types,
         "response_types": data.get("response_types", ["code"]),
         "client_name": data.get("client_name", "Dynamic MCP Client"),
         "token_endpoint_auth_method": auth_method

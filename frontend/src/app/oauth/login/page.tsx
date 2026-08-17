@@ -29,10 +29,14 @@ export default function OAuthLoginPage() {
             try {
                 const res = await fetch('/api/auth/me');
                 if (res.ok) {
+                    const data = await res.json();
                     const nextUrl = getNextUrl();
                     if (nextUrl) {
                         // Already logged in — complete the OAuth handshake immediately
-                        window.location.href = nextUrl;
+                        const urlObj = new URL(nextUrl);
+                        if (data.access_token) urlObj.searchParams.set('token', data.access_token);
+                        if (data.refresh_token) urlObj.searchParams.set('refresh_token', data.refresh_token);
+                        window.location.href = urlObj.toString();
                         return;
                     }
                 }
@@ -146,7 +150,10 @@ export default function OAuthLoginPage() {
                 // the dashboard, because Claude is waiting for the auth code.
                 const nextUrl = getNextUrl();
                 if (nextUrl) {
-                    window.location.href = nextUrl;
+                    const urlObj = new URL(nextUrl);
+                    if (data.access_token) urlObj.searchParams.set('token', data.access_token);
+                    if (data.refresh_token) urlObj.searchParams.set('refresh_token', data.refresh_token);
+                    window.location.href = urlObj.toString();
                 } else {
                     // Fallback: no `?next` means the user landed here directly;
                     // send them to their dashboard.
@@ -178,7 +185,10 @@ export default function OAuthLoginPage() {
             if (data.status === 'success') {
                 const nextUrl = getNextUrl();
                 if (nextUrl) {
-                    window.location.href = nextUrl;
+                    const urlObj = new URL(nextUrl);
+                    if (data.access_token) urlObj.searchParams.set('token', data.access_token);
+                    if (data.refresh_token) urlObj.searchParams.set('refresh_token', data.refresh_token);
+                    window.location.href = urlObj.toString();
                 } else {
                     window.location.href = data.redirect || '/userdashboard';
                 }

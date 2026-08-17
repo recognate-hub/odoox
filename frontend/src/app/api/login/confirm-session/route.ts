@@ -44,8 +44,14 @@ export async function POST(request: NextRequest) {
             hasPaid = true;
         }
 
+        const refreshToken = request.cookies.get('refresh_token')?.value;
         const redirectUrl = hasPaid ? "/userdashboard" : "/payment";
-        const response = NextResponse.json({ status: "success", redirect: redirectUrl });
+        const response = NextResponse.json({ 
+            status: "success", 
+            redirect: redirectUrl,
+            access_token: token,
+            refresh_token: refreshToken || null
+        });
 
         response.cookies.set({
             name: 'device_session_id',
