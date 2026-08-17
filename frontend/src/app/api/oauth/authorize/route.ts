@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         
         // Append all search params from the frontend request to the backend request
-        const backendRequestUrl = new URL(`${backendUrl}/authorize`);
+        const backendRequestUrl = new URL(`${backendUrl}/oauth/authorize`);
         url.searchParams.forEach((value, key) => {
             backendRequestUrl.searchParams.append(key, value);
         });

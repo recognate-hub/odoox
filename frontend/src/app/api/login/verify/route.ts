@@ -65,11 +65,11 @@ export async function POST(request: NextRequest) {
             refresh_token: data.session.refresh_token || null
         });
 
-        // Auth cookies (session-length — expire when browser closes)
-        finalResponse.cookies.set({ name: 'access_token', value: data.session.access_token, ...cookieDefaults });
+        // Auth cookies (persistent — access_token for 1 hour, refresh_token for 7 days)
+        finalResponse.cookies.set({ name: 'access_token', value: data.session.access_token, ...cookieDefaults, maxAge: 3600 });
 
         if (data.session.refresh_token) {
-            finalResponse.cookies.set({ name: 'refresh_token', value: data.session.refresh_token, ...cookieDefaults });
+            finalResponse.cookies.set({ name: 'refresh_token', value: data.session.refresh_token, ...cookieDefaults, maxAge: 7 * 24 * 60 * 60 });
         }
 
         // Device session cookie (persistent, 7 days)

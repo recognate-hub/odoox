@@ -6,7 +6,7 @@ export async function POST(request: Request) {
         const rawBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const backendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         
-        const res = await fetch(`${backendUrl}/register`, {
+        const res = await fetch(`${backendUrl}/oauth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

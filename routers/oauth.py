@@ -84,9 +84,9 @@ def authorize(
         
     response = RedirectResponse(url=redirect_with_code, status_code=303)
     if token:
-        response.set_cookie("access_token", token, max_age=3600, httponly=True, samesite="lax")
+        response.set_cookie("access_token", token, max_age=3600, httponly=True, samesite="lax", secure=True)
     if refresh_token:
-        response.set_cookie("refresh_token", refresh_token, max_age=7*24*3600, httponly=True, samesite="lax")
+        response.set_cookie("refresh_token", refresh_token, max_age=7*24*3600, httponly=True, samesite="lax", secure=True)
     return response
 
 
@@ -111,7 +111,10 @@ def token(
         try:
             # Our OAuth refresh_token is the encrypted Supabase refresh_token.
             # Decrypt it to get the raw Supabase refresh token.
-            supabase_refresh = decrypt(refresh_token)
+            try:
+                supabase_refresh = decrypt(refresh_token)
+            except Exception:
+                raise ValueError("Failed to decrypt refresh token")
             if not supabase_refresh or supabase_refresh == refresh_token:
                 # decrypt() returns the raw value unchanged when decryption fails;
                 # treat that case as an invalid token.

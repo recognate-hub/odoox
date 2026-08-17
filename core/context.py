@@ -34,6 +34,7 @@ _credentials_cache: dict[tuple[str, str | None], tuple[WorkspaceContext, float]]
 # At 55 min the cache expires, validation runs once, and if the token is expired
 # we raise a clear SessionExpiredError instead of a cryptic 401.
 CACHE_TTL_SEC = 55 * 60  # 55 minutes
+MAX_CACHE_SIZE = 1000
 
 def get_current_token() -> str:
     token = current_token.get()
@@ -44,6 +45,12 @@ def get_current_token() -> str:
 def get_workspace_credentials(token: str, workspace_id: str | None = None, force_refresh: bool = False) -> WorkspaceContext:
     """Fetch credentials dynamically with an auto-refreshing TTL cache."""
     now = time.time()
+
+    # Prune expired entries if cache is getting large to prevent memory leaks
+    if len(_credentials_cache) > MAX_CACHE_SIZE:
+        expired_keys = [k for k, (_, ts) in _credentials_cache.items() if now - ts >= CACHE_TTL_SEC]
+        for k in expired_keys:
+            del _credentials_cache[k]
     cache_key = (token, workspace_id)
     
     # Return from cache if valid and not forcing a refresh

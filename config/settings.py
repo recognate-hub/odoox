@@ -1,3 +1,4 @@
+from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -54,8 +55,9 @@ class Settings(BaseSettings):
         """
 
 
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """
-    Factory to retrieve settings. In a real DI setup, this could be cached.
+    Factory to retrieve settings. Cached so .env is only parsed once.
     """
     return Settings()

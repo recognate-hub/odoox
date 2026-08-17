@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ status: "success", message: "Logged out" });
     response.cookies.delete('access_token');
+    response.cookies.delete('refresh_token');
     response.cookies.delete('device_session_id');
     response.cookies.delete('paid_user_id');
     response.cookies.delete('payment_signature');
