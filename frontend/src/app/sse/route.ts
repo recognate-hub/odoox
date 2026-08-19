@@ -3,7 +3,9 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-    const backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    let backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    // Node 18+ fetch prefers IPv6 ::1 for localhost, which fails if FastAPI binds to 0.0.0.0 (IPv4)
+    backendUrlRaw = backendUrlRaw.replace('localhost', '127.0.0.1');
     const backendUrl = backendUrlRaw.replace(/\/+$/, "");
     const sseUrl = new URL('/sse', backendUrl);
     

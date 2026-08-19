@@ -3,7 +3,8 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-    const backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    let backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    backendUrlRaw = backendUrlRaw.replace('localhost', '127.0.0.1');
     const backendUrl = backendUrlRaw.replace(/\/+$/, "");
     const messagesUrl = new URL('/messages', backendUrl);
     
