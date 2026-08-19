@@ -75,6 +75,7 @@ class RequestsTransport(xmlrpc.client.Transport):
         self.session = _get_session(use_mtls)
 
     def request(self, host, handler, request_body, verbose=False):
+        self.verbose = verbose
         url = f"{self.protocol}://{host}{handler}"
         headers = {'User-Agent': 'OdooX-Connector', 'Content-Type': 'text/xml'}
         try:
