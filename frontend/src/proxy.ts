@@ -1,12 +1,8 @@
-import createMiddleware from 'next-intl/middleware';
-import { routing } from './i18n/routing';
 import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-const intlMiddleware = createMiddleware(routing);
 
 async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
     try {
@@ -42,13 +38,9 @@ async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
 export default async function middleware(request: NextRequest) {
     const token = request.cookies.get('access_token')?.value;
     const { pathname } = request.nextUrl;
-    
-    // Remove locale prefix for auth logic check
-    const localeRegex = new RegExp(`^/(${routing.locales.join('|')})`);
-    const pathWithoutLocale = pathname.replace(localeRegex, '') || '/';
 
     // Protected Route: Dashboard
-    if (pathWithoutLocale.startsWith('/userdashboard')) {
+    if (pathname.startsWith('/userdashboard')) {
         if (!token) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
@@ -60,7 +52,7 @@ export default async function middleware(request: NextRequest) {
     }
 
     // Protected Route: Payment
-    if (pathWithoutLocale.startsWith('/payment')) {
+    if (pathname.startsWith('/payment')) {
         if (!token) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
@@ -72,7 +64,7 @@ export default async function middleware(request: NextRequest) {
     }
 
     // Public Routes (Login only)
-    if (pathWithoutLocale === '/login') {
+    if (pathname === '/login') {
         if (token) {
             const isPaid = await checkPaymentStatus(request);
             if (isPaid) {
@@ -83,13 +75,11 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    return intlMiddleware(request);
+    return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/(de|en|es|fr)/:path*',
     '/((?!api|_next|_vercel|oauth|sse|messages|.*\\..*).*)'
   ]
 };
