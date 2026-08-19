@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
     let backendUrlRaw = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -36,4 +37,15 @@ export async function POST(request: NextRequest) {
         console.error("Messages Proxy Error:", error);
         return new Response("Messages Proxy Error", { status: 500 });
     }
+}
+
+export async function OPTIONS(request: NextRequest) {
+    return new Response(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
 }
