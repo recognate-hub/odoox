@@ -12,16 +12,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['medicines-assignment-occasionally-basin.trycloudflare.com'],
   async rewrites() {
     return [
-      // Proxy SSE calls to the FastAPI backend
-      {
-        source: "/sse",
-        destination: `${apiUrl}/sse`,
-      },
-      // Proxy MCP messages endpoint
-      {
-        source: "/messages",
-        destination: `${apiUrl}/messages`,
-      },
       // Proxy OAuth Metadata
       {
         source: "/.well-known/:path*",
