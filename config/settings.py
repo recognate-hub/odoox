@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     ODOO_CLIENT_CERT_PATH: str | None = Field(default=None, description="Path to mTLS client cert")
     ODOO_CLIENT_KEY_PATH: str | None = Field(default=None, description="Path to mTLS client key")
 
+    # Odoo Connection
+    ODOO_TIMEOUT: int = Field(default=120, description="Timeout for Odoo XML-RPC requests in seconds")
+
     # Client/Tenant Identification
     COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")
     COMPANY_EMAIL: str = Field(default="admin@odoox.com", min_length=1, description="Company contact email")

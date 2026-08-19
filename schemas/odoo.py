@@ -1,9 +1,11 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 
 class OdooBaseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     @model_validator(mode='before')
     @classmethod
     def convert_odoo_false_to_none(cls, data: Any) -> Any:

@@ -1,37 +1,12 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey;
-
-async function checkDeviceSession(request: NextRequest, token: string): Promise<boolean> {
-    const cookieSessionId = request.cookies.get('device_session_id')?.value;
-    if (!cookieSessionId) return false;
-
-    try {
-        const userSupabase = createClient(supabaseUrl, supabaseKey, {
-            global: { headers: { Authorization: `Bearer ${token}` } }
-        });
-        const { data: userResponse } = await userSupabase.auth.getUser();
-        if (!userResponse?.user) return false;
-
-        const { data: activeSession } = await userSupabase
-            .from('active_sessions')
-            .select('device_session_id')
-            .eq('user_id', userResponse.user.id)
-            .limit(1);
-
-        if (activeSession && activeSession.length > 0) {
-            return activeSession[0].device_session_id === cookieSessionId;
-        }
-        return false;
-    } catch {
-        return false;
-    }
-}
+const intlMiddleware = createMiddleware(routing);
 
 async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
     try {
@@ -47,7 +22,6 @@ async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
 
         if (!isValid) return false;
 
-        // Optionally, check if the token user ID matches the paid user ID
         const token = request.cookies.get('access_token')?.value;
         if (token) {
             const userSupabase = createClient(supabaseUrl, supabaseKey, {
@@ -65,12 +39,16 @@ async function checkPaymentStatus(request: NextRequest): Promise<boolean> {
     }
 }
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
     const token = request.cookies.get('access_token')?.value;
     const { pathname } = request.nextUrl;
+    
+    // Remove locale prefix for auth logic check
+    const localeRegex = new RegExp(`^/(${routing.locales.join('|')})`);
+    const pathWithoutLocale = pathname.replace(localeRegex, '') || '/';
 
     // Protected Route: Dashboard
-    if (pathname.startsWith('/userdashboard')) {
+    if (pathWithoutLocale.startsWith('/userdashboard')) {
         if (!token) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
@@ -79,11 +57,10 @@ export default async function proxy(request: NextRequest) {
         if (!isPaid) {
             return NextResponse.redirect(new URL('/payment', request.url));
         }
-        return NextResponse.next();
     }
 
     // Protected Route: Payment
-    if (pathname.startsWith('/payment')) {
+    if (pathWithoutLocale.startsWith('/payment')) {
         if (!token) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
@@ -92,11 +69,10 @@ export default async function proxy(request: NextRequest) {
         if (isPaid) {
             return NextResponse.redirect(new URL('/userdashboard', request.url));
         }
-        return NextResponse.next();
     }
 
     // Public Routes (Login only)
-    if (pathname === '/login') {
+    if (pathWithoutLocale === '/login') {
         if (token) {
             const isPaid = await checkPaymentStatus(request);
             if (isPaid) {
@@ -107,9 +83,13 @@ export default async function proxy(request: NextRequest) {
         }
     }
 
-    return NextResponse.next();
+    return intlMiddleware(request);
 }
 
 export const config = {
-    matcher: ['/', '/login', '/userdashboard/:path*', '/payment/:path*'],
+  matcher: [
+    '/',
+    '/(de|en|es|fr)/:path*',
+    '/((?!api|_next|_vercel|oauth|.*\\..*).*)'
+  ]
 };

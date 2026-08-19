@@ -42,7 +42,9 @@ def test_decrypt_envelope_success(mock_decrypt):
 def test_decrypt_envelope_failure(mock_decrypt):
     mock_decrypt.side_effect = Exception("Decryption failed")
     token = "ENVELOPE_V1:enc:cipher"
-    assert decrypt(token) == token
+    import pytest
+    with pytest.raises(ValueError, match="Decryption failed due to invalid token or key"):
+        decrypt(token)
 
 @patch("core.encryption.SecretsManager.get_active_key")
 def test_get_active_fernet_short_key(mock_get_key):
@@ -96,9 +98,13 @@ def test_decrypt_backwards_compatibility_failure(mock_retired, mock_active):
     mock_active.return_value = cipher_active
     mock_retired.return_value = []
     
-    # Should fallback to returning the original token
-    assert decrypt(ciphertext) == ciphertext
+    # Should fallback to throwing ValueError
+    import pytest
+    with pytest.raises(ValueError, match="Decryption failed"):
+        decrypt(ciphertext)
 
 def test_decrypt_fallback_unknown_format():
     token = "some_unknown_token_format"
-    assert decrypt(token) == token
+    import pytest
+    with pytest.raises(ValueError, match="Decryption failed"):
+        decrypt(token)

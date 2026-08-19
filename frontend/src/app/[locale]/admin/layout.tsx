@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import '../login/login.css';
+import '../../oauth/login/login.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();

@@ -6,8 +6,7 @@ import pytest
 from core.exceptions import CircuitBreakerOpenError
 from core.idempotency import IdempotencyCache, _idempotency_state
 from odoo.xmlrpc import (
-    TimeoutSafeTransport,
-    TimeoutTransport,
+    RequestsTransport,
     XmlRpcOdooConnector,
     get_transport,
 )
@@ -15,11 +14,10 @@ from odoo.xmlrpc import (
 
 def test_timeout_transport():
     transport = get_transport("http://localhost", timeout=5)
-    assert isinstance(transport, TimeoutTransport)
-    assert transport.timeout == 5
-
-    secure_transport = get_transport("https://localhost", timeout=5)
-    assert isinstance(secure_transport, TimeoutSafeTransport)
+    assert isinstance(transport, RequestsTransport)
+    
+    secure_transport = get_transport("https://odoo.example.com", timeout=5)
+    assert isinstance(secure_transport, RequestsTransport)
     assert secure_transport.timeout == 5
 
 

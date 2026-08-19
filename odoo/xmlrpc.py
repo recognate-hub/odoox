@@ -48,42 +48,45 @@ def _span(name: str):
 
 logger = get_logger(__name__)
 
-class TimeoutTransport(xmlrpc.client.Transport):
-    def __init__(self, timeout=10, *args, **kwargs):
+import io
+import requests
+
+_sessions = {}
+
+def _get_session(use_mtls=False):
+    key = "mtls" if use_mtls else "standard"
+    if key not in _sessions:
+        session = requests.Session()
+        if use_mtls:
+            settings = get_settings()
+            if settings.ODOO_CLIENT_CERT_PATH and settings.ODOO_CLIENT_KEY_PATH:
+                if os.path.exists(settings.ODOO_CLIENT_CERT_PATH) and os.path.exists(settings.ODOO_CLIENT_KEY_PATH):
+                    session.cert = (settings.ODOO_CLIENT_CERT_PATH, settings.ODOO_CLIENT_KEY_PATH)
+                else:
+                    logger.warning("mTLS certificates not found at specified paths. Falling back to default SSL.")
+        _sessions[key] = session
+    return _sessions[key]
+
+class RequestsTransport(xmlrpc.client.Transport):
+    def __init__(self, protocol="http", timeout=120, use_mtls=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.protocol = protocol
         self.timeout = timeout
+        self.session = _get_session(use_mtls)
 
-    def make_connection(self, host):
-        conn = super().make_connection(host)
-        conn.timeout = self.timeout
-        return conn
+    def request(self, host, handler, request_body, verbose=False):
+        url = f"{self.protocol}://{host}{handler}"
+        headers = {'User-Agent': 'OdooX-Connector', 'Content-Type': 'text/xml'}
+        try:
+            response = self.session.post(url, data=request_body, headers=headers, timeout=self.timeout)
+            response.raise_for_status()
+            return self.parse_response(io.BytesIO(response.content))
+        except requests.exceptions.RequestException as e:
+            raise xmlrpc.client.ProtocolError(url, 500, str(e), {}) from e
 
-class TimeoutSafeTransport(xmlrpc.client.SafeTransport):
-    def __init__(self, timeout=10, *args, **kwargs):
-        settings = get_settings()
-        if settings.ODOO_CLIENT_CERT_PATH and settings.ODOO_CLIENT_KEY_PATH:
-            if os.path.exists(settings.ODOO_CLIENT_CERT_PATH) and os.path.exists(settings.ODOO_CLIENT_KEY_PATH):
-                context = ssl.create_default_context()
-                context.load_cert_chain(
-                    certfile=settings.ODOO_CLIENT_CERT_PATH,
-                    keyfile=settings.ODOO_CLIENT_KEY_PATH
-                )
-                kwargs["context"] = context
-            else:
-                logger.warning("mTLS certificates not found at specified paths. Falling back to default SSL context.")
-
-        super().__init__(*args, **kwargs)
-        self.timeout = timeout
-
-    def make_connection(self, host):
-        conn = super().make_connection(host)
-        conn.timeout = self.timeout
-        return conn
-
-def get_transport(url: str, timeout: int = 10):
-    if url.startswith("https:"):
-        return TimeoutSafeTransport(timeout=timeout)
-    return TimeoutTransport(timeout=timeout)
+def get_transport(url: str, timeout: int = 120):
+    protocol = "https" if url.startswith("https:") else "http"
+    return RequestsTransport(protocol=protocol, timeout=timeout, use_mtls=(protocol == "https"))
 
 
 class XmlRpcOdooConnector(OdooConnectorInterface):
@@ -107,12 +110,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
 
     def _get_common(self, workspace: WorkspaceContext):
         url = str(workspace.odoo_url).rstrip("/")
-        transport = get_transport(url, timeout=10)
+        settings = get_settings()
+        transport = get_transport(url, timeout=settings.ODOO_TIMEOUT)
         return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common", transport=transport)
 
     def _get_models(self, workspace: WorkspaceContext):
         url = str(workspace.odoo_url).rstrip("/")
-        transport = get_transport(url, timeout=10)
+        settings = get_settings()
+        transport = get_transport(url, timeout=settings.ODOO_TIMEOUT)
         return xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object", transport=transport)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type((OSError, xmlrpc.client.ProtocolError, OdooConnectionError)))
@@ -223,6 +228,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                     logger.warning("Odoo execute_kw failed with Access Denied. Forcing auth refresh.")
                     uid = self._authenticate(force_refresh=True)
                     workspace = self._get_workspace()
+                    models = self._get_models(workspace)
                     return models.execute_kw(workspace.odoo_db, uid, decrypt(workspace.odoo_password), model, method, args, kwargs)
 
                 # ── Permanent: Odoo validation / business logic errors ──
@@ -269,11 +275,11 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "create_lead", data, _exec)
 
     def update_lead(self, lead_id: int, data: dict[str, Any]) -> bool:
-        result = self._execute("crm.lead", "write", [[lead_id], data])
+        result = self._execute("crm.lead", "write", [lead_id], data)
         return bool(result)
 
     def delete_lead(self, lead_id: int) -> bool:
-        result = self._execute("crm.lead", "unlink", [[lead_id]])
+        result = self._execute("crm.lead", "unlink", [lead_id])
         return bool(result)
 
     def search_contacts(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooContact]:
@@ -390,7 +396,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         workspace = self._get_workspace()
         def _exec():
             mail_id = self._execute("mail.mail", "create", [data])
-            self._execute("mail.mail", "send", [[mail_id]])
+            self._execute("mail.mail", "send", [mail_id])
             return mail_id
         return IdempotencyCache.check_or_execute(workspace.odoo_db, "send_email", data, _exec)
 
@@ -409,7 +415,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return IdempotencyCache.check_or_execute(workspace.odoo_db, f"create_{model.replace('.', '_')}", data, _exec)
 
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
-        result = self._execute(model, "write", [[record_id], data])
+        result = self._execute(model, "write", [record_id], data)
         return bool(result)
 
     def get_installed_apps(self) -> list[dict[str, Any]]:
@@ -455,7 +461,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return self._execute(model, "read_group", domain, fields, groupby)
 
     def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
-        result = self._execute(model, "write", [[record_id], {"active": not archive}])
+        result = self._execute(model, "write", [record_id], {"active": not archive})
         return bool(result)
 
     def get_attachment(self, attachment_id: int) -> dict[str, Any]:
@@ -473,4 +479,4 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def execute_method(self, model: str, method: str, args: list[Any] | None = None, kwargs: dict[str, Any] | None = None) -> Any:
         args = args or []
         kwargs = kwargs or {}
-        return self._execute(model, method, args, **kwargs)
+        return self._execute(model, method, *args, **kwargs)

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from config.settings import get_settings
 from core.encryption import _get_active_fernet, _get_retired_fernets
 from core.secrets import SecretsManager
-from odoo.xmlrpc import TimeoutSafeTransport
+from odoo.xmlrpc import RequestsTransport
 
 
 def test_secrets_manager():
@@ -30,7 +30,7 @@ def test_encryption_uses_secrets_manager():
 
 def test_timeout_safe_transport_mtls_fallback():
     # Without certs, it should just initialize normally
-    transport = TimeoutSafeTransport(timeout=5)
+    transport = RequestsTransport(timeout=5)
     assert transport.timeout == 5
     
 def test_timeout_safe_transport_mtls_loading(tmp_path):
@@ -43,9 +43,10 @@ def test_timeout_safe_transport_mtls_loading(tmp_path):
     settings.ODOO_CLIENT_CERT_PATH = str(cert_path)
     settings.ODOO_CLIENT_KEY_PATH = str(key_path)
     
-    # It will fail to load mock certs because they aren't real X509, 
-    # but we can patch ssl.SSLContext.load_cert_chain to verify it gets called
+    # Test that mtls gets triggered when protocol is https
+    import odoo.xmlrpc
+    odoo.xmlrpc._sessions.clear() # clear cached session
     with patch("odoo.xmlrpc.get_settings", return_value=settings):
-        with patch("ssl.SSLContext.load_cert_chain") as mock_load:
-            transport = TimeoutSafeTransport(timeout=5)
-            mock_load.assert_called_once_with(certfile=str(cert_path), keyfile=str(key_path))
+        with patch("odoo.xmlrpc.os.path.exists", return_value=True):
+            transport = odoo.xmlrpc.get_transport("https://odoo.example.com", timeout=5)
+            assert transport.session.cert == (str(cert_path), str(key_path))

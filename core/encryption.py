@@ -49,7 +49,7 @@ def decrypt(token: str) -> str:
         except Exception as e:
             from core.logger import get_logger
             get_logger(__name__).error(f"Envelope decryption failed: {e}")
-            return token
+            raise ValueError("Decryption failed due to invalid token or key.") from e
             
     # Backwards compatibility for old raw Fernet tokens
     if token.startswith('gAAAAAB'):
@@ -61,4 +61,4 @@ def decrypt(token: str) -> str:
                 continue
                 
     # Fallback if decryption fails
-    return token
+    raise ValueError("Decryption failed: Token is invalid or all active/retired keys failed.")

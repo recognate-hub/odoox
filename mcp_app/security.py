@@ -1,5 +1,6 @@
 import functools
 import time
+from cachetools import TTLCache
 from collections.abc import Callable
 from typing import Any
 
@@ -52,10 +53,10 @@ def get_current_user_context() -> UserContext:
         audit_logger.error("Failed to resolve user context", error=str(e))
         raise PermissionDeniedError("Could not verify identity for execution.")
 
-# In-memory rate limiting fallback: {user_id: [timestamps]}
-_rate_limit_state: dict[str, list[float]] = {}
 RATE_LIMIT_MAX_CALLS = 100
 RATE_LIMIT_WINDOW_SEC = 60
+# In-memory rate limiting fallback: {user_id: [timestamps]} with auto-eviction
+_rate_limit_state = TTLCache(maxsize=10000, ttl=RATE_LIMIT_WINDOW_SEC)
 
 # Global FinOps instance
 finops_service = FinOpsService()
@@ -160,6 +161,14 @@ def secure_tool(action: str | None = None):
                 audit_logger.warning(f"Odoo error: {e}", tool=func.__name__, user_id=user.user_id)
                 return {"status": "error", "message": str(e)}
             except Exception as e:
+                try:
+                    from opentelemetry import trace
+                    span = trace.get_current_span()
+                    if span and span.is_recording():
+                        span.record_exception(e)
+                except Exception:
+                    pass
+
                 # 6. Audit Logging (Failure)
                 audit_logger.error(
                     "Tool Failed",

@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/userdashboard/', '/api/'],
+            disallow: ['/*/userdashboard/', '/api/'],
         },
         sitemap: 'https://odoox.recognate.in/sitemap.xml',
     };

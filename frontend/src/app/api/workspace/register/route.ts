@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { encrypt } from '@/lib/encryption';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -7,11 +8,15 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { link_token, odoo_url, odoo_db, odoo_username, odoo_password } = body;
+        const { link_token, odoo_url, odoo_db, odoo_username } = body;
+        let { odoo_password } = body;
 
         if (!link_token || !odoo_url || !odoo_db || !odoo_username || !odoo_password) {
             return NextResponse.json({ status: "error", message: "Missing required fields" }, { status: 400 });
         }
+        
+        const encryptedPassword = encrypt(odoo_password);
+        odoo_password = ""; // Clear from memory
 
         // The link_token is actually the user's Supabase access_token in our simplified workflow.
         // We use it to authenticate the Supabase client directly!
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
                 odoo_url,
                 odoo_db,
                 odoo_username,
-                odoo_password,
+                odoo_password: encryptedPassword,
                 is_active: true
             })
             .select()

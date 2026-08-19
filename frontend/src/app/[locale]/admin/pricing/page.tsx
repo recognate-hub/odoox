@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import '../../login/login.css';
+import '../../../oauth/login/login.css';
 
 export default function AdminPricingPage() {
     const [singlePrice, setSinglePrice] = useState<string>('');

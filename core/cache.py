@@ -11,7 +11,7 @@ settings = get_settings()
 redis_client = None
 if settings.REDIS_URL:
     try:
-        redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+        redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=0.5)
         # Test connection
         redis_client.ping()
         logger.info("Connected to Redis for credential caching.")
