@@ -56,4 +56,5 @@ import mcp_app.tools.purchase
 import mcp_app.tools.quality
 import mcp_app.tools.reports
 import mcp_app.tools.sales  # noqa: F401
+import mcp_app.tools.maintenance
 

@@ -300,3 +300,31 @@ class RegisterPaymentInput(BaseModel):
     amount: float = Field(..., gt=0, description="The payment amount.")
     journal_id: int = Field(..., gt=0, description="The ID of the payment journal (bank/cash).")
 
+# ── Advanced Manufacturing / PLM Schemas ──────────────────────────────
+class CreateEcoInput(BaseModel):
+    product_tmpl_id: int = Field(..., description="The ID of the product template.")
+    type_id: int = Field(..., description="The ID of the ECO type (e.g. routing, BOM change).")
+    name: str = Field(..., description="Name or title for the Engineering Change Order.")
+
+class RescheduleWorkOrderInput(BaseModel):
+    workorder_id: int = Field(..., gt=0, description="The ID of the work order.")
+    date_start: str = Field(..., description="New planned start date (ISO string).")
+    date_finished: str = Field(..., description="New planned finished date (ISO string).")
+
+class CreateMaintenanceRequestInput(BaseModel):
+    name: str = Field(..., description="Title of the maintenance request.")
+    equipment_id: int = Field(..., description="The ID of the equipment/machine.")
+    description: str | None = Field(None, description="Details of the issue.")
+    priority: str = Field("0", description="Priority (0=low, 3=high).")
+
+class LogWorkOrderTimeInput(BaseModel):
+    workorder_id: int = Field(..., gt=0, description="The ID of the work order.")
+    duration_minutes: float = Field(..., gt=0, description="Time spent in minutes.")
+    loss_id: int | None = Field(None, description="ID of the productivity loss reason if this was downtime.")
+
+class CreateSubcontractingPoInput(BaseModel):
+    partner_id: int = Field(..., description="The subcontractor (vendor) ID.")
+    product_id: int = Field(..., description="The ID of the finished product to receive.")
+    product_qty: float = Field(..., gt=0, description="Quantity to subcontract.")
+    price_unit: float | None = Field(None, description="Price per unit paid to subcontractor.")
+

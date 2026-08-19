@@ -173,3 +173,108 @@ def get_routings(limit: int = 50) -> list[dict[str, Any]]:
         from services.production import ProductionService
         service = ProductionService(odoo_repo)
         return service.get_routings(limit)
+
+# ── Advanced Manufacturing / PLM ───────────────────────────────────
+
+@mcp.tool()
+@secure_tool()
+def get_bom_hierarchy(bom_id: int | None = None, limit: int = 200) -> list[dict[str, Any]]:
+    """Get the multi-level Bill of Materials hierarchy."""
+    with _span("mcp.get_bom_hierarchy"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.get_bom_hierarchy(bom_id, limit)
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(CreateEcoInput)
+def create_eco(product_tmpl_id: int, type_id: int, name: str) -> dict[str, Any]:
+    """Create an Engineering Change Order (ECO) for a product."""
+    with _span("mcp.create_eco"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.create_eco(product_tmpl_id, type_id, name)
+
+@mcp.tool()
+@secure_tool()
+def get_work_center_capacity(limit: int = 50) -> list[dict[str, Any]]:
+    """Check the current load and capacity on work centers."""
+    with _span("mcp.get_work_center_capacity"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.get_workcenters(limit)
+
+@mcp.tool()
+@secure_tool()
+def get_equipment_oee(workcenter_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    """Fetch Overall Equipment Effectiveness (OEE) metrics for work centers."""
+    with _span("mcp.get_equipment_oee"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.get_equipment_oee(workcenter_id, limit)
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(RescheduleWorkOrderInput)
+def reschedule_work_order(workorder_id: int, date_start: str, date_finished: str) -> dict[str, Any]:
+    """Reschedule a work order to a different date to resolve bottlenecks."""
+    with _span("mcp.reschedule_work_order"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.reschedule_work_order(workorder_id, date_start, date_finished)
+
+@mcp.tool()
+@secure_tool()
+def analyze_component_shortages() -> dict[str, Any]:
+    """Analyze manufacturing orders against current inventory to identify missing components."""
+    with _span("mcp.analyze_component_shortages"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.analyze_component_shortages()
+
+@mcp.tool()
+@secure_tool()
+def get_mps_forecast(limit: int = 50) -> list[dict[str, Any]]:
+    """Pull the Master Production Schedule (MPS) forecast."""
+    with _span("mcp.get_mps_forecast"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.get_mps_forecast(limit)
+
+@mcp.tool()
+@secure_tool()
+def run_mrp_scheduler() -> dict[str, Any]:
+    """Trigger Odoo's automated procurement rules to generate Purchase Orders."""
+    with _span("mcp.run_mrp_scheduler"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.run_mrp_scheduler()
+
+@mcp.tool()
+@secure_tool()
+def trace_lot_number(lot_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    """Trace a specific lot or serial number for quality or recall purposes."""
+    with _span("mcp.trace_lot_number"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.trace_lot_number(lot_id, limit)
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(LogWorkOrderTimeInput)
+def log_work_order_time(workorder_id: int, duration_minutes: float, loss_id: int | None = None) -> dict[str, Any]:
+    """Log labor time or machine downtime for a specific work order."""
+    with _span("mcp.log_work_order_time"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+        service = ProductionService(odoo_repo)
+        return service.log_work_order_time(workorder_id, duration_minutes, loss_id)

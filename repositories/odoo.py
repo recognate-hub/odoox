@@ -405,3 +405,75 @@ class OdooRepository:
         d = Domain().eq("type", "bank")
         fields = ["name", "type", "currency_id"]
         return self.connector.search_read_records("account.journal", domain=d.build(), fields=fields, limit=20)
+
+    # ── Advanced Manufacturing & PLM ───────────────────────────────────
+    def get_bom_lines(self, bom_id: int | None = None, limit: int = 200) -> list[dict[str, Any]]:
+        d = Domain()
+        if bom_id:
+            d.eq("bom_id", bom_id)
+        fields = ["bom_id", "product_id", "product_qty", "product_uom_id"]
+        return self.connector.search_read_records("mrp.bom.line", domain=d.build(), fields=fields, limit=limit)
+
+    def create_eco(self, product_tmpl_id: int, type_id: int, name: str) -> int:
+        data = {
+            "product_tmpl_id": product_tmpl_id,
+            "type_id": type_id,
+            "name": name,
+        }
+        return self.connector.create_record("mrp.eco", data)
+
+    def get_equipment_oee(self, workcenter_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+        d = Domain()
+        if workcenter_id:
+            d.eq("workcenter_id", workcenter_id)
+        fields = ["workcenter_id", "loss_id", "duration", "date_start", "date_end"]
+        return self.connector.search_read_records("mrp.workcenter.productivity", domain=d.build(), fields=fields, limit=limit)
+
+    def get_mps_forecast(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Requires mrp_mps module."""
+        fields = ["product_id", "forecast_qty", "replenish_qty", "starting_inventory_qty"]
+        return self.connector.search_read_records("mrp.production.schedule", domain=[], fields=fields, limit=limit)
+
+    def run_mrp_scheduler(self) -> Any:
+        return self.connector.execute_method("procurement.group", "run_scheduler", [])
+
+    def trace_lot_number(self, lot_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+        d = Domain()
+        if lot_id:
+            d.eq("lot_id", lot_id)
+        fields = ["product_id", "lot_id", "reference", "location_id", "location_dest_id", "qty_done", "state"]
+        return self.connector.search_read_records("stock.move.line", domain=d.build(), fields=fields, limit=limit)
+
+    def log_work_order_time(self, workorder_id: int, duration_minutes: float, loss_id: int | None = None) -> int:
+        data = {
+            "workorder_id": workorder_id,
+            "duration": duration_minutes,
+        }
+        if loss_id:
+            data["loss_id"] = loss_id
+        return self.connector.create_record("mrp.workcenter.productivity", data)
+
+    # ── Maintenance ────────────────────────────────────────────────────
+    def create_maintenance_request(self, name: str, equipment_id: int, description: str | None = None, priority: str = "0") -> int:
+        data = {
+            "name": name,
+            "equipment_id": equipment_id,
+            "priority": priority,
+        }
+        if description:
+            data["description"] = description
+        return self.connector.create_record("maintenance.request", data)
+
+    def get_equipment_status(self, equipment_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if equipment_id:
+            d.eq("id", equipment_id)
+        fields = ["name", "category_id", "active", "next_action_date", "cost", "location"]
+        return self.connector.search_read_records("maintenance.equipment", domain=d.build(), fields=fields, limit=limit)
+
+    def get_maintenance_requests(self, equipment_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        d = Domain()
+        if equipment_id:
+            d.eq("equipment_id", equipment_id)
+        fields = ["name", "equipment_id", "request_date", "schedule_date", "stage_id", "priority"]
+        return self.connector.search_read_records("maintenance.request", domain=d.build(), fields=fields, limit=limit)
