@@ -53,10 +53,11 @@ def authorize(
         settings = get_settings()
         frontend_url = settings.FRONTEND_URL.rstrip('/')
         
-        # Use an absolute URL for the `next` param to ensure we return to the backend
-        backend_url = str(request.base_url).rstrip('/')
+        # Use an absolute URL for the `next` param to ensure we return to the backend.
+        # Since Next.js proxies the OAuth endpoints, the backend URL *is* the frontend URL
+        # from the perspective of the public internet.
         relative_url = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
-        absolute_next_url = f"{backend_url}{relative_url}"
+        absolute_next_url = f"{frontend_url}{relative_url}"
         
         from urllib.parse import quote
         login_url = f"{frontend_url}/oauth/login?next={quote(absolute_next_url)}"

@@ -1,33 +1,13 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from config.settings import get_settings
+
 router = APIRouter()
 
 def _get_base_url(request: Request) -> str:
-    # Try various headers that proxies might set
-    proto = request.headers.get("x-forwarded-proto", "https" if "https" in str(request.url) else "http")
-    
-    # Try to get the original host
-    host = request.headers.get("x-forwarded-host")
-    if not host:
-        # Some proxies like localhost.run might not set x-forwarded-host, but the original host is in the Host header
-        # However, FastAPI's request.headers["host"] might be overwritten.
-        # Let's check if there's a 'Forwarded' header (RFC 7239)
-        forwarded = request.headers.get("forwarded")
-        if forwarded and "host=" in forwarded:
-            host_part = [p for p in forwarded.split(";") if p.strip().startswith("host=")]
-            if host_part:
-                host = host_part[0].split("=")[1].strip('"')
-                
-    if not host:
-        # If all else fails, use the host from the Host header, but strip port if it's 80/443
-        host = request.headers.get("host", request.url.hostname)
-        
-    # Force HTTPS for loca.lt, lhr.life, ngrok
-    if host and any(domain in host for domain in ["loca.lt", "lhr.life", "ngrok"]):
-        proto = "https"
-        
-    return f"{proto}://{host}"
+    settings = get_settings()
+    return settings.FRONTEND_URL.rstrip('/')
 
 @router.get("/.well-known/oauth-protected-resource")
 def get_protected_resource_metadata(request: Request):
