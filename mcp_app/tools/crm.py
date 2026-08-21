@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -48,62 +47,6 @@ def get_leads(
 
 @mcp.tool()
 @secure_tool()
-@validate_write_input(CreateLeadInput)
-def create_lead(
-    name: str,
-    email: str | None = None,
-    phone: str | None = None,
-    description: str | None = None,
-) -> dict[str, Any]:
-    """
-    Create a new CRM lead (opportunity) in Odoo.
-
-    Use this tool when you need to record a new prospect or sales opportunity.
-
-    Args:
-        name (str): The required name/title of the lead or opportunity.
-        email (Optional[str]): The email address of the contact.
-        phone (Optional[str]): The phone number of the contact.
-        description (Optional[str]): Additional notes or context about the lead.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing a 'status' string and the new 'lead_id' integer.
-    """
-    with _span("mcp.create_lead") as span:
-        if span:
-            span.set_attribute("lead.name", name)
-        logger.info("MCP Tool Called: create_lead", name=name)
-        odoo_repo, _ = server._get_tenant_service()
-        lead_id = odoo_repo.create_lead(name, email, phone, description)
-        if span:
-            span.set_attribute("lead.id", lead_id)
-        return {"status": "success", "lead_id": lead_id}
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(UpdateLeadInput)
-def update_lead(lead_id: int, data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Update an existing CRM lead in Odoo.
-
-    Use this tool to modify fields on an existing lead.
-
-    Args:
-        lead_id (int): The integer ID of the lead to update.
-        data (Dict[str, Any]): A dictionary of key-value pairs to update. Common keys include 'expected_revenue' (float), 'probability' (float), 'name' (str), 'description' (str), 'email_from' (str).
-
-    Returns:
-        Dict[str, Any]: A dictionary containing the success status.
-    """
-    logger.info("MCP Tool Called: update_lead", lead_id=lead_id)
-    odoo_repo, _ = server._get_tenant_service()
-    success = odoo_repo.update_lead(lead_id, data)
-    return {"status": "success" if success else "failed"}
-
-
-@mcp.tool()
-@secure_tool()
 @validate_write_input(LogActivityInput)
 def log_crm_note(res_model: str, res_id: int, summary: str) -> dict[str, Any]:
     """
@@ -121,7 +64,6 @@ def log_crm_note(res_model: str, res_id: int, summary: str) -> dict[str, Any]:
     """
     logger.info("MCP Tool Called: log_crm_note", model=res_model, id=res_id)
     odoo_repo, _ = server._get_tenant_service()
-    # 4 is usually 'Todo' or general note
     activity_id = odoo_repo.log_activity(res_model, res_id, summary, activity_type_id=4)
     return {"status": "success", "activity_id": activity_id}
 
@@ -158,12 +100,10 @@ def get_lead_funnel_metrics() -> list[dict[str, Any]]:
     """
     logger.info("MCP Tool Called: get_lead_funnel_metrics")
     odoo_repo, _ = server._get_tenant_service()
-
     try:
         domain = [["type", "=", "opportunity"]]
         fields = ["stage_id", "expected_revenue"]
         groupby = ["stage_id"]
-        # read_group returns aggregated data
         return odoo_repo.read_group("crm.lead", domain, fields, groupby)
     except Exception as e:
         logger.error("get_lead_funnel_metrics error", error=str(e))

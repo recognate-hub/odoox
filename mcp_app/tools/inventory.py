@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -29,57 +28,6 @@ def get_products(query: str = "", limit: int = 50) -> list[dict[str, Any]]:
     odoo_repo, _ = server._get_tenant_service()
     products = odoo_repo.search_products(query, limit=limit)
     return [product.model_dump() for product in products]
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(CreateProductInput)
-def create_product(
-    name: str,
-    list_price: float,
-    default_code: str | None = None,
-    product_type: str = "service",
-) -> dict[str, Any]:
-    """
-    Create a new product or service in Odoo's inventory.
-
-    Use this tool to add new offerings to the catalog.
-
-    Args:
-        name (str): The name of the product.
-        list_price (float): The sale price.
-        default_code (Optional[str]): Internal reference or SKU.
-        product_type (str): Usually 'consu', 'service', or 'product'.
-
-    Returns:
-        Dict[str, Any]: The status of the operation and new product ID.
-    """
-    logger.info("MCP Tool Called: create_product", name=name)
-    odoo_repo, _ = server._get_tenant_service()
-    product_id = odoo_repo.create_product(
-        name, list_price, default_code, type_code=product_type
-    )
-    return {"status": "success", "product_id": product_id}
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(CreateStockMoveInput)
-def create_stock_move(
-    name: str,
-    product_id: int,
-    product_uom_qty: float,
-    location_id: int,
-    location_dest_id: int,
-) -> dict[str, Any]:
-    with _span("mcp.create_stock_move"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.inventory import InventoryService
-
-        service = InventoryService(odoo_repo)
-        return service.create_stock_move(
-            name, product_id, product_uom_qty, location_id, location_dest_id
-        )
 
 
 @mcp.tool()

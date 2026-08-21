@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -8,71 +7,6 @@ from mcp_app.server import _span, mcp
 from mcp_app.validation import validate_write_input
 
 logger = get_logger(__name__)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(SendEmailInput)
-def send_email(email_to: str, subject: str, body: str) -> dict[str, Any]:
-    """
-    Send an email via Odoo's mail system.
-
-    Use this tool to send outbound communications to leads or customers.
-
-    Args:
-        email_to (str): The recipient's email address.
-        subject (str): The subject line.
-        body (str): The email body (HTML or plain text).
-
-    Returns:
-        Dict[str, Any]: The status of the operation and mail ID.
-    """
-    logger.info("MCP Tool Called: send_email", email_to=email_to, subject=subject)
-    odoo_repo, _ = server._get_tenant_service()
-    mail_id = odoo_repo.send_email(email_to, subject, body)
-    return {"status": "success", "mail_id": mail_id}
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(PostMessageInput)
-def post_message(
-    res_model: str, res_id: int, body: str, message_type: str = "comment"
-) -> dict[str, Any]:
-    """
-    Post a message or internal note on any Odoo record (chatter).
-
-    Args:
-        res_model (str): The Odoo model (e.g., 'crm.lead', 'sale.order').
-        res_id (int): The ID of the record.
-        body (str): The message body (HTML or plain text).
-        message_type (str): 'comment' for public note, 'notification' for system note.
-    """
-    with _span("mcp.post_message"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.discuss import DiscussService
-
-        service = DiscussService(odoo_repo)
-        return service.post_message(res_model, res_id, body, message_type)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(CreateChannelInput)
-def create_channel(name: str, channel_type: str = "channel") -> dict[str, Any]:
-    """
-    Create a new Discuss channel for team communication.
-
-    Args:
-        name (str): The name of the channel.
-        channel_type (str): 'channel' for public, 'chat' for DM, 'group' for private group.
-    """
-    with _span("mcp.create_channel"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.discuss import DiscussService
-
-        service = DiscussService(odoo_repo)
-        return service.create_channel(name, channel_type)
 
 
 @mcp.tool()

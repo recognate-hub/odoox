@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -33,35 +32,6 @@ def search_customer(name: str, limit: int = 20) -> list[dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
-@validate_write_input(CreateContactInput)
-def create_contact(
-    name: str,
-    email: str | None = None,
-    phone: str | None = None,
-    is_company: bool = False,
-) -> dict[str, Any]:
-    """
-    Create a new CRM contact or customer in Odoo.
-
-    Use this tool to add new people or companies to the system.
-
-    Args:
-        name (str): The full name of the contact or company.
-        email (Optional[str]): The email address.
-        phone (Optional[str]): The phone number.
-        is_company (bool): True if the contact represents a company.
-
-    Returns:
-        Dict[str, Any]: The status of the operation and new partner ID.
-    """
-    logger.info("MCP Tool Called: create_contact", name=name)
-    odoo_repo, _ = server._get_tenant_service()
-    partner_id = odoo_repo.create_contact(name, email, phone, is_company)
-    return {"status": "success", "partner_id": partner_id}
-
-
-@mcp.tool()
-@secure_tool()
 def get_customer_details(partner_id: int) -> dict[str, Any]:
     """
     Fetch comprehensive customer details and recent quotes.
@@ -77,6 +47,3 @@ def get_customer_details(partner_id: int) -> dict[str, Any]:
     logger.info("MCP Tool Called: get_customer_details", partner_id=partner_id)
     _, crm_service = server._get_tenant_service()
     return crm_service.get_customer_summary_data(partner_id)
-
-
-# --- Sales & Inventory Tools ---

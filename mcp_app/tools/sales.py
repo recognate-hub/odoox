@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -37,28 +36,6 @@ def get_recent_quotes(
 
 @mcp.tool()
 @secure_tool()
-@validate_write_input(CreateQuoteInput)
-def create_quote(partner_id: int, order_lines: list[dict]) -> dict[str, Any]:
-    """
-    Create a new sales quotation or order.
-
-    Use this tool to generate a full quote for a customer.
-
-    Args:
-        partner_id (int): The ID of the customer.
-        order_lines (List[Dict]): List of line items, each must have 'product_id', 'quantity', and optional 'price_unit'.
-
-    Returns:
-        Dict[str, Any]: The status of the operation and new order ID.
-    """
-    logger.info("MCP Tool Called: create_quote", partner_id=partner_id)
-    odoo_repo, _ = server._get_tenant_service()
-    quote_id = odoo_repo.create_quote(partner_id, order_lines)
-    return {"status": "success", "quote_id": quote_id}
-
-
-@mcp.tool()
-@secure_tool()
 @validate_write_input(QuoteToCashInput)
 def quote_to_cash_automation(
     partner_id: int, order_lines: list[dict]
@@ -70,17 +47,11 @@ def quote_to_cash_automation(
     logger.info("MCP Tool Called: quote_to_cash_automation", partner_id=partner_id)
     odoo_repo, _ = server._get_tenant_service()
     try:
-        # 1. Create Quote
         quote_id = odoo_repo.create_quote(partner_id, order_lines)
-
-        # 2. Confirm Quote to Sales Order
         odoo_repo.execute_method("sale.order", "action_confirm", [[quote_id]])
-
-        # 3. Create Invoice (using standard internal workflow method)
         invoice_result = odoo_repo.execute_method(
             "sale.order", "_create_invoices", [[quote_id]]
         )
-
         return {
             "status": "success",
             "quote_id": quote_id,

@@ -1,5 +1,4 @@
 from typing import Any
-
 from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
@@ -8,25 +7,6 @@ from mcp_app.server import _span, mcp
 from mcp_app.validation import validate_write_input
 
 logger = get_logger(__name__)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(CreateManufacturingOrderInput)
-def create_manufacturing_order(product_id: int, product_qty: float) -> dict[str, Any]:
-    """
-    Create a new manufacturing order (MO) to produce a product.
-
-    Args:
-        product_id (int): The ID of the product to manufacture.
-        product_qty (float): The quantity to manufacture.
-    """
-    with _span("mcp.create_manufacturing_order"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
-
-        service = ProductionService(odoo_repo)
-        return service.create_manufacturing_order(product_id, product_qty)
 
 
 @mcp.tool()
@@ -47,51 +27,6 @@ def get_manufacturing_orders(limit: int = 20) -> list[dict[str, Any]]:
 
         service = ProductionService(odoo_repo)
         return service.get_manufacturing_orders(limit)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(UpdateManufacturingOrderInput)
-def update_manufacturing_order(mo_id: int, data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Update a manufacturing order (e.g., change quantity or scheduled date).
-
-    Args:
-        mo_id (int): The ID of the manufacturing order.
-        data (Dict): Fields to update.
-
-    Returns:
-        Dict: Status of the update.
-    """
-    with _span("mcp.update_manufacturing_order"):
-        logger.info("MCP Tool Called: update_manufacturing_order", mo_id=mo_id)
-        odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
-
-        service = ProductionService(odoo_repo)
-        return service.update_manufacturing_order(mo_id, data)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(ConfirmManufacturingOrderInput)
-def confirm_manufacturing_order(mo_id: int) -> dict[str, Any]:
-    """
-    Confirm a draft manufacturing order, triggering the production workflow.
-
-    Args:
-        mo_id (int): The ID of the manufacturing order to confirm.
-
-    Returns:
-        Dict: Status of the confirmation.
-    """
-    with _span("mcp.confirm_manufacturing_order"):
-        logger.info("MCP Tool Called: confirm_manufacturing_order", mo_id=mo_id)
-        odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
-
-        service = ProductionService(odoo_repo)
-        return service.confirm_manufacturing_order(mo_id)
 
 
 @mcp.tool()
@@ -208,9 +143,6 @@ def get_routings(limit: int = 50) -> list[dict[str, Any]]:
         return service.get_routings(limit)
 
 
-# ── Advanced Manufacturing / PLM ───────────────────────────────────
-
-
 @mcp.tool()
 @secure_tool()
 def get_bom_hierarchy(
@@ -223,19 +155,6 @@ def get_bom_hierarchy(
 
         service = ProductionService(odoo_repo)
         return service.get_bom_hierarchy(bom_id, limit)
-
-
-@mcp.tool()
-@secure_tool()
-@validate_write_input(CreateEcoInput)
-def create_eco(product_tmpl_id: int, type_id: int, name: str) -> dict[str, Any]:
-    """Create an Engineering Change Order (ECO) for a product."""
-    with _span("mcp.create_eco"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
-
-        service = ProductionService(odoo_repo)
-        return service.create_eco(product_tmpl_id, type_id, name)
 
 
 @mcp.tool()
