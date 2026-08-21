@@ -261,3 +261,19 @@ def log_work_order_time(
 
         service = ProductionService(odoo_repo)
         return service.log_work_order_time(workorder_id, duration_minutes, loss_id)
+
+
+from services.operations import OperationsService
+
+
+@mcp.tool()
+@secure_tool()
+def analyze_workcenter_bottlenecks() -> list[dict[str, Any]]:
+    """
+    Analyzes all active Work Orders to identify bottlenecks by grouping the backlog at each Workcenter.
+    Returns a ranked list of Workcenters sorted by backlog.
+    """
+    with _span("mcp.analyze_workcenter_bottlenecks"):
+        odoo_repo, _ = server._get_tenant_service()
+        service = OperationsService(odoo_repo)
+        return service.analyze_workcenter_bottlenecks()

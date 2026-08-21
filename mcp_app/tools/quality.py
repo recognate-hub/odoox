@@ -79,3 +79,19 @@ def get_quality_points(limit: int = 50) -> list[dict[str, Any]]:
 
         service = QualityService(odoo_repo)
         return service.get_quality_points(limit)
+
+
+from services.operations import OperationsService
+
+
+@mcp.tool()
+@secure_tool()
+def get_quality_metrics() -> dict[str, Any]:
+    """
+    Fetches aggregate quality metrics including the top products generating Quality Alerts
+    and a summary of Quality Check states (pass vs fail).
+    """
+    with _span("mcp.get_quality_metrics"):
+        odoo_repo, _ = server._get_tenant_service()
+        service = OperationsService(odoo_repo)
+        return service.get_quality_metrics()

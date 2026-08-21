@@ -60,3 +60,19 @@ def quote_to_cash_automation(
     except Exception as e:
         logger.error("quote_to_cash_automation error", error=str(e))
         return {"status": "error", "message": str(e)}
+
+
+from services.operations import OperationsService
+
+
+@mcp.tool()
+@secure_tool()
+def get_ready_to_ship_orders() -> list[dict[str, Any]]:
+    """
+    Analyzes all pending sales orders and checks them against current Finished Goods stock.
+    Returns a list of Sales Orders that can be 100% fulfilled immediately.
+    """
+    with _span("mcp.get_ready_to_ship_orders"):
+        odoo_repo, _ = server._get_tenant_service()
+        service = OperationsService(odoo_repo)
+        return service.get_ready_to_ship_orders()

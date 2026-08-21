@@ -77,3 +77,19 @@ def get_vendor_bills(
 
         service = PurchaseService(odoo_repo)
         return service.get_vendor_bills(partner_id, limit)
+
+
+from services.operations import OperationsService
+
+
+@mcp.tool()
+@secure_tool()
+def get_purchase_plan() -> list[dict[str, Any]]:
+    """
+    Analyzes active Manufacturing Orders and calculates raw material shortages based on current stock.
+    Returns a list of raw materials critically short.
+    """
+    with _span("mcp.get_purchase_plan"):
+        odoo_repo, _ = server._get_tenant_service()
+        service = OperationsService(odoo_repo)
+        return service.get_purchase_plan()
