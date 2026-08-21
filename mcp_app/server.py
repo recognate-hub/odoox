@@ -53,6 +53,7 @@ import mcp_app.tools.generic
 import mcp_app.tools.inventory
 import mcp_app.tools.invoicing
 import mcp_app.tools.maintenance
+import mcp_app.tools.planning
 import mcp_app.tools.production
 import mcp_app.tools.purchase
 import mcp_app.tools.quality
