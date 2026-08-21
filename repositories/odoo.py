@@ -198,6 +198,11 @@ class OdooRepository:
             model, domain=domain, fields=fields, limit=limit, offset=offset
         )
 
+    def read_group(
+        self, model: str, domain: list[Any], fields: list[str], groupby: list[str]
+    ) -> list[dict[str, Any]]:
+        return self.connector.read_group(model, domain, fields, groupby)
+
     def create_record(self, model: str, data: dict[str, Any]) -> int:
         return self.connector.create_record(model, data)
 
@@ -529,6 +534,21 @@ class OdooRepository:
         ]
         return self.connector.search_read_records(
             "mrp.workorder", domain=d.build(), fields=fields, limit=limit
+        )
+
+    def get_wip_stock_by_stage(self, product_id: int) -> list[dict[str, Any]]:
+        d = Domain().eq("product_id", product_id).in_("state", ["pending", "waiting", "ready", "progress"])
+        fields = [
+            "name",
+            "production_id",
+            "workcenter_id",
+            "state",
+            "qty_producing",
+            "qty_production",
+            "qty_remaining",
+        ]
+        return self.connector.search_read_records(
+            "mrp.workorder", domain=d.build(), fields=fields, limit=500
         )
 
     # ── Pre-Production (Planning) ──────────────────────────────────────

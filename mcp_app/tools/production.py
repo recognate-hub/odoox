@@ -142,6 +142,28 @@ def get_work_orders(mo_id: int | None = None, limit: int = 50) -> list[dict[str,
 
 @mcp.tool()
 @secure_tool()
+def get_wip_stock_by_stage(product_id: int) -> list[dict[str, Any]]:
+    """
+    Fetch the stage-wise WIP (Work In Progress) stock for a product.
+    This aggregates active work orders grouped by their stage/workcenter.
+
+    Args:
+        product_id (int): The ID of the product.
+
+    Returns:
+        List[Dict]: Work orders with their current state, stage name, and quantities.
+    """
+    with _span("mcp.get_wip_stock_by_stage"):
+        logger.info("MCP Tool Called: get_wip_stock_by_stage", product_id=product_id)
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+
+        service = ProductionService(odoo_repo)
+        return service.get_wip_stock_by_stage(product_id)
+
+
+@mcp.tool()
+@secure_tool()
 def get_workcenters(limit: int = 50) -> list[dict[str, Any]]:
     """
     List workcenters (machines/stations used in production).

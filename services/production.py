@@ -46,6 +46,9 @@ class ProductionService:
     ) -> list[dict[str, Any]]:
         return self.odoo.get_work_orders(mo_id, limit)
 
+    def get_wip_stock_by_stage(self, product_id: int) -> list[dict[str, Any]]:
+        return self.odoo.get_wip_stock_by_stage(product_id)
+
     def get_workcenters(self, limit: int = 50) -> list[dict[str, Any]]:
         return self.odoo.get_workcenters(limit)
 

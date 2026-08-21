@@ -43,6 +43,7 @@ def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
 mcp = FastMCP("ODOOX")
 
 # Register all tools — importing each module triggers the @mcp.tool() decorators
+import mcp_app.tools.analyzer
 import mcp_app.tools.calendar
 import mcp_app.tools.contacts
 import mcp_app.tools.crm
