@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping API Health
-        run: curl -sSf https://odoox.recognate.in/api/health || exit 0
+        run: curl -sSf https://odoox.recognate.in/health || exit 0
