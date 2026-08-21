@@ -2,7 +2,6 @@ from typing import Any
 
 from core.logger import get_logger
 from repositories.odoo import OdooRepository
-from schemas.odoo import Domain
 
 logger = get_logger(__name__)
 
