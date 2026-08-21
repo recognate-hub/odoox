@@ -4,6 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from mcp.server.sse import SseServerTransport
 
+# Monkey-patch sse_starlette.EventSourceResponse to send keepalive pings every 15 seconds.
+# This prevents reverse proxies (like Cloudflare, NGINX, or Vercel) from silently dropping 
+# the SSE connection after a period of inactivity, which forces Claude Desktop to show 
+# a "Connection Issue" and require a manual reconnect when the user re-opens the app.
+import sse_starlette
+original_init = sse_starlette.EventSourceResponse.__init__
+
+def patched_init(self, *args, **kwargs):
+    kwargs.setdefault("ping", 15)
+    original_init(self, *args, **kwargs)
+
+sse_starlette.EventSourceResponse.__init__ = patched_init
 from config.settings import get_settings
 from core.auth import get_tenant_context
 from core.context import current_token, current_workspace_id
@@ -33,10 +45,12 @@ try:
 
     # Only add OTLP exporter if endpoint is configured
     import os
+
     if os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
             OTLPSpanExporter,
         )
+
         otlp_exporter = OTLPSpanExporter()
         provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
         logger.info("OTLP exporter configured.")
@@ -59,13 +73,14 @@ async def lifespan(app: FastAPI):
     await init_rate_limiter()
     yield
 
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title="Odoo-Claude CRM Middleware",
         description="FastAPI application serving MCP tools and Admin Dashboard",
         version="1.0.0",
-        lifespan=lifespan
+        lifespan=lifespan,
     )
 
     # Add CORS middleware for the MCP Inspector
@@ -92,11 +107,17 @@ def create_app() -> FastAPI:
             "service": "OdooX API Gateway",
             "status": "online",
             "version": "1.0.0",
-            "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application."
+            "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application.",
         }
 
     # Expose MCP Server over SSE (Multi-Tenant Secure)
-    @app.get("/sse", dependencies=[Depends(get_tenant_context), get_rate_limiter(times=50, seconds=60)])
+    @app.get(
+        "/sse",
+        dependencies=[
+            Depends(get_tenant_context),
+            get_rate_limiter(times=50, seconds=60),
+        ],
+    )
     async def handle_sse(request: Request):
         # Re-extract and re-set the token directly inside the handler body.
         # Depends(get_tenant_context) validates the token and populates the ContextVar,
@@ -132,21 +153,24 @@ def create_app() -> FastAPI:
 
     @app.post("/messages", dependencies=[get_rate_limiter(times=50, seconds=60)])
     async def handle_messages_post(request: Request):
-        # We DO NOT call get_tenant_context here because the MCP client (Claude) 
-        # POSTs to this endpoint with only a sessionId, not the token. 
-        # Security is maintained because the sessionId is a secure UUID, and the 
+        # We DO NOT call get_tenant_context here because the MCP client (Claude)
+        # POSTs to this endpoint with only a sessionId, not the token.
+        # Security is maintained because the sessionId is a secure UUID, and the
         # actual tool execution runs in the context of the GET /sse request which IS authenticated.
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
                 await sse.handle_post_message(scope, receive, send)
+
         return ASGIProxyResponse()
 
     @app.post("/sse", dependencies=[get_rate_limiter(times=50, seconds=60)])
     async def handle_sse_post(request: Request):
         await get_tenant_context(request)
+
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
                 await sse.handle_post_message(scope, receive, send)
+
         return ASGIProxyResponse()
 
     # Instrument FastAPI with OpenTelemetry (if available)
@@ -154,6 +178,7 @@ def create_app() -> FastAPI:
         FastAPIInstrumentor.instrument_app(app)
 
     return app
+
 
 app = create_app()
 
