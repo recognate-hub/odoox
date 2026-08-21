@@ -58,7 +58,57 @@ class ProductionService:
     def get_bom_hierarchy(
         self, bom_id: int | None = None, limit: int = 200
     ) -> list[dict[str, Any]]:
-        return self.odoo.get_bom_lines(bom_id, limit)
+        bom_lines = self.odoo.get_bom_lines(bom_id, limit)
+        if not bom_lines:
+            return []
+
+        # Extract product IDs
+        product_ids = []
+        for line in bom_lines:
+            pid = line.get("product_id")
+            if pid:
+                p_id = pid[0] if isinstance(pid, list) else pid
+                product_ids.append(p_id)
+
+        if not product_ids:
+            return bom_lines
+
+        # Fetch cost and exact names in bulk
+        products = self.odoo.search_read_records(
+            "product.product",
+            domain=[("id", "in", product_ids)],
+            fields=["name", "standard_price", "default_code"],
+            limit=len(product_ids),
+        )
+
+        # Build mapping
+        prod_map = {
+            p["id"]: {
+                "name": p.get("name", ""),
+                "cost": p.get("standard_price", 0.0),
+                "code": p.get("default_code", ""),
+            }
+            for p in products
+        }
+
+        # Enrich the response
+        for line in bom_lines:
+            pid = line.get("product_id")
+            if pid:
+                p_id = pid[0] if isinstance(pid, list) else pid
+                prod_info = prod_map.get(p_id, {})
+
+                # Expand product_id to include full details instead of just [id, name]
+                line["product_name"] = prod_info.get("name", "")
+                line["product_code"] = prod_info.get("code", "")
+
+                qty = float(line.get("product_qty", 0.0))
+                unit_cost = float(prod_info.get("cost", 0.0))
+
+                line["unit_cost"] = round(unit_cost, 2)
+                line["total_cost"] = round(qty * unit_cost, 2)
+
+        return bom_lines
 
     def create_eco(
         self, product_tmpl_id: int, type_id: int, name: str
