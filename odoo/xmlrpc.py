@@ -620,9 +620,9 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return fields_info
 
     def read_group(
-        self, model: str, domain: list[Any], fields: list[str], groupby: list[str]
+        self, model: str, domain: list[Any], fields: list[str], groupby: list[str], **kwargs
     ) -> list[dict[str, Any]]:
-        return self._execute(model, "read_group", domain, fields, groupby)
+        return self._execute(model, "read_group", domain, fields, groupby, **kwargs)
 
     def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
         result = self._execute(model, "write", [record_id], {"active": not archive})

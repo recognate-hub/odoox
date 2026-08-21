@@ -201,7 +201,7 @@ class OdooRepository:
     def read_group(
         self, model: str, domain: list[Any], fields: list[str], groupby: list[str]
     ) -> list[dict[str, Any]]:
-        return self.connector.read_group(model, domain, fields, groupby)
+        return self.connector.read_group(model, domain, fields, groupby, lazy=False)
 
     def create_record(self, model: str, data: dict[str, Any]) -> int:
         return self.connector.create_record(model, data)
@@ -215,10 +215,6 @@ class OdooRepository:
     def get_model_fields(self, model: str) -> dict[str, Any]:
         return self.connector.get_model_fields(model)
 
-    def read_group(
-        self, model: str, domain: list[Any], fields: list[str], groupby: list[str]
-    ) -> list[dict[str, Any]]:
-        return self.connector.read_group(model, domain, fields, groupby)
 
     def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
         return self.connector.archive_record(model, record_id, archive)
