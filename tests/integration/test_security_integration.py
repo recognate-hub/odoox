@@ -2,6 +2,7 @@
 
 Tests exercise the full decorator chain: secure_tool → RBAC → rate limit → audit log → execution.
 """
+
 import time
 from unittest.mock import patch
 
@@ -31,7 +32,7 @@ def mock_policy():
         "Admin": ["*"],
         "Sales": ["sales_tool", "shared_tool"],
         "Manager": ["manager_tool", "shared_tool"],
-        "Support": ["support_tool"]
+        "Support": ["support_tool"],
     }
     PolicyEngine._loaded = True
     yield
@@ -41,29 +42,41 @@ def mock_policy():
 
 # --- Full RBAC Flow ---
 
-class TestRBACIntegration:
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="admin_user", role="Admin"))
+class TestRBACIntegration:
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="admin_user", role="Admin"),
+    )
     def test_admin_bypasses_role_check(self, mock_context):
         """Admin role should access any tool regardless of allowed_roles."""
+
         @secure_tool()
         def restricted_tool():
             return "admin_accessed"
 
         assert restricted_tool() == "admin_accessed"
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="sales_rep", role="Sales"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="sales_rep", role="Sales"),
+    )
     def test_allowed_role_succeeds(self, mock_context):
         """Sales role should access Sales-allowed tools."""
+
         @secure_tool()
         def sales_tool():
             return "sales_ok"
 
         assert sales_tool() == "sales_ok"
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="support_agent", role="Support"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="support_agent", role="Support"),
+    )
     def test_disallowed_role_denied(self, mock_context):
         """Support role should be denied access to Manager-only tools."""
+
         @secure_tool()
         def manager_tool():
             return "should_not_reach"
@@ -74,14 +87,20 @@ class TestRBACIntegration:
         assert "Support" in str(exc_info.value)
         assert "manager_tool" in str(exc_info.value)
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="intern", role="Viewer"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="intern", role="Viewer"),
+    )
     def test_multiple_tools_different_roles(self, mock_context):
         """Test that different tools enforce different role requirements."""
+
         @secure_tool()
         def sales_tool():
             return "a"
 
-        @secure_tool(action="support_tool") # Manually setting action to bypass func name
+        @secure_tool(
+            action="support_tool"
+        )  # Manually setting action to bypass func name
         def tool_b():
             return "b"
 
@@ -96,9 +115,12 @@ class TestRBACIntegration:
 
 # --- Rate Limiting Integration ---
 
-class TestRateLimitIntegration:
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="rate_test_user", role="Admin"))
+class TestRateLimitIntegration:
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="rate_test_user", role="Admin"),
+    )
     def test_rate_limit_enforced(self, mock_context, monkeypatch):
         """Test that rate limiting triggers after exceeding max calls."""
         monkeypatch.setattr("mcp_app.security.RATE_LIMIT_MAX_CALLS", 3)
@@ -115,7 +137,10 @@ class TestRateLimitIntegration:
         with pytest.raises(RateLimitExceededError):
             rate_limited_tool()
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="window_user", role="Admin"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="window_user", role="Admin"),
+    )
     def test_rate_limit_window_expiry(self, mock_context, monkeypatch):
         """Test that rate limit resets after the window expires."""
         monkeypatch.setattr("mcp_app.security.RATE_LIMIT_MAX_CALLS", 2)
@@ -138,7 +163,10 @@ class TestRateLimitIntegration:
         # Should be allowed again
         assert windowed_tool() == "ok"
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="user_a", role="Admin"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="user_a", role="Admin"),
+    )
     def test_rate_limits_are_per_user(self, mock_context, monkeypatch):
         """Test that rate limits are tracked per user, not globally."""
         monkeypatch.setattr("mcp_app.security.RATE_LIMIT_MAX_CALLS", 1)
@@ -154,18 +182,25 @@ class TestRateLimitIntegration:
             per_user_tool()
 
         # User B should have their own limit
-        with patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="user_b", role="Admin")):
+        with patch(
+            "mcp_app.security.get_current_user_context",
+            return_value=UserContext(user_id="user_b", role="Admin"),
+        ):
             assert per_user_tool() == "ok"
 
 
 # --- Audit Logging Integration ---
 
-class TestAuditLoggingIntegration:
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="audit_user", role="Sales"))
+class TestAuditLoggingIntegration:
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="audit_user", role="Sales"),
+    )
     @patch("mcp_app.security.audit_logger")
     def test_successful_invocation_logs(self, mock_audit_logger, mock_context):
         """Test that a successful tool call produces audit log entries."""
+
         @secure_tool(action="sales_tool")
         def audited_tool(x=1):
             return f"result_{x}"
@@ -184,10 +219,14 @@ class TestAuditLoggingIntegration:
         # Second call: "Tool Succeeded"
         assert info_calls[1][0][0] == "Tool Succeeded"
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="error_user", role="Admin"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="error_user", role="Admin"),
+    )
     @patch("mcp_app.security.audit_logger")
     def test_failed_invocation_logs_error(self, mock_audit_logger, mock_context):
         """Test that a failed tool call produces an error audit log and returns a structured error dict."""
+
         @secure_tool()
         def failing_tool():
             raise ValueError("Something went wrong")
@@ -201,10 +240,14 @@ class TestAuditLoggingIntegration:
         error_call = mock_audit_logger.error.call_args
         assert error_call[0][0] == "Tool Failed"
 
-    @patch("mcp_app.security.get_current_user_context", return_value=UserContext(user_id="denied_user", role="Viewer"))
+    @patch(
+        "mcp_app.security.get_current_user_context",
+        return_value=UserContext(user_id="denied_user", role="Viewer"),
+    )
     @patch("mcp_app.security.audit_logger")
     def test_permission_denied_logs_warning(self, mock_audit_logger, mock_context):
         """Test that a denied tool call produces a warning audit log."""
+
         @secure_tool()
         def restricted_tool():
             return "should_not_reach"

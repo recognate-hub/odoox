@@ -38,7 +38,9 @@ def create_channel(name: str, channel_type: str = "channel") -> dict[str, Any]:
 with open(os.path.join(TOOLS_DIR, "discuss.py"), "a", encoding="utf-8") as f:
     f.write(discuss_append)
 
-purchase_content = HEADER + """
+purchase_content = (
+    HEADER
+    + """
 @mcp.tool()
 @secure_tool()
 @validate_write_input(CreatePurchaseOrderInput)
@@ -58,12 +60,15 @@ def get_purchase_orders(partner_id: int | None = None, limit: int = 20) -> list[
         service = PurchaseService(odoo_repo)
         return service.get_purchase_orders(partner_id, limit)
 """
+)
 
 with open(os.path.join(TOOLS_DIR, "purchase.py"), "w", encoding="utf-8") as f:
     f.write(purchase_content)
 
 
-production_content = HEADER + """
+production_content = (
+    HEADER
+    + """
 @mcp.tool()
 @secure_tool()
 @validate_write_input(CreateManufacturingOrderInput)
@@ -83,11 +88,14 @@ def get_manufacturing_orders(limit: int = 20) -> list[dict[str, Any]]:
         service = ProductionService(odoo_repo)
         return service.get_manufacturing_orders(limit)
 """
+)
 
 with open(os.path.join(TOOLS_DIR, "production.py"), "w", encoding="utf-8") as f:
     f.write(production_content)
 
-quality_content = HEADER + """
+quality_content = (
+    HEADER
+    + """
 @mcp.tool()
 @secure_tool()
 @validate_write_input(CreateQualityAlertInput)
@@ -107,6 +115,7 @@ def get_quality_checks(product_id: int | None = None, limit: int = 20) -> list[d
         service = QualityService(odoo_repo)
         return service.get_quality_checks(product_id, limit)
 """
+)
 
 with open(os.path.join(TOOLS_DIR, "quality.py"), "w", encoding="utf-8") as f:
     f.write(quality_content)
@@ -136,7 +145,9 @@ def get_inventory_valuation(product_id: int | None = None) -> list[dict[str, Any
 with open(os.path.join(TOOLS_DIR, "inventory.py"), "a", encoding="utf-8") as f:
     f.write(inventory_append)
 
-reports_content = HEADER + """
+reports_content = (
+    HEADER
+    + """
 @mcp.tool()
 @secure_tool()
 @validate_write_input(ReadGroupInput)
@@ -147,6 +158,7 @@ def generate_report(model: str, domain: list[Any], fields: list[str], groupby: l
         service = ReportsService(odoo_repo)
         return service.generate_report(model, domain, fields, groupby)
 """
+)
 
 with open(os.path.join(TOOLS_DIR, "reports.py"), "w", encoding="utf-8") as f:
     f.write(reports_content)

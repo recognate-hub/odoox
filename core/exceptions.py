@@ -11,26 +11,33 @@ class ConfigurationError(BaseAppError):
 class OdooConnectorError(BaseAppError):
     """Base exception for Odoo connector errors."""
 
+
 class OdooAuthError(OdooConnectorError):
     """Raised when authentication with Odoo fails."""
+
 
 class OdooConnectionError(OdooConnectorError):
     """Raised when connection to Odoo server fails or times out."""
 
+
 class CircuitBreakerOpenError(OdooConnectorError):
     """Raised when the circuit breaker is open and blocks connection attempts."""
 
+
 class OdooResourceNotFoundError(OdooConnectorError):
     """Raised when a requested resource is not found in Odoo."""
+
 
 class OdooValidationError(OdooConnectorError):
     """Raised when Odoo rejects a request due to a validation error
     (e.g. missing required field, constraint violation).
     These are permanent failures and must NOT be retried."""
 
+
 # --- Claude Errors ---
 class ClaudeAPIError(BaseAppError):
     """Base exception for Claude API errors."""
+
 
 class ClaudeTimeoutError(ClaudeAPIError):
     """Raised when a request to Claude times out."""
@@ -40,8 +47,10 @@ class ClaudeTimeoutError(ClaudeAPIError):
 class PermissionDeniedError(BaseAppError):
     """Raised when a user/role does not have permission for an action."""
 
+
 class RateLimitExceededError(BaseAppError):
     """Raised when a user/role has exceeded their rate limit."""
+
 
 class SessionExpiredError(BaseAppError):
     """Raised when a JWT session token has expired during an active SSE connection.
@@ -51,6 +60,7 @@ class SessionExpiredError(BaseAppError):
 # --- Validation Errors ---
 class ValidationError(BaseAppError):
     """Raised when data validation fails (outside of Pydantic)."""
+
 
 # --- FinOps Errors ---
 class FinOpsBudgetExceededException(BaseAppError):

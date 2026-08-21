@@ -1,4 +1,5 @@
 """Unit tests for the CRMService business logic layer."""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,9 +20,11 @@ def mock_odoo_repo():
 
 def test_get_lead_context_success(mock_odoo_repo):
     mock_lead = OdooLead(
-        id=1, name="Test Lead",
-        expected_revenue=5000.0, probability=50.0,
-        description="A great opportunity"
+        id=1,
+        name="Test Lead",
+        expected_revenue=5000.0,
+        probability=50.0,
+        description="A great opportunity",
     )
     mock_odoo_repo.get_lead_by_id.return_value = mock_lead
 
@@ -55,7 +58,10 @@ def test_get_customer_summary_data_success(mock_odoo_repo):
     service = CRMService(mock_odoo_repo)
     result = service.get_customer_summary_data(10)
 
-    assert result["contact"]["name"] == "<untrusted_crm_data>Alpha Corp</untrusted_crm_data>"
+    assert (
+        result["contact"]["name"]
+        == "<untrusted_crm_data>Alpha Corp</untrusted_crm_data>"
+    )
     assert len(result["recent_quotes"]) == 2
     mock_odoo_repo.connector.search_contacts.assert_called_once()
     mock_odoo_repo.get_recent_quotes.assert_called_once_with(partner_id=10, limit=5)
@@ -73,7 +79,7 @@ def test_get_customer_summary_data_not_found(mock_odoo_repo):
 def test_get_pipeline_data(mock_odoo_repo):
     mock_odoo_repo.get_active_leads.return_value = [
         OdooLead(id=1, name="Lead 1", expected_revenue=1000.0, probability=10.0),
-        OdooLead(id=2, name="Lead 2", expected_revenue=2000.0, probability=20.0)
+        OdooLead(id=2, name="Lead 2", expected_revenue=2000.0, probability=20.0),
     ]
 
     service = CRMService(mock_odoo_repo)
@@ -94,7 +100,7 @@ def test_create_meeting(mock_odoo_repo):
         start="2026-08-01 10:00:00",
         stop="2026-08-01 11:00:00",
         partner_ids=[1, 2],
-        notes="Discussed project scope."
+        notes="Discussed project scope.",
     )
 
     assert result["meeting_id"] == 100

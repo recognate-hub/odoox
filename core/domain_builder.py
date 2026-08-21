@@ -33,14 +33,27 @@ from typing import Any
 # Allowed Odoo comparison operators (exhaustive list)
 type OdooOperator = str  # One of the values below at runtime
 
-_VALID_OPERATORS: frozenset[str] = frozenset({
-    "=", "!=", ">", ">=", "<", "<=",
-    "=like", "like", "not like",
-    "=ilike", "ilike", "not ilike",
-    "in", "not in",
-    "child_of", "parent_of",
-    "=?",
-})
+_VALID_OPERATORS: frozenset[str] = frozenset(
+    {
+        "=",
+        "!=",
+        ">",
+        ">=",
+        "<",
+        "<=",
+        "=like",
+        "like",
+        "not like",
+        "=ilike",
+        "ilike",
+        "not ilike",
+        "in",
+        "not in",
+        "child_of",
+        "parent_of",
+        "=?",
+    }
+)
 
 
 class DomainLeaf:

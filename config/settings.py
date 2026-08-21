@@ -10,11 +10,9 @@ class Settings(BaseSettings):
     Pydantic strictly validates these variables to ensure all required
     values are present and properly typed.
     """
+
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
 
     # MCP / Server Configuration
@@ -25,29 +23,53 @@ class Settings(BaseSettings):
     # Supabase (Multi-Tenant)
     SUPABASE_URL: str | None = Field(default=None, description="Supabase project URL")
     SUPABASE_KEY: str | None = Field(default=None, description="Supabase API key")
-    SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service role key for admin operations")
+    SUPABASE_SERVICE_ROLE_KEY: str | None = Field(
+        default=None, description="Supabase service role key for admin operations"
+    )
     # Redis Configuration
-    REDIS_URL: str | None = Field(default=None, description="Redis connection URL for caching and rate limiting")
-    STRICT_REDIS_FINOPS: bool = Field(default=False, description="If True, missing Redis will crash FinOps instead of using in-memory fallback")
-    
+    REDIS_URL: str | None = Field(
+        default=None, description="Redis connection URL for caching and rate limiting"
+    )
+    STRICT_REDIS_FINOPS: bool = Field(
+        default=False,
+        description="If True, missing Redis will crash FinOps instead of using in-memory fallback",
+    )
+
     # CORS Configuration
-    CORS_ORIGINS: list[str] = Field(default=[], description="List of allowed CORS origins")
-    FRONTEND_URL: str = Field(default="http://localhost:3000", description="Base URL of the frontend application for redirects")
+    CORS_ORIGINS: list[str] = Field(
+        default=[], description="List of allowed CORS origins"
+    )
+    FRONTEND_URL: str = Field(
+        default="http://localhost:3000",
+        description="Base URL of the frontend application for redirects",
+    )
 
     # Security
-    ENCRYPTION_KEY: str = Field(min_length=32, description="Master key for encrypting tenant secrets")
-    OLD_ENCRYPTION_KEYS: str = Field(default="", description="Comma-separated old encryption keys for rotation")
-    
+    ENCRYPTION_KEY: str = Field(
+        min_length=32, description="Master key for encrypting tenant secrets"
+    )
+    OLD_ENCRYPTION_KEYS: str = Field(
+        default="", description="Comma-separated old encryption keys for rotation"
+    )
+
     # mTLS configurations
-    ODOO_CLIENT_CERT_PATH: str | None = Field(default=None, description="Path to mTLS client cert")
-    ODOO_CLIENT_KEY_PATH: str | None = Field(default=None, description="Path to mTLS client key")
+    ODOO_CLIENT_CERT_PATH: str | None = Field(
+        default=None, description="Path to mTLS client cert"
+    )
+    ODOO_CLIENT_KEY_PATH: str | None = Field(
+        default=None, description="Path to mTLS client key"
+    )
 
     # Odoo Connection
-    ODOO_TIMEOUT: int = Field(default=120, description="Timeout for Odoo XML-RPC requests in seconds")
+    ODOO_TIMEOUT: int = Field(
+        default=120, description="Timeout for Odoo XML-RPC requests in seconds"
+    )
 
     # Client/Tenant Identification
     COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")
-    COMPANY_EMAIL: str = Field(default="admin@odoox.com", min_length=1, description="Company contact email")
+    COMPANY_EMAIL: str = Field(
+        default="admin@odoox.com", min_length=1, description="Company contact email"
+    )
     COMPANY_PHONE: str = Field(default="", description="Company contact phone")
 
     def validate_config(self) -> None:

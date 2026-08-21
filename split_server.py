@@ -15,26 +15,18 @@ TOOL_MAPPINGS = {
     "update_lead": "crm",
     "log_crm_note": "crm",
     "get_lead_context": "crm",
-    
     "search_customer": "contacts",
     "create_contact": "contacts",
     "get_customer_details": "contacts",
-    
     "get_products": "inventory",
     "create_product": "inventory",
-    
     "get_recent_quotes": "sales",
     "create_quote": "sales",
-    
     "revenue_report": "dashboards",
     "get_pipeline_forecast_data": "dashboards",
-    
     "schedule_meeting": "calendar",
-    
     "create_invoice": "invoicing",
-    
     "send_email": "discuss",
-    
     "search_read_records": "generic",
     "create_record": "generic",
     "update_record": "generic",
@@ -71,10 +63,10 @@ for tool_source in tools:
     if match:
         func_name = match.group(1)
         mod_name = TOOL_MAPPINGS.get(func_name, "generic")
-        
+
         if mod_name not in modules:
             modules[mod_name] = HEADER
-            
+
         modules[mod_name] += tool_source + "\n\n"
 
 # Write the new module files

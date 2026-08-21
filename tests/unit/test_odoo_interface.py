@@ -65,31 +65,31 @@ class DummyConnector(OdooConnectorInterface):
 
 def test_interface_methods():
     dummy = DummyConnector()
-    
+
     assert dummy.get_leads() is None
     assert dummy.create_lead({}) is None
     assert dummy.update_lead(1, {}) is None
     assert dummy.delete_lead(1) is None
-    
+
     assert dummy.search_contacts() is None
     assert dummy.create_contact({}) is None
-    
+
     assert dummy.get_products() is None
     assert dummy.create_product({}) is None
-    
+
     assert dummy.get_quotes() is None
     assert dummy.create_quote({}) is None
-    
+
     assert dummy.create_activity({}) is None
     assert dummy.schedule_meeting({}) is None
     assert dummy.get_sales_dashboard() is None
-    
+
     assert dummy.create_invoice({}) is None
     assert dummy.send_email({}) is None
-    
+
     assert dummy.search_read_records("model") is None
     assert dummy.create_record("model", {}) is None
     assert dummy.update_record("model", 1, {}) is None
-    
+
     assert dummy.get_installed_apps() is None
     assert dummy.get_model_fields("model") is None

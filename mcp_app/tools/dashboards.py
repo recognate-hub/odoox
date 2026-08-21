@@ -8,13 +8,14 @@ from mcp_app.server import mcp
 
 logger = get_logger(__name__)
 
+
 @mcp.tool()
 @secure_tool()
 def revenue_report() -> dict[str, Any]:
     """
     Get the current sales dashboard and revenue report.
     (Note: This tool provides identical data to get_sales_dashboard).
-    
+
     Returns:
         Dict[str, Any]: A dictionary containing total_revenue, active_leads_count, quotes_count, and win_rate_percentage.
     """
@@ -24,15 +25,14 @@ def revenue_report() -> dict[str, Any]:
     return dashboard.model_dump()
 
 
-
 @mcp.tool()
 @secure_tool()
 def get_pipeline_forecast_data() -> list[dict[str, Any]]:
     """
     Fetch active leads and pipeline data for sales forecasting.
-    
+
     Use this tool to analyze the probability and expected revenue of current deals.
-    
+
     Returns:
         List[Dict[str, Any]]: A list of leads with full fields.
     """
@@ -42,5 +42,3 @@ def get_pipeline_forecast_data() -> list[dict[str, Any]]:
 
 
 # --- Calendar & Email Tools ---
-
-

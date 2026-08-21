@@ -5,9 +5,11 @@ from config.settings import get_settings
 
 router = APIRouter()
 
+
 def _get_base_url(request: Request) -> str:
     settings = get_settings()
-    return settings.FRONTEND_URL.rstrip('/')
+    return settings.FRONTEND_URL.rstrip("/")
+
 
 @router.get("/.well-known/oauth-protected-resource")
 def get_protected_resource_metadata(request: Request):
@@ -16,10 +18,7 @@ def get_protected_resource_metadata(request: Request):
     Tells the client where the authorization server is.
     """
     base_url = _get_base_url(request)
-    return JSONResponse({
-        "resource": base_url,
-        "authorization_servers": [base_url]
-    })
+    return JSONResponse({"resource": base_url, "authorization_servers": [base_url]})
 
 
 @router.get("/.well-known/oauth-authorization-server")
@@ -29,13 +28,19 @@ def get_authorization_server_metadata(request: Request):
     Tells the client about OAuth capabilities and endpoints.
     """
     base_url = _get_base_url(request)
-    return JSONResponse({
-        "issuer": base_url,
-        "authorization_endpoint": f"{base_url}/oauth/authorize",
-        "token_endpoint": f"{base_url}/oauth/token",
-        "registration_endpoint": f"{base_url}/oauth/register",
-        "response_types_supported": ["code"],
-        "grant_types_supported": ["authorization_code", "refresh_token"],
-        "code_challenge_methods_supported": ["S256", "plain"],
-        "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic", "none"]
-    })
+    return JSONResponse(
+        {
+            "issuer": base_url,
+            "authorization_endpoint": f"{base_url}/oauth/authorize",
+            "token_endpoint": f"{base_url}/oauth/token",
+            "registration_endpoint": f"{base_url}/oauth/register",
+            "response_types_supported": ["code"],
+            "grant_types_supported": ["authorization_code", "refresh_token"],
+            "code_challenge_methods_supported": ["S256", "plain"],
+            "token_endpoint_auth_methods_supported": [
+                "client_secret_post",
+                "client_secret_basic",
+                "none",
+            ],
+        }
+    )

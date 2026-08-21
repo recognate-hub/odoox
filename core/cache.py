@@ -11,19 +11,24 @@ settings = get_settings()
 redis_client = None
 if settings.REDIS_URL:
     try:
-        redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=0.5)
+        redis_client = redis.Redis.from_url(
+            settings.REDIS_URL, decode_responses=True, socket_timeout=0.5
+        )
         # Test connection
         redis_client.ping()
         logger.info("Connected to Redis for credential caching.")
     except Exception as e:
-        logger.error(f"Failed to connect to Redis: {e}. Falling back to in-memory cache.")
+        logger.error(
+            f"Failed to connect to Redis: {e}. Falling back to in-memory cache."
+        )
         redis_client = None
 
 from typing import TypeVar
 
 T = TypeVar("T", bound=BaseModel)
 
-def get_cached_workspace(token: str, cls: type[T]) -> T | None:
+
+def get_cached_workspace[T: BaseModel](token: str, cls: type[T]) -> T | None:
     if not redis_client:
         return None
     try:
@@ -34,6 +39,7 @@ def get_cached_workspace(token: str, cls: type[T]) -> T | None:
         logger.warning(f"Redis get failed: {e}")
     return None
 
+
 def set_cached_workspace(token: str, workspace: BaseModel, ttl: int = 300) -> None:
     if not redis_client:
         return
@@ -41,6 +47,7 @@ def set_cached_workspace(token: str, workspace: BaseModel, ttl: int = 300) -> No
         redis_client.setex(f"workspace:{token}", ttl, workspace.model_dump_json())
     except Exception as e:
         logger.warning(f"Redis set failed: {e}")
+
 
 def get_cached_value(key: str) -> str | None:
     if not redis_client:
@@ -50,6 +57,7 @@ def get_cached_value(key: str) -> str | None:
     except Exception as e:
         logger.warning(f"Redis get_cached_value failed: {e}")
     return None
+
 
 def set_cached_value(key: str, value: str, ttl: int = 3600) -> None:
     if not redis_client:

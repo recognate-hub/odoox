@@ -16,13 +16,14 @@ def setup_logging() -> None:
     log_level = getattr(logging, log_level_name, logging.INFO)
 
     log_formatter = logging.Formatter("%(message)s")
-    
+
     # stdout handler
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(log_formatter)
-    
+
     # file handler for persistent logs (for data governance scrubbing)
     import os
+
     os.makedirs("logs", exist_ok=True)
     file_handler = logging.FileHandler("logs/app.log", encoding="utf-8")
     file_handler.setFormatter(log_formatter)
@@ -47,13 +48,14 @@ def setup_logging() -> None:
         cache_logger_on_first_use=True,
     )
 
+
 def get_logger(name: str) -> Any:
     """
     Get a structured logger for a given module.
-    
+
     Args:
         name (str): The name of the module (usually __name__).
-        
+
     Returns:
         structlog.BoundLogger: The configured structured logger.
     """

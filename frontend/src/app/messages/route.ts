@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers,
             body: request.body, // stream the body
-            // @ts-ignore
+            // @ts-expect-error Node fetch duplex mode required
             duplex: 'half' // required by Node for streaming bodies in fetch
         });
 

@@ -4,10 +4,13 @@ from main import app
 
 client = TestClient(app)
 
+
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["status"] in ["ok", "degraded"]
-    assert "ANTHROPIC_API_KEY" not in str(data)  # Make sure it's not leaking or referenced
+    assert "ANTHROPIC_API_KEY" not in str(
+        data
+    )  # Make sure it's not leaking or referenced

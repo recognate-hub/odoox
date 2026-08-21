@@ -1,4 +1,5 @@
 """Root-level conftest for shared test fixtures and environment setup."""
+
 import os
 from unittest.mock import MagicMock
 
@@ -46,15 +47,26 @@ def mock_settings():
 
     return settings
 
+
 class MockOdooServer:
     def __init__(self):
         self.records = {
             "crm.lead": [
-                {"id": 1, "name": "Test Lead 1", "email_from": "test1@example.com", "stage_id": [1, "New"]},
-                {"id": 2, "name": "Test Lead 2", "email_from": "test2@example.com", "stage_id": [2, "Qualified"]}
+                {
+                    "id": 1,
+                    "name": "Test Lead 1",
+                    "email_from": "test1@example.com",
+                    "stage_id": [1, "New"],
+                },
+                {
+                    "id": 2,
+                    "name": "Test Lead 2",
+                    "email_from": "test2@example.com",
+                    "stage_id": [2, "Qualified"],
+                },
             ]
         }
-        
+
     def execute_kw(self, db, uid, pwd, model, method, args, kwargs=None):
         if method == "search_read":
             domain = args[0] if args else []
@@ -67,7 +79,11 @@ class MockOdooServer:
                         if op == "=":
                             data = [d for d in data if d.get(field) == val]
                         elif op == "ilike":
-                            data = [d for d in data if val.lower() in str(d.get(field, "")).lower()]
+                            data = [
+                                d
+                                for d in data
+                                if val.lower() in str(d.get(field, "")).lower()
+                            ]
             return data
         elif method == "create":
             data = args[0][0] if args and args[0] else {}
@@ -77,16 +93,21 @@ class MockOdooServer:
             return new_id
         return True
 
+
 @pytest.fixture
 def mock_odoo_server(monkeypatch):
     server = MockOdooServer()
     mock_server_proxy = MagicMock()
     mock_server_proxy.execute_kw = server.execute_kw
-    
+
     mock_common = MagicMock()
     mock_common.authenticate.return_value = 1
-    
-    monkeypatch.setattr("odoo.xmlrpc.XmlRpcOdooConnector._get_models", lambda self, ws: mock_server_proxy)
-    monkeypatch.setattr("odoo.xmlrpc.XmlRpcOdooConnector._get_common", lambda self, ws: mock_common)
-    return server
 
+    monkeypatch.setattr(
+        "odoo.xmlrpc.XmlRpcOdooConnector._get_models",
+        lambda self, ws: mock_server_proxy,
+    )
+    monkeypatch.setattr(
+        "odoo.xmlrpc.XmlRpcOdooConnector._get_common", lambda self, ws: mock_common
+    )
+    return server

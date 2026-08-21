@@ -15,13 +15,14 @@ async def test_get_tenant_context_with_bearer_token():
         "query_string": b"workspace_id=ws123",
     }
     request = Request(scope)
-    
+
     with patch("core.auth.get_workspace_credentials") as mock_get_creds:
         await get_tenant_context(request)
-        
+
         mock_get_creds.assert_called_once_with("mytoken", "ws123")
         assert current_token.get() == "mytoken"
         assert current_workspace_id.get() == "ws123"
+
 
 @pytest.mark.asyncio
 async def test_get_tenant_context_with_query_token():
@@ -31,13 +32,14 @@ async def test_get_tenant_context_with_query_token():
         "query_string": b"token=querytoken&workspace_id=ws456",
     }
     request = Request(scope)
-    
+
     with patch("core.auth.get_workspace_credentials") as mock_get_creds:
         await get_tenant_context(request)
-        
+
         mock_get_creds.assert_called_once_with("querytoken", "ws456")
         assert current_token.get() == "querytoken"
         assert current_workspace_id.get() == "ws456"
+
 
 @pytest.mark.asyncio
 async def test_get_tenant_context_missing_token():
@@ -47,12 +49,13 @@ async def test_get_tenant_context_missing_token():
         "query_string": b"",
     }
     request = Request(scope)
-    
+
     with pytest.raises(HTTPException) as exc_info:
         await get_tenant_context(request)
-        
+
     assert exc_info.value.status_code == 401
     assert "Missing Authorization header" in str(exc_info.value.detail)
+
 
 @pytest.mark.asyncio
 async def test_get_tenant_context_auth_failure():
@@ -62,12 +65,12 @@ async def test_get_tenant_context_auth_failure():
         "query_string": b"",
     }
     request = Request(scope)
-    
+
     with patch("core.auth.get_workspace_credentials") as mock_get_creds:
         mock_get_creds.side_effect = Exception("Invalid creds")
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await get_tenant_context(request)
-            
+
         assert exc_info.value.status_code == 401
         assert "Authentication failed" in str(exc_info.value.detail)

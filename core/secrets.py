@@ -3,10 +3,11 @@ from core.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class SecretsManager:
     """
-    Abstracts encryption key retrieval. 
-    In a true enterprise scenario, this class interfaces with AWS KMS, HashiCorp Vault, 
+    Abstracts encryption key retrieval.
+    In a true enterprise scenario, this class interfaces with AWS KMS, HashiCorp Vault,
     or GCP Secret Manager to dynamically pull and rotate encryption keys.
     """
 
@@ -25,10 +26,10 @@ class SecretsManager:
     @classmethod
     def get_retired_keys(cls) -> list[str]:
         """
-        Retrieves previously active keys to allow decrypting legacy ciphertext 
+        Retrieves previously active keys to allow decrypting legacy ciphertext
         during a graceful rotation period.
         """
         # Simulated KMS fetch
         settings = get_settings()
         keys_str = settings.OLD_ENCRYPTION_KEYS
-        return [k.strip() for k in keys_str.split(',') if k.strip()]
+        return [k.strip() for k in keys_str.split(",") if k.strip()]

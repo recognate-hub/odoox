@@ -6,7 +6,6 @@ from services.data_governance import DataGovernanceService
 
 
 class TestDataGovernanceService:
-
     @pytest.fixture
     def mock_supabase(self):
         with patch("services.data_governance.get_supabase") as mock_get:
@@ -42,7 +41,7 @@ class TestDataGovernanceService:
         assert result["tenant_id"] == "test_user_123"
         assert "export_timestamp" in result
         assert result["middleware_data"]["workspaces"] == mock_response.data
-        
+
         # Verify supabase called correctly
         mock_supabase.table.assert_called_with("user_workspaces")
         mock_supabase.table().select.assert_called_with("*")
@@ -51,47 +50,51 @@ class TestDataGovernanceService:
 
     def test_log_scrubbing_and_verification(self, service, temp_log_file):
         user_id = "test_user_123"
-        
+
         # Verify initial state
         assert not service._verify_log_scrubbing(temp_log_file, user_id)
-        
+
         # Scrub logs
         scrubbed_count = service._scrub_log_file(temp_log_file, user_id)
-        
+
         assert scrubbed_count == 2
-        
+
         # Verify final state
         assert service._verify_log_scrubbing(temp_log_file, user_id)
-        
+
         # Verify file contents manually
         with open(temp_log_file, "r") as f:
             content = f.read()
             assert "test_user_123" not in content
             assert "[REDACTED_USER]" in content
 
-    def test_delete_tenant_data_workflow(self, service, mock_supabase, temp_log_file, monkeypatch):
+    def test_delete_tenant_data_workflow(
+        self, service, mock_supabase, temp_log_file, monkeypatch
+    ):
         user_id = "test_user_123"
-        
+
         original_scrub = service._scrub_log_file
+
         def mock_scrub(path, uid):
             return original_scrub(temp_log_file, uid)
-            
+
         original_verify = service._verify_log_scrubbing
+
         def mock_verify(path, uid):
             return original_verify(temp_log_file, uid)
-            
+
         monkeypatch.setattr(service, "_scrub_log_file", mock_scrub)
         monkeypatch.setattr(service, "_verify_log_scrubbing", mock_verify)
-        
+
         # Execute deletion
         result = service.delete_tenant_data(user_id)
-        
+
         # Verify database deletion called
         mock_supabase.table.assert_called_with("user_workspaces")
         mock_supabase.table().delete.assert_called_once()
         mock_supabase.table().delete().eq.assert_called_with("user_id", user_id)
         mock_supabase.table().delete().eq.return_value.execute.assert_called_once()
-        
+
         # Verify result
         assert result["status"] == "success"
         assert result["deleted_user_id"] == user_id

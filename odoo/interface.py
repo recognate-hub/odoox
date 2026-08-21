@@ -17,7 +17,9 @@ class OdooConnectorInterface(ABC):
     """
 
     @abstractmethod
-    def get_leads(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooLead]:
+    def get_leads(
+        self, domain: list[Any] | None = None, limit: int = 100
+    ) -> list[OdooLead]:
         pass
 
     @abstractmethod
@@ -33,7 +35,9 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
-    def search_contacts(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooContact]:
+    def search_contacts(
+        self, domain: list[Any] | None = None, limit: int = 100
+    ) -> list[OdooContact]:
         pass
 
     @abstractmethod
@@ -41,7 +45,9 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
-    def get_products(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooProduct]:
+    def get_products(
+        self, domain: list[Any] | None = None, limit: int = 100
+    ) -> list[OdooProduct]:
         pass
 
     @abstractmethod
@@ -49,7 +55,9 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
-    def get_quotes(self, domain: list[Any] | None = None, limit: int = 100) -> list[OdooQuote]:
+    def get_quotes(
+        self, domain: list[Any] | None = None, limit: int = 100
+    ) -> list[OdooQuote]:
         pass
 
     @abstractmethod
@@ -77,7 +85,13 @@ class OdooConnectorInterface(ABC):
         pass
 
     @abstractmethod
-    def search_read_records(self, model: str, domain: list[Any] | None = None, fields: list[str] | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    def search_read_records(
+        self,
+        model: str,
+        domain: list[Any] | None = None,
+        fields: list[str] | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod

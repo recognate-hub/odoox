@@ -11,41 +11,50 @@ def test_secrets_manager():
     settings = get_settings()
     settings.ENCRYPTION_KEY = "dummy_active_key_123456789012345"
     settings.OLD_ENCRYPTION_KEYS = "dummy_retired_key_123456789012345"
-    
+
     with patch("core.secrets.get_settings", return_value=settings):
         assert SecretsManager.get_active_key() == "dummy_active_key_123456789012345"
-        assert SecretsManager.get_retired_keys() == ["dummy_retired_key_123456789012345"]
+        assert SecretsManager.get_retired_keys() == [
+            "dummy_retired_key_123456789012345"
+        ]
+
 
 def test_encryption_uses_secrets_manager():
     # Mock secrets manager and test encryption wrapper
     import base64
+
     valid_key = base64.urlsafe_b64encode(b"12345678901234567890123456789012").decode()
     with patch("core.secrets.SecretsManager.get_active_key", return_value=valid_key):
         active = _get_active_fernet()
         assert active is not None
-        
-    with patch("core.secrets.SecretsManager.get_retired_keys", return_value=[valid_key]):
+
+    with patch(
+        "core.secrets.SecretsManager.get_retired_keys", return_value=[valid_key]
+    ):
         retired = _get_retired_fernets()
         assert len(retired) == 1
+
 
 def test_timeout_safe_transport_mtls_fallback():
     # Without certs, it should just initialize normally
     transport = RequestsTransport(timeout=5)
     assert transport.timeout == 5
-    
+
+
 def test_timeout_safe_transport_mtls_loading(tmp_path):
     cert_path = tmp_path / "cert.pem"
     key_path = tmp_path / "key.pem"
     cert_path.write_text("mock cert")
     key_path.write_text("mock key")
-    
+
     settings = get_settings()
     settings.ODOO_CLIENT_CERT_PATH = str(cert_path)
     settings.ODOO_CLIENT_KEY_PATH = str(key_path)
-    
+
     # Test that mtls gets triggered when protocol is https
     import odoo.xmlrpc
-    odoo.xmlrpc._sessions.clear() # clear cached session
+
+    odoo.xmlrpc._sessions.clear()  # clear cached session
     with patch("odoo.xmlrpc.get_settings", return_value=settings):
         with patch("odoo.xmlrpc.os.path.exists", return_value=True):
             transport = odoo.xmlrpc.get_transport("https://odoo.example.com", timeout=5)

@@ -1,4 +1,3 @@
-
 from fastmcp import FastMCP
 
 from config.settings import get_settings
@@ -11,6 +10,7 @@ logger = get_logger(__name__)
 
 try:
     from opentelemetry import trace
+
     tracer = trace.get_tracer(__name__)
 except Exception:  # noqa: BLE001
     tracer = None  # type: ignore
@@ -51,10 +51,9 @@ import mcp_app.tools.discuss
 import mcp_app.tools.generic
 import mcp_app.tools.inventory
 import mcp_app.tools.invoicing
+import mcp_app.tools.maintenance
 import mcp_app.tools.production
 import mcp_app.tools.purchase
 import mcp_app.tools.quality
 import mcp_app.tools.reports
 import mcp_app.tools.sales  # noqa: F401
-import mcp_app.tools.maintenance
-

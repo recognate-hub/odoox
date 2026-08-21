@@ -1,4 +1,5 @@
 """Unit tests for the OdooRepository layer."""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -27,6 +28,7 @@ def repo(mock_connector):
 
 # --- get_active_leads ---
 
+
 def test_get_active_leads(repo, mock_connector):
     mock_connector.get_leads.return_value = [
         OdooLead(id=1, name="Test Lead", expected_revenue=1000.0, probability=50.0)
@@ -49,6 +51,7 @@ def test_get_active_leads_empty(repo, mock_connector):
 
 # --- get_lead_by_id ---
 
+
 def test_get_lead_by_id_found(repo, mock_connector):
     mock_connector.get_leads.return_value = [
         OdooLead(id=42, name="Found Lead", expected_revenue=5000.0, probability=80.0)
@@ -58,9 +61,7 @@ def test_get_lead_by_id_found(repo, mock_connector):
     assert lead is not None
     assert lead.id == 42
     assert lead.name == "<untrusted_crm_data>Found Lead</untrusted_crm_data>"
-    mock_connector.get_leads.assert_called_once_with(
-        domain=[["id", "=", 42]], limit=1
-    )
+    mock_connector.get_leads.assert_called_once_with(domain=[["id", "=", 42]], limit=1)
 
 
 def test_get_lead_by_id_not_found(repo, mock_connector):
@@ -70,6 +71,7 @@ def test_get_lead_by_id_not_found(repo, mock_connector):
 
 
 # --- search_contacts_by_name ---
+
 
 def test_search_contacts_by_name(repo, mock_connector):
     mock_connector.search_contacts.return_value = [
@@ -95,6 +97,7 @@ def test_search_contacts_by_name_custom_limit(repo, mock_connector):
 
 # --- search_products ---
 
+
 def test_search_products(repo, mock_connector):
     mock_connector.get_products.return_value = [
         OdooProduct(id=3, name="Product A", list_price=49.99, qty_available=100)
@@ -105,11 +108,13 @@ def test_search_products(repo, mock_connector):
     assert products[0].id == 3
     assert products[0].name == "<untrusted_crm_data>Product A</untrusted_crm_data>"
     mock_connector.get_products.assert_called_once_with(
-        domain=["|", ["name", "ilike", "Prod"], ["default_code", "ilike", "Prod"]], limit=20
+        domain=["|", ["name", "ilike", "Prod"], ["default_code", "ilike", "Prod"]],
+        limit=20,
     )
 
 
 # --- get_recent_quotes ---
+
 
 def test_get_recent_quotes_no_partner(repo, mock_connector):
     mock_connector.get_quotes.return_value = [
@@ -132,18 +137,23 @@ def test_get_recent_quotes_with_partner(repo, mock_connector):
 
 # --- create_lead ---
 
+
 def test_create_lead_all_fields(repo, mock_connector):
     mock_connector.create_lead.return_value = 10
-    lead_id = repo.create_lead("New Lead", email="e@test.com", phone="123", description="Desc")
+    lead_id = repo.create_lead(
+        "New Lead", email="e@test.com", phone="123", description="Desc"
+    )
 
     assert lead_id == 10
-    mock_connector.create_lead.assert_called_once_with({
-        "name": "New Lead",
-        "type": "opportunity",
-        "email_from": "e@test.com",
-        "phone": "123",
-        "description": "Desc"
-    })
+    mock_connector.create_lead.assert_called_once_with(
+        {
+            "name": "New Lead",
+            "type": "opportunity",
+            "email_from": "e@test.com",
+            "phone": "123",
+            "description": "Desc",
+        }
+    )
 
 
 def test_create_lead_minimal(repo, mock_connector):
@@ -151,43 +161,50 @@ def test_create_lead_minimal(repo, mock_connector):
     lead_id = repo.create_lead("Minimal Lead")
 
     assert lead_id == 11
-    mock_connector.create_lead.assert_called_once_with({
-        "name": "Minimal Lead",
-        "type": "opportunity"
-    })
+    mock_connector.create_lead.assert_called_once_with(
+        {"name": "Minimal Lead", "type": "opportunity"}
+    )
 
 
 # --- log_activity ---
+
 
 def test_log_activity(repo, mock_connector):
     mock_connector.create_activity.return_value = 6
     activity_id = repo.log_activity("crm.lead", 1, "Follow up call")
 
     assert activity_id == 6
-    mock_connector.create_activity.assert_called_once_with({
-        "model": "crm.lead",
-        "res_id": 1,
-        "body": "Follow up call",
-        "message_type": "comment",
-        "subtype_id": 2
-    })
+    mock_connector.create_activity.assert_called_once_with(
+        {
+            "model": "crm.lead",
+            "res_id": 1,
+            "body": "Follow up call",
+            "message_type": "comment",
+            "subtype_id": 2,
+        }
+    )
 
 
 def test_log_activity_custom_type(repo, mock_connector):
     mock_connector.create_activity.return_value = 7
-    activity_id = repo.log_activity("res.partner", 10, "Send proposal", activity_type_id=2)
+    activity_id = repo.log_activity(
+        "res.partner", 10, "Send proposal", activity_type_id=2
+    )
 
     assert activity_id == 7
-    mock_connector.create_activity.assert_called_once_with({
-        "model": "res.partner",
-        "res_id": 10,
-        "body": "Send proposal",
-        "message_type": "comment",
-        "subtype_id": 2
-    })
+    mock_connector.create_activity.assert_called_once_with(
+        {
+            "model": "res.partner",
+            "res_id": 10,
+            "body": "Send proposal",
+            "message_type": "comment",
+            "subtype_id": 2,
+        }
+    )
 
 
 # --- schedule_meeting ---
+
 
 def test_schedule_meeting(repo, mock_connector):
     mock_connector.schedule_meeting.return_value = 5
@@ -196,20 +213,25 @@ def test_schedule_meeting(repo, mock_connector):
     )
 
     assert meeting_id == 5
-    mock_connector.schedule_meeting.assert_called_once_with({
-        "name": "Kickoff Meeting",
-        "start": "2026-08-01 10:00:00",
-        "stop": "2026-08-01 11:00:00",
-        "partner_ids": [[6, 0, [1, 2]]]
-    })
+    mock_connector.schedule_meeting.assert_called_once_with(
+        {
+            "name": "Kickoff Meeting",
+            "start": "2026-08-01 10:00:00",
+            "stop": "2026-08-01 11:00:00",
+            "partner_ids": [[6, 0, [1, 2]]],
+        }
+    )
 
 
 # --- get_dashboard ---
 
+
 def test_get_dashboard(repo, mock_connector):
     mock_connector.get_sales_dashboard.return_value = OdooSalesDashboard(
-        total_revenue=50000.0, active_leads_count=10,
-        quotes_count=5, win_rate_percentage=25.0
+        total_revenue=50000.0,
+        active_leads_count=10,
+        quotes_count=5,
+        win_rate_percentage=25.0,
     )
     dashboard = repo.get_dashboard()
 

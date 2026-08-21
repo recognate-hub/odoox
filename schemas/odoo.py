@@ -1,12 +1,12 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class OdooBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def convert_odoo_false_to_none(cls, data: Any) -> Any:
         if isinstance(data, dict):
@@ -18,13 +18,13 @@ class OdooBaseModel(BaseModel):
                     data[k] = None
         return data
 
-    @model_validator(mode='after')
-    def sanitize_strings(self) -> 'OdooBaseModel':
-        for field_name, field_info in type(self).model_fields.items():
+    @model_validator(mode="after")
+    def sanitize_strings(self) -> "OdooBaseModel":
+        for field_name in type(self).model_fields:
             val = getattr(self, field_name)
             if isinstance(val, str):
                 # Escape existing XML/HTML tags
-                sanitized = val.replace('<', '&lt;').replace('>', '&gt;')
+                sanitized = val.replace("<", "&lt;").replace(">", "&gt;")
                 # Wrap in delimiting tags to prevent prompt injection
                 wrapped = f"<untrusted_crm_data>{sanitized}</untrusted_crm_data>"
                 setattr(self, field_name, wrapped)

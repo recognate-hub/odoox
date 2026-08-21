@@ -12,14 +12,17 @@ async def _pump(read_stream, write_stream):
         async for message in read_stream:
             if isinstance(message, Exception):
                 import sys
+
                 print(f"[mcp_sse_bridge] Stream error: {message}", file=sys.stderr)
                 break
             await write_stream.send(message)
     except Exception:
         pass
 
+
 async def main(url: str):
     from urllib.parse import parse_qs, urlparse
+
     parsed = urlparse(url)
     qs = parse_qs(parsed.query)
     headers = {}
@@ -33,9 +36,10 @@ async def main(url: str):
                 tg.start_soon(_pump, stdio_read, sse_write)
                 tg.start_soon(_pump, sse_read, stdio_write)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MCP SSE to Stdio Bridge")
     parser.add_argument("url", help="The SSE endpoint URL to connect to")
     args = parser.parse_args()
-    
+
     anyio.run(main, args.url)

@@ -5,6 +5,7 @@ from repositories.odoo import OdooRepository
 
 logger = get_logger(__name__)
 
+
 class DashboardsService:
     def __init__(self, odoo_repo: OdooRepository):
         self.odoo = odoo_repo

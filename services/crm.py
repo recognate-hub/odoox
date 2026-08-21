@@ -26,16 +26,18 @@ class CRMService:
 
     def get_customer_summary_data(self, partner_id: int) -> dict[str, Any]:
         """Fetch customer details and recent quotes."""
-        contacts = self.odoo.connector.search_contacts(domain=[["id", "=", partner_id]], limit=1)
+        contacts = self.odoo.connector.search_contacts(
+            domain=[["id", "=", partner_id]], limit=1
+        )
         if not contacts:
             raise OdooResourceNotFoundError(f"Contact with ID {partner_id} not found.")
-        
+
         contact = contacts[0]
         quotes = self.odoo.get_recent_quotes(partner_id=partner_id, limit=5)
-        
+
         return {
             "contact": contact.model_dump(),
-            "recent_quotes": [q.model_dump() for q in quotes]
+            "recent_quotes": [q.model_dump() for q in quotes],
         }
 
     def get_pipeline_data(self) -> list[dict[str, Any]]:
@@ -43,15 +45,16 @@ class CRMService:
         leads = self.odoo.get_active_leads(limit=50)
         return [lead.model_dump() for lead in leads]
 
-    def create_meeting(self, name: str, start: str, stop: str, partner_ids: list[int], notes: str) -> dict[str, Any]:
+    def create_meeting(
+        self, name: str, start: str, stop: str, partner_ids: list[int], notes: str
+    ) -> dict[str, Any]:
         """Create a meeting in Odoo and log the notes."""
         meeting_id = self.odoo.schedule_meeting(name, start, stop, partner_ids)
-        
+
         # Log the raw notes as an activity in Odoo
         if notes:
-            self.odoo.log_activity("calendar.event", meeting_id, f"Meeting Notes: {notes}")
-        
-        return {
-            "status": "success",
-            "meeting_id": meeting_id
-        }
+            self.odoo.log_activity(
+                "calendar.event", meeting_id, f"Meeting Notes: {notes}"
+            )
+
+        return {"status": "success", "meeting_id": meeting_id}

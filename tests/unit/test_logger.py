@@ -1,4 +1,5 @@
 """Unit tests for the structured logging setup."""
+
 from unittest.mock import MagicMock, patch
 
 import structlog
