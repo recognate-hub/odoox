@@ -206,6 +206,9 @@ class OdooRepository:
     def create_record(self, model: str, data: dict[str, Any]) -> int:
         return self.connector.create_record(model, data)
 
+    def create_records(self, model: str, data_list: list[dict[str, Any]]) -> list[int]:
+        return self.connector.create_records(model, data_list)
+
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
         return self.connector.update_record(model, record_id, data)
 

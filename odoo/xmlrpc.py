@@ -574,6 +574,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
             workspace.odoo_db, f"create_{model.replace('.', '_')}", data, _exec
         )
 
+    def create_records(self, model: str, data_list: list[dict[str, Any]]) -> list[int]:
+        workspace = self._get_workspace()
+
+        def _exec():
+            return self._execute(model, "create", [data_list])
+
+        return self._run_with_retry(_exec, workspace.odoo_db)
+
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
         result = self._execute(model, "write", [record_id], data)
         return bool(result)
