@@ -1,4 +1,5 @@
 from fastmcp import FastMCP
+import functools
 
 from config.settings import get_settings
 from core.logger import get_logger
@@ -41,6 +42,16 @@ def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
 
 # Initialize FastMCP Server
 mcp = FastMCP("ODOOX")
+
+# Patch mcp.tool to inject a global timeout of 600s (10 minutes) for all tools
+original_tool = mcp.tool
+
+@functools.wraps(original_tool)
+def patched_tool(*args, **kwargs):
+    kwargs.setdefault("timeout", 600)
+    return original_tool(*args, **kwargs)
+
+mcp.tool = patched_tool
 
 # Register all tools — importing each module triggers the @mcp.tool() decorators
 import mcp_app.tools.analyzer

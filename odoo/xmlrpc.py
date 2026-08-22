@@ -236,7 +236,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 del self._circuit_breakers[db_name]
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(1),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type(
             (OSError, xmlrpc.client.ProtocolError, OdooConnectionError)

@@ -112,6 +112,9 @@ def create_app() -> FastAPI:
             "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application.",
         }
 
+    # Map sessionId to (token, workspace_id) for POST /messages context restoration
+    active_sessions: dict[str, tuple[str | None, str | None]] = {}
+
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get(
         "/sse",
@@ -121,12 +124,6 @@ def create_app() -> FastAPI:
         ],
     )
     async def handle_sse(request: Request):
-        # Re-extract and re-set the token directly inside the handler body.
-        # Depends(get_tenant_context) validates the token and populates the ContextVar,
-        # but mcp._mcp_server.run() spawns internal async tasks/threads that copy
-        # the contextvars context at *their* creation point. By explicitly setting
-        # the token here — inside the function that wraps connect_sse — we guarantee
-        # the token is present in the context that all MCP-dispatched tool calls inherit.
         auth_header = request.headers.get("Authorization")
         token = (
             auth_header.split(" ")[1]
@@ -134,17 +131,22 @@ def create_app() -> FastAPI:
             else request.query_params.get("token")
         )
         workspace_id = request.query_params.get("workspace_id")
-        # These set() calls update the context for the current coroutine and any
-        # threads/tasks spawned from it (contextvars are copy-on-write inherited).
         current_token.set(token)
         current_workspace_id.set(workspace_id)
 
         async with sse.connect_sse(
             request.scope, request.receive, request._send
         ) as streams:
-            await mcp._mcp_server.run(
-                streams[0], streams[1], mcp._mcp_server.create_initialization_options()
-            )
+            # The SSE connection creates a session_id.
+            # Store the token context mapped to this session_id so POST requests can restore it.
+            session_id = sse.session_id
+            active_sessions[session_id] = (token, workspace_id)
+            try:
+                await mcp._mcp_server.run(
+                    streams[0], streams[1], mcp._mcp_server.create_initialization_options()
+                )
+            finally:
+                active_sessions.pop(session_id, None)
         return NoOpResponse()
 
     from starlette.responses import Response
@@ -155,10 +157,14 @@ def create_app() -> FastAPI:
 
     @app.post("/messages", dependencies=[get_rate_limiter(times=50, seconds=60)])
     async def handle_messages_post(request: Request):
-        # We DO NOT call get_tenant_context here because the MCP client (Claude)
-        # POSTs to this endpoint with only a sessionId, not the token.
-        # Security is maintained because the sessionId is a secure UUID, and the
-        # actual tool execution runs in the context of the GET /sse request which IS authenticated.
+        # The MCP client (Claude) POSTs to this endpoint with only a sessionId.
+        # We restore the contextvars from the active_sessions map so tool executions have the token.
+        session_id = request.query_params.get("sessionId")
+        if session_id and session_id in active_sessions:
+            token, workspace_id = active_sessions[session_id]
+            current_token.set(token)
+            current_workspace_id.set(workspace_id)
+        
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
                 await sse.handle_post_message(scope, receive, send)

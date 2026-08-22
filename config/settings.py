@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 
     # Odoo Connection
     ODOO_TIMEOUT: int = Field(
-        default=120, description="Timeout for Odoo XML-RPC requests in seconds"
+        default=45, description="Timeout for Odoo XML-RPC requests in seconds"
     )
 
     # Client/Tenant Identification

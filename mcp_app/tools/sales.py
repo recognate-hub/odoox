@@ -3,7 +3,7 @@ from core.logger import get_logger
 from mcp_app import server
 from mcp_app.schemas import *
 from mcp_app.security import secure_tool
-from mcp_app.server import mcp
+from mcp_app.server import mcp, _span
 from mcp_app.validation import validate_write_input
 
 logger = get_logger(__name__)
