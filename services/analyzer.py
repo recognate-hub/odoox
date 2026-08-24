@@ -23,7 +23,7 @@ class AnalyzerService:
             limit=200
         )
         
-        users_count = self.odoo.connector.search_count("res.users", [])
+        users_count = self.odoo.execute_method("res.users", "search_count", [[]])
         companies = self.odoo.search_read_records(
             "res.company", 
             domain=[], 

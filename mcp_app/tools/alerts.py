@@ -15,7 +15,7 @@ def get_recent_alerts(limit: int = 10, unread_only: bool = True) -> list[dict[st
     with _span("mcp.get_recent_alerts"):
         # We need the tenant_db to fetch the alerts for the correct tenant
         odoo_repo, _ = server._get_tenant_service()
-        tenant_db = odoo_repo.client._get_workspace().odoo_db
+        tenant_db = odoo_repo.connector._get_workspace().odoo_db
         
         from services.alerts import AlertService
         service = AlertService(tenant_db=tenant_db)
@@ -29,7 +29,7 @@ def acknowledge_alerts(alert_ids: list[str]) -> dict[str, Any]:
     """
     with _span("mcp.acknowledge_alerts"):
         odoo_repo, _ = server._get_tenant_service()
-        tenant_db = odoo_repo.client._get_workspace().odoo_db
+        tenant_db = odoo_repo.connector._get_workspace().odoo_db
         
         from services.alerts import AlertService
         service = AlertService(tenant_db=tenant_db)
