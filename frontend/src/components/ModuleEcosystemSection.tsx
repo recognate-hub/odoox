@@ -6,7 +6,8 @@ import {
   Kanban, ShoppingCart, Package, Factory, 
   FileText, Wrench, Users, BarChart2,
   Database, GitMerge, Globe, ShieldAlert,
-  Activity, ArrowRight, MessageSquare, ScanBarcode, Calendar, Award
+  Activity, ArrowRight, MessageSquare, ScanBarcode, Calendar, Award,
+  Briefcase, Calculator, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,11 @@ const modules = [
   // Bottom Center
   { id: 'purchase', label: 'Purchase', icon: Wrench, x: 42, y: 85 },
   { id: 'skills', label: 'Skills', icon: Award, x: 58, y: 85 },
+  
+  // Top Center
+  { id: 'projects', label: 'Projects', icon: Briefcase, x: 45, y: 20 },
+  { id: 'accounting', label: 'Accounting', icon: Calculator, x: 55, y: 20 },
+  { id: 'quality', label: 'Quality', icon: ShieldCheck, x: 25, y: 20 },
 ];
 
 export function ModuleEcosystemSection() {
@@ -84,8 +90,8 @@ export function ModuleEcosystemSection() {
       {/* Header Info (Stays fixed at top) */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center space-y-4 z-50 pointer-events-none w-full max-w-3xl px-6">
         <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-          40+ tools across <br className="hidden md:block"/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container to-primary">12 Odoo modules.</span>
+          80+ tools across <br className="hidden md:block"/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container to-primary">15 Odoo modules.</span>
         </h2>
         <p className="text-white/60 text-sm md:text-base font-mono">
           Hover over nodes to explore the ecosystem

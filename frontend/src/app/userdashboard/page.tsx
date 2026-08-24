@@ -25,6 +25,9 @@ export default function UserDashboard() {
     
     // Frontend URL for SSE
     const [frontendUrl, setFrontendUrl] = useState("");
+    
+    // Tab State for Onboarding
+    const [activeTab, setActiveTab] = useState<'web' | 'desktop'>('web');
 
     const fetchWorkspaces = React.useCallback(async () => {
         try {
@@ -207,16 +210,7 @@ export default function UserDashboard() {
         toast.success(message);
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-6">
-                    <div className="w-16 h-16 border-4 border-white/10 border-t-primary-container rounded-full animate-spin" />
-                    <p className="text-on-surface-variant font-medium animate-pulse">Initializing Secure Gateway...</p>
-                </div>
-            </div>
-        );
-    }
+
 
     const claudeConfigString = `{
   "mcpServers": {
@@ -291,7 +285,23 @@ export default function UserDashboard() {
                         </header>
                         
                         <div className="space-y-8">
-                            {workspaces.length === 0 && (
+                            {isLoading ? (
+                                <div className="space-y-6">
+                                    {[1, 2].map((i) => (
+                                        <div key={i} className="h-24 rounded-2xl border border-white/5 bg-surface-container-high/40 animate-pulse flex items-center p-6 backdrop-blur-xl">
+                                            <div className="w-10 h-10 rounded-full bg-white/10 mr-4"></div>
+                                            <div className="space-y-3 flex-1">
+                                                <div className="h-4 bg-white/10 rounded w-48"></div>
+                                                <div className="h-3 bg-white/5 rounded w-32"></div>
+                                            </div>
+                                            <div className="hidden sm:flex gap-4">
+                                                <div className="h-8 w-24 bg-white/5 rounded-full"></div>
+                                                <div className="h-8 w-8 bg-white/5 rounded-lg"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : workspaces.length === 0 ? (
                                 <motion.div 
                                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                                     className="p-12 border border-dashed border-white/20 rounded-3xl bg-white/5 backdrop-blur-sm text-center"
@@ -305,21 +315,21 @@ export default function UserDashboard() {
                                         Add your first Odoo Database
                                     </button>
                                 </motion.div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {workspaces.map((ws, index) => (
+                                        <WorkspaceCard 
+                                            key={ws.id || `new-${index}`}
+                                            workspace={ws}
+                                            index={index}
+                                            token={token}
+                                            onChange={handleChange}
+                                            onSave={handleSave}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </div>
                             )}
-
-                            <div className="space-y-6">
-                                {workspaces.map((ws, index) => (
-                                    <WorkspaceCard 
-                                        key={ws.id || `new-${index}`}
-                                        workspace={ws}
-                                        index={index}
-                                        token={token}
-                                        onChange={handleChange}
-                                        onSave={handleSave}
-                                        onDelete={handleDelete}
-                                    />
-                                ))}
-                            </div>
 
                             {/* API Key Section */}
                             <AnimatePresence>
@@ -382,43 +392,109 @@ export default function UserDashboard() {
                                                     </div>
                                                 </div>
 
-                                                {/* Claude Custom Connector URL */}
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Web Endpoint</label>
-                                                    <p className="text-sm text-on-surface-variant mb-2">Paste this into the <strong>Remote MCP server URL</strong> field in Claude Web (requires HTTPS).</p>
-                                                    <div className="flex flex-col sm:flex-row gap-3">
-                                                        <input 
-                                                            type="text" 
-                                                            value={`${frontendUrl}/sse?token=${apiKey}`}
-                                                            readOnly 
-                                                            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-primary-container font-mono focus:outline-none select-all"
-                                                        />
-                                                        <button 
-                                                            className="px-5 py-3 sm:py-0 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0"
-                                                            onClick={() => copyToClipboard(`${frontendUrl}/sse?token=${apiKey}`, "URL copied!")}
+                                                {/* Tabbed Instructions */}
+                                                <div className="mt-8">
+                                                    <div className="flex items-center gap-2 border-b border-white/10 mb-6">
+                                                        <button
+                                                            onClick={() => setActiveTab('web')}
+                                                            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'web' ? 'border-primary-container text-white' : 'border-transparent text-on-surface-variant hover:text-white'}`}
                                                         >
-                                                            <Copy className="w-4 h-4" /> Copy
+                                                            Claude for Web
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setActiveTab('desktop')}
+                                                            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'desktop' ? 'border-primary-container text-white' : 'border-transparent text-on-surface-variant hover:text-white'}`}
+                                                        >
+                                                            Claude Desktop
                                                         </button>
                                                     </div>
-                                                </div>
 
-                                                {/* Claude Desktop Config */}
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Desktop Configuration</label>
-                                                    <p className="text-sm text-on-surface-variant mb-2">For local Claude Desktop app usage (bypasses HTTPS requirements).</p>
-                                                    <div className="relative">
-                                                        <textarea 
-                                                            value={claudeConfigString}
-                                                            readOnly 
-                                                            className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl p-5 text-sm text-primary-container font-mono focus:outline-none min-h-[200px] resize-none"
-                                                        />
-                                                        <button 
-                                                            className="absolute top-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
-                                                            onClick={() => copyToClipboard(claudeConfigString, "Configuration copied!")}
-                                                        >
-                                                            <Copy className="w-4 h-4" /> Copy Config
-                                                        </button>
-                                                    </div>
+                                                    <AnimatePresence mode="wait">
+                                                        {activeTab === 'web' && (
+                                                            <motion.div
+                                                                key="web"
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -10 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="space-y-6"
+                                                            >
+                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center font-bold mb-3 text-sm">1</div>
+                                                                        <p className="text-sm text-white font-medium">Open Claude Web</p>
+                                                                        <p className="text-xs text-on-surface-variant mt-1">Navigate to your Claude settings and click Developer.</p>
+                                                                    </div>
+                                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center font-bold mb-3 text-sm">2</div>
+                                                                        <p className="text-sm text-white font-medium">Add MCP Server</p>
+                                                                        <p className="text-xs text-on-surface-variant mt-1">Click Add Server and select Remote URL (SSE).</p>
+                                                                    </div>
+                                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center font-bold mb-3 text-sm">3</div>
+                                                                        <p className="text-sm text-white font-medium">Paste URL</p>
+                                                                        <p className="text-xs text-on-surface-variant mt-1">Paste the secure endpoint URL below.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Web Endpoint</label>
+                                                                    <div className="flex flex-col sm:flex-row gap-3">
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={`${frontendUrl}/sse?token=${apiKey}`}
+                                                                            readOnly 
+                                                                            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-primary-container font-mono focus:outline-none select-all"
+                                                                        />
+                                                                        <button 
+                                                                            className="px-5 py-3 sm:py-0 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0"
+                                                                            onClick={() => copyToClipboard(`${frontendUrl}/sse?token=${apiKey}`, "URL copied!")}
+                                                                        >
+                                                                            <Copy className="w-4 h-4" /> Copy
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                        {activeTab === 'desktop' && (
+                                                            <motion.div
+                                                                key="desktop"
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -10 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="space-y-6"
+                                                            >
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center font-bold mb-3 text-sm">1</div>
+                                                                        <p className="text-sm text-white font-medium">Open Config</p>
+                                                                        <p className="text-xs text-on-surface-variant mt-1">Open your Claude Desktop configuration file.</p>
+                                                                    </div>
+                                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                                                                        <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center font-bold mb-3 text-sm">2</div>
+                                                                        <p className="text-sm text-white font-medium">Paste & Restart</p>
+                                                                        <p className="text-xs text-on-surface-variant mt-1">Paste the snippet below into the file and restart.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Desktop Configuration</label>
+                                                                    <div className="relative">
+                                                                        <textarea 
+                                                                            value={claudeConfigString}
+                                                                            readOnly 
+                                                                            className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl p-5 text-sm text-primary-container font-mono focus:outline-none min-h-[200px] resize-none"
+                                                                        />
+                                                                        <button 
+                                                                            className="absolute top-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
+                                                                            onClick={() => copyToClipboard(claudeConfigString, "Configuration copied!")}
+                                                                        >
+                                                                            <Copy className="w-4 h-4" /> Copy Config
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
 
                                                 <div className="pt-4 border-t border-white/10">

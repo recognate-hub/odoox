@@ -149,6 +149,47 @@ def get_workspace(request: Request, token: str = Depends(get_user_token)):
     }
 
 
+@router.post("/api/workspace/test")
+def api_test_connection(
+    request: Request,
+    token: str = Depends(get_user_token),
+    odoo_url: str = Form(...),
+    odoo_db: str = Form(...),
+    odoo_username: str = Form(...),
+    odoo_password: str = Form(...),
+):
+    """Test Odoo connection credentials without saving them."""
+    import xmlrpc.client
+    try:
+        url = odoo_url.strip().rstrip("/")
+        db = odoo_db.strip().rstrip(".")
+        username = odoo_username.strip()
+        
+        if odoo_password == "********":
+            supabase = get_supabase(token)
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id
+            existing = supabase.table("user_workspaces").select("odoo_password").eq("user_id", user_id).execute()
+            if not existing.data:
+                return {"status": "error", "message": "No saved password found to test with."}
+            from core.encryption import decrypt
+            password = decrypt(existing.data[0]["odoo_password"])
+        else:
+            password = odoo_password
+
+        common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
+        uid = common.authenticate(db, username, password, {})
+        if not uid:
+            return {"status": "error", "message": "Authentication failed. Check Database, Username, or Password."}
+        return {"status": "success", "message": "Connection successful!"}
+    except Exception as e:
+        logger.error("Connection Test Error", error=str(e))
+        error_str = str(e).lower()
+        if "unsupported xml-rpc protocol" in error_str or "not found" in error_str or "connection refused" in error_str:
+            return {"status": "error", "message": "Failed to connect to Odoo URL. Check the URL."}
+        return {"status": "error", "message": f"Connection failed: {str(e)}"}
+
+
 @router.post("/api/workspace/save")
 def api_save_config(
     request: Request,

@@ -127,7 +127,7 @@ export function GlassHero({ hasToken, isPaid }: GlassHeroProps) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-fixed"></span>
             </span>
-            <span className="text-primary-container text-sm font-semibold tracking-wide">v2.0 Live • 12 Odoo Modules Supported</span>
+            <span className="text-primary-container text-sm font-semibold tracking-wide">v2.0 Live • 15 Odoo Modules Supported</span>
           </motion.div>
 
           <motion.h1
@@ -183,8 +183,8 @@ export function GlassHero({ hasToken, isPaid }: GlassHeroProps) {
             className="flex flex-wrap justify-center gap-4 pt-12 border-t border-white/5 w-full max-w-3xl"
           >
             {[
-              { label: 'MCP Tools', value: '70+' },
-              { label: 'Modules', value: '12' },
+              { label: 'MCP Tools', value: '80+' },
+              { label: 'Modules', value: '15' },
               { label: 'Odoo Support', value: 'v12–v18' },
               { label: 'Avg Latency', value: '<50ms' },
             ].map((stat, i) => (

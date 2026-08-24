@@ -350,16 +350,19 @@ export default function LoginPage() {
                                 </label>
                                 <div className="flex justify-between gap-2" onPaste={handlePaste}>
                                     {code.map((digit, idx) => (
-                                        <input
+                                        <motion.input
                                             key={idx}
                                             ref={(el) => { inputRefs.current[idx] = el; }}
                                             type="text"
                                             maxLength={1}
-                                            className="w-12 h-14 bg-black/50 border border-white/10 rounded-xl text-center text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
+                                            className="w-12 h-14 bg-black/50 border border-white/10 rounded-xl text-center text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-colors"
                                             value={digit}
                                             onChange={(e) => handleCodeChange(idx, e.target.value)}
                                             onKeyDown={(e) => handleKeyDown(idx, e)}
                                             required
+                                            whileFocus={{ scale: 1.1, y: -2 }}
+                                            whileHover={{ scale: 1.05 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
                                         />
                                     ))}
                                 </div>

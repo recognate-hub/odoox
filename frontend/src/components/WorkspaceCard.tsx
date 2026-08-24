@@ -34,6 +34,7 @@ export default function WorkspaceCard({
     const [availableDbs, setAvailableDbs] = useState<string[]>([]);
     const [dbFetchError, setDbFetchError] = useState('');
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isTesting, setIsTesting] = useState(false);
 
     const isSaved = !!workspace.id;
 
@@ -90,6 +91,38 @@ export default function WorkspaceCard({
         setIsSaving(true);
         await onSave(index);
         setIsSaving(false);
+    };
+
+    const handleTestConnection = async () => {
+        if (!workspace.odoo_url || !workspace.odoo_db || !workspace.odoo_username) {
+            toast.error("Please fill in all connection details before testing.");
+            return;
+        }
+        setIsTesting(true);
+        try {
+            const formData = new URLSearchParams();
+            formData.append('odoo_url', workspace.odoo_url);
+            formData.append('odoo_db', workspace.odoo_db);
+            formData.append('odoo_username', workspace.odoo_username);
+            formData.append('odoo_password', workspace.odoo_password || (workspace.has_password ? '********' : ''));
+
+            const res = await fetch('/api/workspace/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                toast.success(data.message || "Connection successful!");
+            } else {
+                toast.error(data.message || "Connection failed.");
+            }
+        } catch (err) {
+            toast.error("Network error during connection test.");
+        } finally {
+            setIsTesting(false);
+        }
     };
 
     return (
@@ -237,7 +270,7 @@ export default function WorkspaceCard({
                                         </div>
                                     </div>
                                     
-                                    <div className="pt-4 flex items-center justify-between">
+                                    <div className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <button 
                                             type="button" 
                                             onClick={() => onDelete(index)}
@@ -245,14 +278,25 @@ export default function WorkspaceCard({
                                         >
                                             <Trash2 className="w-4 h-4" /> Remove
                                         </button>
-                                        <button 
-                                            type="submit" 
-                                            disabled={isSaving}
-                                            className="px-6 py-2.5 text-sm font-bold text-black bg-primary-container hover:bg-primary-fixed rounded-xl transition-all hover:shadow-[0_0_20px_rgba(132,204,22,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
-                                        >
-                                            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                            {isSaving ? 'Saving...' : 'Securely Save'}
-                                        </button>
+                                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                                            <button 
+                                                type="button" 
+                                                onClick={handleTestConnection}
+                                                disabled={isTesting || isSaving}
+                                                className="px-5 py-2.5 text-sm font-semibold text-white bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2 w-full sm:w-auto justify-center"
+                                            >
+                                                {isTesting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Server className="w-4 h-4" />}
+                                                {isTesting ? 'Testing...' : 'Test Connection'}
+                                            </button>
+                                            <button 
+                                                type="submit" 
+                                                disabled={isSaving}
+                                                className="px-6 py-2.5 text-sm font-bold text-black bg-primary-container hover:bg-primary-fixed rounded-xl transition-all hover:shadow-[0_0_20px_rgba(132,204,22,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2 w-full sm:w-auto justify-center"
+                                            >
+                                                {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                {isSaving ? 'Saving...' : 'Securely Save'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
