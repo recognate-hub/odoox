@@ -128,10 +128,14 @@ def get_workspace_credentials(
             decrypted_json = decrypt(token[4:])
             workspace = WorkspaceContext.model_validate_json(decrypted_json)
             # Sanitize fields in case they were saved with trailing dots/slashes
+            odoo_url = workspace.odoo_url.strip().rstrip("/")
+            if not odoo_url.startswith("http://") and not odoo_url.startswith("https://"):
+                odoo_url = f"https://{odoo_url}"
+
             workspace = workspace.model_copy(
                 update={
                     "odoo_db": workspace.odoo_db.strip().rstrip("."),
-                    "odoo_url": workspace.odoo_url.strip().rstrip("/"),
+                    "odoo_url": odoo_url,
                     "odoo_username": workspace.odoo_username.strip(),
                 }
             )
@@ -168,8 +172,12 @@ def get_workspace_credentials(
 
         workspace_data = cast(dict[str, Any], workspace_response.data[0])
 
+        odoo_url = workspace_data["odoo_url"].strip().rstrip("/")
+        if not odoo_url.startswith("http://") and not odoo_url.startswith("https://"):
+            odoo_url = f"https://{odoo_url}"
+
         workspace = WorkspaceContext(
-            odoo_url=workspace_data["odoo_url"].strip().rstrip("/"),
+            odoo_url=odoo_url,
             odoo_db=workspace_data["odoo_db"].strip().rstrip("."),
             odoo_username=workspace_data["odoo_username"].strip(),
             odoo_password=workspace_data["odoo_password"],
