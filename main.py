@@ -26,6 +26,7 @@ from routers.health import router as health_router
 from routers.oauth import router as oauth_router
 from routers.oauth_metadata import router as oauth_metadata_router
 from routers.production import router as production_router
+from routers.webhooks import router as webhooks_router
 
 logger = get_logger(__name__)
 
@@ -102,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(oauth_router, prefix="/oauth", tags=["OAuth"])
     app.include_router(oauth_metadata_router, tags=["OAuth Metadata"])
     app.include_router(production_router, tags=["Production WIP"])
+    app.include_router(webhooks_router, tags=["Webhooks"])
 
     @app.get("/", tags=["Root"])
     async def get_root():

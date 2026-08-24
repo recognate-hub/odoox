@@ -54,6 +54,7 @@ def patched_tool(*args, **kwargs):
 mcp.tool = patched_tool
 
 # Register all tools — importing each module triggers the @mcp.tool() decorators
+import mcp_app.tools.alerts
 import mcp_app.tools.analyzer
 import mcp_app.tools.calendar
 import mcp_app.tools.contacts

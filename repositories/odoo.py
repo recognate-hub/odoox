@@ -311,7 +311,7 @@ class OdooRepository:
         }
         return self.connector.create_record("mrp.production", data)
 
-    def get_manufacturing_orders(self, limit: int = 20) -> list[dict[str, Any]]:
+    def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None) -> list[dict[str, Any]]:
         fields = [
             "name",
             "product_id",
@@ -321,8 +321,14 @@ class OdooRepository:
             "date_planned_finished",
             "bom_id",
         ]
+        d = Domain()
+        if date_from:
+            d.gte("create_date", date_from)
+        if date_to:
+            d.lte("create_date", date_to)
+            
         return self.connector.search_read_records(
-            "mrp.production", domain=Domain().build(), fields=fields, limit=limit
+            "mrp.production", domain=d.build(), fields=fields, limit=limit, offset=offset
         )
 
     def create_stock_move(
@@ -343,7 +349,7 @@ class OdooRepository:
         return self.connector.create_record("stock.move", data)
 
     def get_inventory_valuation(
-        self, product_id: int | None = None, limit: int = 50
+        self, product_id: int | None = None, limit: int = 50, offset: int = 0
     ) -> list[dict[str, Any]]:
         d = Domain()
         if product_id:
@@ -356,7 +362,7 @@ class OdooRepository:
             "description",
         ]
         return self.connector.search_read_records(
-            "stock.valuation.layer", domain=d.build(), fields=fields, limit=limit
+            "stock.valuation.layer", domain=d.build(), fields=fields, limit=limit, offset=offset
         )
 
     def create_quality_alert(
@@ -376,21 +382,44 @@ class OdooRepository:
         return self.connector.create_record("quality.alert", data)
 
     def get_quality_checks(
-        self, product_id: int | None = None, limit: int = 50
+        self, product_id: int | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None
     ) -> list[dict[str, Any]]:
         d = Domain()
         if product_id:
             d.eq("product_id", product_id)
+        if date_from:
+            d.gte("create_date", date_from)
+        if date_to:
+            d.lte("create_date", date_to)
         fields = [
             "name",
             "product_id",
             "test_type",
             "quality_state",
             "control_date",
+            "measure",
+            "norm",
+            "tolerance_min",
+            "tolerance_max",
+            "workorder_id",
+            "point_id",
+            "note",
         ]
         return self.connector.search_read_records(
-            "quality.check", domain=d.build(), fields=fields, limit=limit
+            "quality.check", domain=d.build(), fields=fields, limit=limit, offset=offset
         )
+
+    def update_quality_check_result(
+        self, check_id: int, measure: float | None = None, quality_state: str | None = None
+    ) -> bool:
+        data = {}
+        if measure is not None:
+            data["measure"] = measure
+        if quality_state is not None:
+            data["quality_state"] = quality_state
+        if not data:
+            return False
+        return self.connector.update_record("quality.check", check_id, data)
 
     # ── Discuss (mail) ─────────────────────────────────────────────────
     def get_messages(
@@ -462,11 +491,15 @@ class OdooRepository:
 
     # ── Quality ────────────────────────────────────────────────────────
     def get_quality_alerts(
-        self, product_id: int | None = None, limit: int = 50
+        self, product_id: int | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None
     ) -> list[dict[str, Any]]:
         d = Domain()
         if product_id:
             d.eq("product_id", product_id)
+        if date_from:
+            d.gte("create_date", date_from)
+        if date_to:
+            d.lte("create_date", date_to)
         fields = [
             "name",
             "product_id",
@@ -477,7 +510,7 @@ class OdooRepository:
             "create_date",
         ]
         return self.connector.search_read_records(
-            "quality.alert", domain=d.build(), fields=fields, limit=limit
+            "quality.alert", domain=d.build(), fields=fields, limit=limit, offset=offset
         )
 
     def update_quality_alert(self, alert_id: int, data: dict[str, Any]) -> bool:
@@ -614,13 +647,17 @@ class OdooRepository:
 
     # ── Invoicing ──────────────────────────────────────────────────────
     def get_invoices(
-        self, partner_id: int | None = None, state: str | None = None, limit: int = 50
+        self, partner_id: int | None = None, state: str | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None
     ) -> list[dict[str, Any]]:
         d = Domain().eq("move_type", "out_invoice")
         if partner_id:
             d.eq("partner_id", partner_id)
         if state:
             d.eq("state", state)
+        if date_from:
+            d.gte("invoice_date", date_from)
+        if date_to:
+            d.lte("invoice_date", date_to)
         fields = [
             "name",
             "partner_id",
@@ -631,7 +668,7 @@ class OdooRepository:
             "payment_state",
         ]
         return self.connector.search_read_records(
-            "account.move", domain=d.build(), fields=fields, limit=limit
+            "account.move", domain=d.build(), fields=fields, limit=limit, offset=offset
         )
 
     def post_invoice(self, invoice_id: int) -> Any:
@@ -664,6 +701,23 @@ class OdooRepository:
         )
 
     # ── Advanced Manufacturing & PLM ───────────────────────────────────
+    def get_mo_raw_materials(self, limit: int = 500) -> list[dict[str, Any]]:
+        # Fetch raw material moves for active MOs
+        return self.connector.search_read_records(
+            "stock.move",
+            domain=[("raw_material_production_id", "!=", False), ("state", "not in", ["done", "cancel"])],
+            fields=["product_id", "product_uom_qty", "quantity", "raw_material_production_id", "state"],
+            limit=limit,
+        )
+
+    def get_active_work_orders_duration(self, limit: int = 200) -> list[dict[str, Any]]:
+        return self.connector.search_read_records(
+            "mrp.workorder",
+            domain=[("state", "in", ["ready", "progress"])],
+            fields=["name", "workcenter_id", "production_id", "duration", "duration_expected", "state"],
+            limit=limit,
+        )
+
     def get_bom_lines(
         self, bom_id: int | None = None, limit: int = 200
     ) -> list[dict[str, Any]]:

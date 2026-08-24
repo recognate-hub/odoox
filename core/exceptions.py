@@ -34,6 +34,10 @@ class OdooValidationError(OdooConnectorError):
     These are permanent failures and must NOT be retried."""
 
 
+class OdooReadOnlyError(OdooConnectorError):
+    """Raised when a data modification action is attempted while the isolation layer is active."""
+
+
 # --- Claude Errors ---
 class ClaudeAPIError(BaseAppError):
     """Base exception for Claude API errors."""

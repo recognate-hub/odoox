@@ -32,10 +32,32 @@ def get_products(query: str = "", limit: int = 50) -> list[dict[str, Any]]:
 
 @mcp.tool()
 @secure_tool()
-def get_inventory_valuation(product_id: int | None = None) -> list[dict[str, Any]]:
+def get_inventory_valuation(product_id: int | None = None, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    """
+    Get inventory valuation layers.
+    
+    Args:
+        product_id (int, optional): Filter by product ID.
+        limit (int): Maximum results to return.
+        offset (int): Number of records to skip for pagination.
+    """
     with _span("mcp.get_inventory_valuation"):
         odoo_repo, _ = server._get_tenant_service()
         from services.inventory import InventoryService
 
         service = InventoryService(odoo_repo)
-        return service.get_inventory_valuation(product_id)
+        return service.get_inventory_valuation(product_id, limit, offset)
+
+@mcp.tool()
+@secure_tool()
+def analyze_inventory_health() -> dict[str, Any]:
+    """
+    Perform a deep health check on inventory. 
+    Calculates tied-up capital and flags dead/slow-moving stock that is costing the company money.
+    """
+    with _span("mcp.analyze_inventory_health"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.inventory import InventoryService
+
+        service = InventoryService(odoo_repo)
+        return service.analyze_inventory_health()

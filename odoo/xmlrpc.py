@@ -250,6 +250,20 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         - ValidationError / MissingError / UserError → permanent, surface immediately
         - Network errors (OSError, ProtocolError) → retryable via @retry decorator
         """
+        
+        # --- PHASE 1: ISOLATION LAYER (READ-ONLY) ---
+        ALLOWED_METHODS = {
+            "search", "read", "search_read", "search_count", 
+            "fields_get", "name_search", "default_get", "read_group"
+        }
+        if method not in ALLOWED_METHODS:
+            logger.warning(f"Blocked mutating method '{method}' on model '{model}' due to strict Isolation Layer.")
+            from core.exceptions import OdooReadOnlyError
+            raise OdooReadOnlyError(
+                f"Odoox MCP operates in a strict Read-Only Isolation Layer. Modification method '{method}' on '{model}' is blocked for enterprise data safety."
+            )
+        # ---------------------------------------------
+        
         workspace = self._get_workspace()
         self._check_circuit_breaker(workspace.odoo_db)
 

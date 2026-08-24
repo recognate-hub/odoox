@@ -11,12 +11,15 @@ logger = get_logger(__name__)
 
 @mcp.tool()
 @secure_tool()
-def get_manufacturing_orders(limit: int = 20) -> list[dict[str, Any]]:
+def get_manufacturing_orders(limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None) -> list[dict[str, Any]]:
     """
     List manufacturing orders.
 
     Args:
         limit (int): Maximum results to return.
+        offset (int): Number of records to skip for pagination.
+        date_from (str, optional): Filter records created on or after this date (YYYY-MM-DD).
+        date_to (str, optional): Filter records created on or before this date (YYYY-MM-DD).
 
     Returns:
         List[Dict]: Manufacturing orders with product, quantity, state, and dates.
@@ -26,7 +29,7 @@ def get_manufacturing_orders(limit: int = 20) -> list[dict[str, Any]]:
         from services.production import ProductionService
 
         service = ProductionService(odoo_repo)
-        return service.get_manufacturing_orders(limit)
+        return service.get_manufacturing_orders(limit, offset, date_from, date_to)
 
 
 @mcp.tool()
@@ -201,13 +204,48 @@ def reschedule_work_order(
 @mcp.tool()
 @secure_tool()
 def analyze_component_shortages() -> dict[str, Any]:
-    """Analyze manufacturing orders against current inventory to identify missing components."""
+    """
+    Analyze active manufacturing orders against current live inventory to identify 
+    exact missing components and blocked orders.
+    """
     with _span("mcp.analyze_component_shortages"):
         odoo_repo, _ = server._get_tenant_service()
         from services.production import ProductionService
 
         service = ProductionService(odoo_repo)
         return service.analyze_component_shortages()
+
+@mcp.tool()
+@secure_tool()
+def analyze_oee_losses(limit: int = 500) -> dict[str, Any]:
+    """
+    Aggregate equipment downtime by loss reasons (e.g., Material Shortage, Breakdown)
+    to identify the top efficiency sinks across the factory.
+    
+    Returns a JSON object that includes `pareto_chart_base64`. When replying to the user, you MUST 
+    render this chart directly in your response using markdown syntax:
+    ![Pareto Chart](data:image/png;base64,<pareto_chart_base64_string>)
+    """
+    with _span("mcp.analyze_oee_losses"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+
+        service = ProductionService(odoo_repo)
+        return service.analyze_oee_losses(limit)
+
+@mcp.tool()
+@secure_tool()
+def predict_production_delays() -> dict[str, Any]:
+    """
+    Compare actual elapsed time on active Work Orders against their theoretical standard time.
+    Flags operations that are running significantly behind schedule as high-risk bottlenecks.
+    """
+    with _span("mcp.predict_production_delays"):
+        odoo_repo, _ = server._get_tenant_service()
+        from services.production import ProductionService
+
+        service = ProductionService(odoo_repo)
+        return service.predict_production_delays()
 
 
 @mcp.tool()
