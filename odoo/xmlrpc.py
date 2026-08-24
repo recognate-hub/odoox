@@ -254,7 +254,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         # --- PHASE 1: ISOLATION LAYER (READ-ONLY) ---
         ALLOWED_METHODS = {
             "search", "read", "search_read", "search_count", 
-            "fields_get", "name_search", "default_get", "read_group"
+            "fields_get", "name_search", "default_get", "read_group", "web_read_group"
         }
         if method not in ALLOWED_METHODS:
             logger.warning(f"Blocked mutating method '{method}' on model '{model}' due to strict Isolation Layer.")
@@ -651,7 +651,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def read_group(
         self, model: str, domain: list[Any], fields: list[str], groupby: list[str], **kwargs
     ) -> list[dict[str, Any]]:
-        return self._execute(model, "read_group", domain, fields, groupby, **kwargs)
+        # Add web_read_group to allowed methods for Odoo 18+ support
+        try:
+            return self._execute(model, "read_group", domain, fields, groupby, **kwargs)
+        except Exception as e:
+            if "method doesn't exist" in str(e) or "method not found" in str(e).lower():
+                # Odoo 18 removes read_group from the public API, so we use web_read_group
+                return self._execute(model, "web_read_group", domain, fields, groupby, **kwargs)
+            raise e
 
     def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
         result = self._execute(model, "write", [record_id], {"active": not archive})
