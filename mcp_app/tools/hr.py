@@ -43,7 +43,7 @@ def get_employee_directory(
         fields = ["name", "job_title", "department_id", "work_email", "work_phone", "manager_id"]
         
         try:
-            return odoo_repo.search_read("hr.employee", domain, fields, limit=limit)
+            return odoo_repo.search_read_records("hr.employee", domain, fields, limit=limit)
         except Exception as e:
             logger.error("get_employee_directory error", error=str(e))
             return [{"status": "error", "message": str(e)}]
@@ -66,7 +66,31 @@ def analyze_leave_trends() -> list[dict[str, Any]]:
         domain = [["state", "=", "validate"]]
         fields = ["department_id", "holiday_status_id", "number_of_days"]
         groupby = ["department_id", "holiday_status_id"]
-        return odoo_repo.read_group("hr.leave", domain, fields, groupby)
+        lines = odoo_repo.search_read_records("hr.leave", domain, fields, limit=5000)
+        
+        # Manual grouping since read_group might fail or not exist
+        summary = {}
+        for line in lines:
+            dept = line.get("department_id")
+            dept_name = dept[1] if isinstance(dept, (list, tuple)) and len(dept) > 1 else str(dept)
+            
+            leave = line.get("holiday_status_id")
+            leave_name = leave[1] if isinstance(leave, (list, tuple)) and len(leave) > 1 else str(leave)
+            
+            key = f"{dept_name} - {leave_name}"
+            days = line.get("number_of_days", 0)
+            
+            if key not in summary:
+                summary[key] = {
+                    "department": dept_name,
+                    "leave_type": leave_name,
+                    "total_days": 0,
+                    "count": 0
+                }
+            summary[key]["total_days"] += days
+            summary[key]["count"] += 1
+            
+        return list(summary.values())
     except Exception as e:
         logger.error("analyze_leave_trends error", error=str(e))
         return [{"status": "error", "message": str(e)}]
@@ -97,7 +121,7 @@ def get_timesheet_utilization(
             domain.append(["employee_id", "=", employee_id])
             
         fields = ["employee_id", "project_id", "task_id", "unit_amount", "date", "name"]
-        return odoo_repo.search_read("account.analytic.line", domain, fields, limit=limit)
+        return odoo_repo.search_read_records("account.analytic.line", domain, fields, limit=limit)
     except Exception as e:
         logger.error("get_timesheet_utilization error", error=str(e))
         return [{"status": "error", "message": str(e)}]

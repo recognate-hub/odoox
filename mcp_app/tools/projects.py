@@ -30,7 +30,7 @@ def get_active_projects(limit: int = 50) -> list[dict[str, Any]]:
         fields = ["name", "partner_id", "user_id", "date_start", "date", "task_count"]
         
         try:
-            return odoo_repo.search_read("project.project", domain, fields, limit=limit)
+            return odoo_repo.search_read_records("project.project", domain, fields, limit=limit)
         except Exception as e:
             logger.error("get_active_projects error", error=str(e))
             return [{"status": "error", "message": str(e)}]
@@ -59,7 +59,21 @@ def analyze_task_bottlenecks(project_id: int | None = None) -> list[dict[str, An
             
         fields = ["stage_id", "project_id"]
         groupby = ["stage_id"]
-        return odoo_repo.read_group("project.task", domain, fields, groupby)
+        lines = odoo_repo.search_read_records("project.task", domain, fields, limit=5000)
+        
+        summary = {}
+        for line in lines:
+            stage = line.get("stage_id")
+            stage_name = stage[1] if isinstance(stage, (list, tuple)) and len(stage) > 1 else str(stage)
+            
+            if stage_name not in summary:
+                summary[stage_name] = {
+                    "stage": stage_name,
+                    "task_count": 0
+                }
+            summary[stage_name]["task_count"] += 1
+            
+        return list(summary.values())
     except Exception as e:
         logger.error("analyze_task_bottlenecks error", error=str(e))
         return [{"status": "error", "message": str(e)}]
@@ -83,7 +97,7 @@ def get_project_burn_rate(project_id: int) -> dict[str, Any]:
     odoo_repo, _ = server._get_tenant_service()
     try:
         # Fetch the project to see if it has allocated_hours (field exists in some versions/configs)
-        projects = odoo_repo.search_read(
+        projects = odoo_repo.search_read_records(
             "project.project", 
             [["id", "=", project_id]], 
             ["name", "allocated_hours"], 
@@ -96,7 +110,7 @@ def get_project_burn_rate(project_id: int) -> dict[str, Any]:
         allocated_hours = project.get("allocated_hours") or 0.0
         
         # Fetch total logged hours from tasks
-        tasks = odoo_repo.search_read(
+        tasks = odoo_repo.search_read_records(
             "project.task",
             [["project_id", "=", project_id]],
             ["effective_hours"]

@@ -35,7 +35,7 @@ def get_aged_receivables(limit: int = 100) -> list[dict[str, Any]]:
         fields = ["name", "partner_id", "invoice_date", "invoice_date_due", "amount_total", "amount_residual"]
         
         try:
-            invoices = odoo_repo.search_read("account.move", domain, fields, limit=limit)
+            invoices = odoo_repo.search_read_records("account.move", domain, fields, limit=limit)
             
             today = datetime.date.today()
             for inv in invoices:
@@ -94,7 +94,26 @@ def get_profit_and_loss_summary() -> list[dict[str, Any]]:
         fields = ["account_id", "balance", "debit", "credit"]
         groupby = ["account_id"]
         
-        return odoo_repo.read_group("account.move.line", domain, fields, groupby)
+        # Odoo 18 may not support read_group on account.move.line via XML-RPC
+        lines = odoo_repo.search_read_records("account.move.line", domain, fields, limit=5000)
+        
+        summary = {}
+        for line in lines:
+            acc = line.get("account_id")
+            acc_name = acc[1] if isinstance(acc, (list, tuple)) and len(acc) > 1 else str(acc)
+            
+            if acc_name not in summary:
+                summary[acc_name] = {
+                    "account": acc_name,
+                    "balance": 0.0,
+                    "debit": 0.0,
+                    "credit": 0.0
+                }
+            summary[acc_name]["balance"] += line.get("balance", 0.0)
+            summary[acc_name]["debit"] += line.get("debit", 0.0)
+            summary[acc_name]["credit"] += line.get("credit", 0.0)
+            
+        return list(summary.values())
     except Exception as e:
         logger.error("get_profit_and_loss_summary error", error=str(e))
         return [{"status": "error", "message": str(e)}]
@@ -122,7 +141,21 @@ def analyze_expense_trends() -> list[dict[str, Any]]:
         fields = ["account_id", "balance"]
         groupby = ["account_id"]
         
-        return odoo_repo.read_group("account.move.line", domain, fields, groupby)
+        lines = odoo_repo.search_read_records("account.move.line", domain, fields, limit=5000)
+        
+        summary = {}
+        for line in lines:
+            acc = line.get("account_id")
+            acc_name = acc[1] if isinstance(acc, (list, tuple)) and len(acc) > 1 else str(acc)
+            
+            if acc_name not in summary:
+                summary[acc_name] = {
+                    "account": acc_name,
+                    "balance": 0.0,
+                }
+            summary[acc_name]["balance"] += line.get("balance", 0.0)
+            
+        return list(summary.values())
     except Exception as e:
         logger.error("analyze_expense_trends error", error=str(e))
         return [{"status": "error", "message": str(e)}]
