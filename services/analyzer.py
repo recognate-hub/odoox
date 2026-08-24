@@ -16,27 +16,42 @@ class AnalyzerService:
 
     def analyze_system_structure(self) -> dict[str, Any]:
         """Returns installed apps and core company metadata."""
-        installed_apps = self.odoo.search_read_records(
-            "ir.module.module",
-            domain=[("state", "=", "installed")],
-            fields=["name", "shortdesc", "version", "category_id"],
-            limit=200
-        )
-        
-        users_count = self.odoo.execute_method("res.users", "search_count", [[]])
-        companies = self.odoo.search_read_records(
-            "res.company", 
-            domain=[], 
-            fields=["name", "currency_id"], 
-            limit=10
-        )
+        try:
+            installed_apps = self.odoo.search_read_records(
+                "ir.module.module",
+                domain=[("state", "=", "installed")],
+                fields=["name", "shortdesc", "version", "category_id"],
+                limit=200
+            )
+            apps_list = [
+                {"name": app["name"], "desc": app.get("shortdesc"), "category": app.get("category_id")}
+                for app in installed_apps
+            ]
+        except Exception as e:
+            logger.warning(f"Failed to fetch installed apps: {e}")
+            installed_apps = []
+            apps_list = [{"error": "Insufficient permissions to read installed apps"}]
+
+        try:
+            users_count = self.odoo.execute_method("res.users", "search_count", [[]])
+        except Exception as e:
+            logger.warning(f"Failed to fetch users count: {e}")
+            users_count = 0
+
+        try:
+            companies = self.odoo.search_read_records(
+                "res.company", 
+                domain=[], 
+                fields=["name", "currency_id"], 
+                limit=10
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch companies: {e}")
+            companies = [{"error": "Insufficient permissions to read companies"}]
 
         return {
             "installed_apps_count": len(installed_apps),
-            "installed_apps": [
-                {"name": app["name"], "desc": app.get("shortdesc"), "category": app.get("category_id")}
-                for app in installed_apps
-            ],
+            "installed_apps": apps_list,
             "active_users_count": users_count,
             "companies": companies
         }

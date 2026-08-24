@@ -304,15 +304,22 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                     uid = self._authenticate(force_refresh=True)
                     workspace = self._get_workspace()
                     models = self._get_models(workspace)
-                    return models.execute_kw(
-                        workspace.odoo_db,
-                        uid,
-                        decrypt(workspace.odoo_password),
-                        model,
-                        method,
-                        args,
-                        kwargs,
-                    )
+                    try:
+                        return models.execute_kw(
+                            workspace.odoo_db,
+                            uid,
+                            decrypt(workspace.odoo_password),
+                            model,
+                            method,
+                            args,
+                            kwargs,
+                        )
+                    except xmlrpc.client.Fault as retry_e:
+                        retry_fault_str = str(retry_e)
+                        if "Access Denied" in retry_fault_str:
+                            from core.exceptions import OdooAuthError
+                            raise OdooAuthError(f"Access Denied executing {method} on {model}. The user does not have sufficient permissions.") from retry_e
+                        raise OdooConnectorError(f"Error executing {method} on {model}: {retry_e!s}") from retry_e
 
                 # ── Permanent: Odoo validation / business logic errors ──
                 permanent_markers = (
