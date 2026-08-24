@@ -114,9 +114,6 @@ def create_app() -> FastAPI:
             "message": "This is the headless API for OdooX. The frontend must be hosted separately via the Next.js application.",
         }
 
-    # Map sessionId to (token, workspace_id) for POST /messages context restoration
-    active_sessions: dict[str, tuple[str | None, str | None]] = {}
-
     # Expose MCP Server over SSE (Multi-Tenant Secure)
     @app.get(
         "/sse",
@@ -126,29 +123,14 @@ def create_app() -> FastAPI:
         ],
     )
     async def handle_sse(request: Request):
-        auth_header = request.headers.get("Authorization")
-        token = (
-            auth_header.split(" ")[1]
-            if auth_header and auth_header.startswith("Bearer ")
-            else request.query_params.get("token")
-        )
-        workspace_id = request.query_params.get("workspace_id")
-        current_token.set(token)
-        current_workspace_id.set(workspace_id)
-
+        # We don't need to manually set the contextvars here because 
+        # get_tenant_context already sets current_token and current_workspace_id
         async with sse.connect_sse(
             request.scope, request.receive, request._send
         ) as streams:
-            # The SSE connection creates a session_id.
-            # Store the token context mapped to this session_id so POST requests can restore it.
-            session_id = sse.session_id
-            active_sessions[session_id] = (token, workspace_id)
-            try:
-                await mcp._mcp_server.run(
-                    streams[0], streams[1], mcp._mcp_server.create_initialization_options()
-                )
-            finally:
-                active_sessions.pop(session_id, None)
+            await mcp._mcp_server.run(
+                streams[0], streams[1], mcp._mcp_server.create_initialization_options()
+            )
         return NoOpResponse()
 
     from starlette.responses import Response
@@ -157,16 +139,14 @@ def create_app() -> FastAPI:
         async def __call__(self, scope, receive, send):
             pass
 
-    @app.post("/messages", dependencies=[get_rate_limiter(times=50, seconds=60)])
+    @app.post(
+        "/messages", 
+        dependencies=[
+            Depends(get_tenant_context),
+            get_rate_limiter(times=50, seconds=60)
+        ]
+    )
     async def handle_messages_post(request: Request):
-        # The MCP client (Claude) POSTs to this endpoint with only a sessionId.
-        # We restore the contextvars from the active_sessions map so tool executions have the token.
-        session_id = request.query_params.get("sessionId")
-        if session_id and session_id in active_sessions:
-            token, workspace_id = active_sessions[session_id]
-            current_token.set(token)
-            current_workspace_id.set(workspace_id)
-        
         class ASGIProxyResponse(Response):
             async def __call__(self, scope, receive, send):
                 await sse.handle_post_message(scope, receive, send)
