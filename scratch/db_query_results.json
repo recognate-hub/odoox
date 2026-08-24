@@ -1,0 +1,56 @@
+{
+  "CRM Leads": [],
+  "Production Orders": [
+    {
+      "id": 1,
+      "name": "WH/MO/00001",
+      "product_id": [
+        51,
+        "[IM-001] Industrial AC Motor 5HP"
+      ],
+      "product_qty": 10.0,
+      "state": "confirmed"
+    },
+    {
+      "id": 2,
+      "name": "WH/MO/00002",
+      "product_id": [
+        52,
+        "[IM-002] Industrial AC Motor 10HP"
+      ],
+      "product_qty": 5.0,
+      "state": "confirmed"
+    },
+    {
+      "id": 3,
+      "name": "WH/MO/00003",
+      "product_id": [
+        53,
+        "[IM-003] Servo Motor 750W"
+      ],
+      "product_qty": 20.0,
+      "state": "confirmed"
+    },
+    {
+      "id": 4,
+      "name": "WH/MO/00004",
+      "product_id": [
+        54,
+        "[IM-004] Centrifugal Pump 2in"
+      ],
+      "product_qty": 15.0,
+      "state": "confirmed"
+    },
+    {
+      "id": 5,
+      "name": "WH/MO/00005",
+      "product_id": [
+        56,
+        "[IM-006] Hydraulic Cylinder 100mm Bore"
+      ],
+      "product_qty": 12.0,
+      "state": "confirmed"
+    }
+  ],
+  "Quality Checks": []
+}
