@@ -601,7 +601,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         def _exec():
             return self._execute(model, "create", [data_list])
 
-        return self._run_with_retry(_exec, workspace.odoo_db)
+        return _exec()
 
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
         result = self._execute(model, "write", [record_id], data)

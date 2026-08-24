@@ -34,7 +34,8 @@ class OdooRepository:
         return self.connector.get_leads(domain=d.build(), limit=limit)
 
     def get_lead_by_id(self, lead_id: int) -> OdooLead | None:
-        domain = Domain().eq("id", lead_id).build()
+        # Include archived leads by specifying active in [True, False]
+        domain = Domain().eq("id", lead_id).in_("active", [True, False]).build()
         leads = self.connector.get_leads(domain=domain, limit=1)
         return leads[0] if leads else None
 
