@@ -537,3 +537,16 @@ class BatchImportCsvInput(BaseModel):
     @classmethod
     def validate_model_name(cls, v: str) -> str:
         return _validate_model_name(v)
+
+
+class LogQualityResultInput(BaseModel):
+    check_id: int = Field(..., gt=0, description="The ID of the quality check.")
+    measure: float | None = Field(None, description="The measurement value if applicable.")
+    quality_state: str | None = Field(None, description="The pass/fail state ('pass' or 'fail').")
+
+
+class RaiseQualityAlertInput(BaseModel):
+    product_id: int = Field(..., gt=0, description="The ID of the product.")
+    name: str = Field(..., description="The name/title of the quality alert.")
+    team_id: int | None = Field(None, description="The ID of the quality team to assign.")
+    priority: str = Field("0", description="Priority level (e.g. '0', '1', '2', '3').")
