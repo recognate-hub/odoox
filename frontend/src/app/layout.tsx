@@ -58,6 +58,8 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: {
@@ -67,6 +69,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <Toaster theme="dark" position="bottom-right" richColors />
       </body>
     </html>
   );

@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Server, Key, Save, Trash2, CheckCircle2, AlertCircle, Copy, Link as LinkIcon, Database, RefreshCw, ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface Workspace {
     id?: string | number;
@@ -25,18 +28,19 @@ export default function WorkspaceCard({
     onSave: (index: number) => void;
     onDelete: (index: number) => void;
 }) {
-
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isFetchingDb, setIsFetchingDb] = useState(false);
     const [availableDbs, setAvailableDbs] = useState<string[]>([]);
     const [dbFetchError, setDbFetchError] = useState('');
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const isSaved = !!workspace.id;
 
-    const fetchDatabases = async () => {
+    const fetchDatabases = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         if (!workspace.odoo_url) {
-            setDbFetchError('Please enter an Odoo URL first');
+            toast.error('Please enter an Odoo URL first');
             return;
         }
         setIsFetchingDb(true);
@@ -53,28 +57,31 @@ export default function WorkspaceCard({
                 if (!workspace.odoo_db || !data.databases.includes(workspace.odoo_db)) {
                     onChange(index, 'odoo_db', data.databases[0]);
                 }
+                toast.success('Databases fetched successfully');
             } else if (data.error) {
                 setDbFetchError(data.error);
+                toast.error(data.error);
             } else {
                 setDbFetchError('No databases found');
+                toast.error('No databases found');
             }
         } catch (err) {
             setDbFetchError('Failed to fetch databases');
+            toast.error('Failed to fetch databases');
         } finally {
             setIsFetchingDb(false);
         }
     };
-
-
 
     const copyDirectUrl = async () => {
         if (!workspace.connection_url) return;
         try {
             await navigator.clipboard.writeText(workspace.connection_url);
             setCopiedUrl(true);
+            toast.success("Direct URL copied to clipboard!");
             setTimeout(() => setCopiedUrl(false), 2000);
         } catch (err) {
-            console.error("Failed to copy URL", err);
+            toast.error("Failed to copy URL");
         }
     };
 
@@ -86,151 +93,227 @@ export default function WorkspaceCard({
     };
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-            {/* Left Column: Credentials */}
-            <div className="glass-card animate-fade-in-up delay-1">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 className="card-title" style={{ margin: 0 }}>Database #{index + 1}</h3>
-                    <button 
-                        type="button" 
-                        onClick={() => onDelete(index)} 
-                        style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '0.85rem' }}
-                    >
-                        Remove
-                    </button>
-                </div>
-                <form onSubmit={handleSaveClick}>
-                    <div className="form-group">
-                        <label className="form-label">Odoo Instance URL / IP Address</label>
-                        <input 
-                            type="text" 
-                            className="form-input" 
-                            placeholder="http://192.168.1.100:8069 or https://mycompany.odoo.com" 
-                            value={workspace.odoo_url}
-                            onChange={(e) => onChange(index, 'odoo_url', e.target.value)}
-                            onBlur={(e) => {
-                                const val = e.target.value.trim();
-                                if (val && !/^https?:\/\//i.test(val)) {
-                                    onChange(index, 'odoo_url', 'http://' + val);
-                                }
-                            }}
-                            required 
-                        />
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.4, ease: "easeOut" }}
+            className="group relative rounded-2xl border border-white/10 bg-surface-container-high/40 backdrop-blur-xl overflow-hidden transition-all duration-300 hover:border-primary-container/30 hover:shadow-[0_0_30px_rgba(132,204,22,0.05)]"
+        >
+            {/* Header / Accordion Toggle */}
+            <div 
+                className="flex items-center justify-between p-6 cursor-pointer select-none"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10">
+                        <Database className="w-5 h-5 text-primary-container" />
                     </div>
-                    
-                    <div className="form-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label className="form-label">Database Name</label>
-                            <button 
-                                type="button" 
-                                onClick={fetchDatabases} 
-                                disabled={isFetchingDb || !workspace.odoo_url}
-                                style={{ background: 'none', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
-                            >
-                                {isFetchingDb ? 'Fetching...' : 'Fetch Databases'}
-                            </button>
-                        </div>
-                        {availableDbs.length > 0 ? (
-                            <select 
-                                className="form-input" 
-                                value={workspace.odoo_db}
-                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
-                                required 
-                            >
-                                {availableDbs.map(db => (
-                                    <option key={db} value={db}>{db}</option>
-                                ))}
-                            </select>
-                        ) : (
-                            <input 
-                                type="text" 
-                                className="form-input" 
-                                placeholder="mycompany_db" 
-                                value={workspace.odoo_db}
-                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
-                                required 
-                            />
-                        )}
-                        {dbFetchError && <div style={{ color: 'var(--accent-red)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{dbFetchError}</div>}
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label className="form-label">Username</label>
-                            <input 
-                                type="text" 
-                                className="form-input" 
-                                placeholder="admin@mycompany.com" 
-                                value={workspace.odoo_username}
-                                onChange={(e) => onChange(index, 'odoo_username', e.target.value)}
-                                required 
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Password / API Key</label>
-                            <input 
-                                type="password" 
-                                className="form-input" 
-                                placeholder={workspace.has_password ? "(Saved. Leave empty to keep)" : "Required"} 
-                                value={workspace.odoo_password || ''}
-                                onChange={(e) => onChange(index, 'odoo_password', e.target.value)}
-                                required={!workspace.has_password} 
-                            />
-                        </div>
-                    </div>
-                    
-                    <button type="submit" className="btn btn-primary btn-block mt-2" disabled={isSaving}>
-                        {isSaving ? 'Saving...' : 'Securely Save & Connect'}
-                    </button>
-                </form>
-            </div>
-            
-            {/* Right Column: Connection */}
-            <div className="glass-card animate-fade-in-up delay-2">
-                <h3 className="card-title">Claude Desktop MCP</h3>
-                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-                    Use this endpoint in your Claude Desktop configuration to enable real-time Odoo access.
-                </p>
-                
-                <div>
-                    <label className="form-label">Connection URL</label>
-                    <input 
-                        type="text" 
-                        className="code-input" 
-                        value={workspace.connection_url || 'Save to generate URL'} 
-                        readOnly 
-                        onClick={(e) => e.currentTarget.select()}
-                    />
-                </div>
-                
-                <div className={`status-banner ${isSaved ? 'ready' : ''}`}>
-                    <div 
-                        className="status-dot" 
-                        style={!isSaved ? { background: 'var(--text-muted)', animation: 'none', boxShadow: 'none' } : {}}
-                    ></div>
                     <div>
-                        {isSaved ? (
-                            <>
-                                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Endpoint Active</div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Traffic is AES-256 encrypted.</div>
-                            </>
-                        ) : (
-                            <>
-                                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Awaiting Configuration</div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Save your Odoo credentials first.</div>
-                            </>
-                        )}
+                        <h3 className="text-lg font-semibold text-white tracking-tight">Database #{index + 1}</h3>
+                        <p className="text-sm text-on-surface-variant">
+                            {workspace.odoo_url ? new URL(workspace.odoo_url.startsWith('http') ? workspace.odoo_url : `https://${workspace.odoo_url}`).hostname : "Configure Connection"}
+                        </p>
                     </div>
                 </div>
-                
-                {isSaved && (
-                    <div className="action-grid">
-                        <button onClick={copyDirectUrl} className="btn btn-outline" style={{ gridColumn: '1 / -1', fontSize: '0.85rem' }}>
-                            {copiedUrl ? 'Copied URL!' : 'Copy Direct URL'}
-                        </button>
-                    </div>
-                )}
+                <div className="flex items-center gap-4">
+                    {isSaved ? (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container/10 border border-primary-container/20">
+                            <div className="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_rgba(132,204,22,0.6)]" />
+                            <span className="text-xs font-semibold text-primary-fixed">Active</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-on-surface-variant" />
+                            <span className="text-xs font-semibold text-on-surface-variant">Draft</span>
+                        </div>
+                    )}
+                    <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <ChevronDown className="w-5 h-5 text-on-surface-variant group-hover:text-white transition-colors" />
+                    </motion.div>
+                </div>
             </div>
-        </div>
+
+            {/* Accordion Content */}
+            <AnimatePresence initial={false}>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                    >
+                        <div className="p-6 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-white/5 mt-2">
+                            {/* Left Column: Form */}
+                            <div>
+                                <form onSubmit={handleSaveClick} className="space-y-5 pt-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
+                                            <Server className="w-4 h-4" /> Odoo Instance URL
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all" 
+                                            placeholder="https://mycompany.odoo.com" 
+                                            value={workspace.odoo_url}
+                                            onChange={(e) => onChange(index, 'odoo_url', e.target.value)}
+                                            onBlur={(e) => {
+                                                const val = e.target.value.trim();
+                                                if (val && !/^https?:\/\//i.test(val)) {
+                                                    onChange(index, 'odoo_url', 'https://' + val);
+                                                }
+                                            }}
+                                            required 
+                                        />
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
+                                                <Database className="w-4 h-4" /> Database Name
+                                            </label>
+                                            <button 
+                                                type="button" 
+                                                onClick={fetchDatabases} 
+                                                disabled={isFetchingDb || !workspace.odoo_url}
+                                                className="text-xs font-medium text-primary-container hover:text-primary-fixed disabled:opacity-50 flex items-center gap-1 transition-colors"
+                                            >
+                                                <RefreshCw className={`w-3 h-3 ${isFetchingDb ? 'animate-spin' : ''}`} />
+                                                Fetch Dbs
+                                            </button>
+                                        </div>
+                                        {availableDbs.length > 0 ? (
+                                            <select 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all appearance-none" 
+                                                value={workspace.odoo_db}
+                                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
+                                                required 
+                                            >
+                                                {availableDbs.map(db => (
+                                                    <option key={db} value={db} className="bg-surface-container">{db}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input 
+                                                type="text" 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all" 
+                                                placeholder="mycompany_db" 
+                                                value={workspace.odoo_db}
+                                                onChange={(e) => onChange(index, 'odoo_db', e.target.value)}
+                                                required 
+                                            />
+                                        )}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
+                                                <Key className="w-4 h-4" /> Username
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all" 
+                                                placeholder="admin@company.com" 
+                                                value={workspace.odoo_username}
+                                                onChange={(e) => onChange(index, 'odoo_username', e.target.value)}
+                                                required 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
+                                                <Key className="w-4 h-4" /> Password / API Key
+                                            </label>
+                                            <input 
+                                                type="password" 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all" 
+                                                placeholder={workspace.has_password ? "Saved. Leave empty to keep" : "Required"} 
+                                                value={workspace.odoo_password || ''}
+                                                onChange={(e) => onChange(index, 'odoo_password', e.target.value)}
+                                                required={!workspace.has_password} 
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-4 flex items-center justify-between">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => onDelete(index)}
+                                            className="px-4 py-2 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <Trash2 className="w-4 h-4" /> Remove
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSaving}
+                                            className="px-6 py-2.5 text-sm font-bold text-black bg-primary-container hover:bg-primary-fixed rounded-xl transition-all hover:shadow-[0_0_20px_rgba(132,204,22,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                                        >
+                                            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                            {isSaving ? 'Saving...' : 'Securely Save'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            {/* Right Column: Connection Info */}
+                            <div className="mt-4 bg-black/30 rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-container/5 rounded-full blur-3xl group-hover:bg-primary-container/10 transition-colors pointer-events-none" />
+                                
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                                        <LinkIcon className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-base font-semibold text-white">Claude Desktop MCP</h4>
+                                        <p className="text-xs text-on-surface-variant">Real-time Odoo connection endpoint</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-4 relative z-10">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">Direct Endpoint URL</label>
+                                        <div className="relative group/input">
+                                            <input 
+                                                type="text" 
+                                                className="w-full bg-black/60 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-primary-fixed font-mono focus:outline-none cursor-text select-all" 
+                                                value={workspace.connection_url || 'Save configuration to generate URL'} 
+                                                readOnly 
+                                            />
+                                            {workspace.connection_url && (
+                                                <button 
+                                                    onClick={copyDirectUrl}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-on-surface-variant hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                                    title="Copy URL"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="p-4 rounded-xl border border-white/5 bg-white/5 flex gap-4 items-start">
+                                        <div className="mt-1">
+                                            {isSaved ? <CheckCircle2 className="w-5 h-5 text-primary-container" /> : <AlertCircle className="w-5 h-5 text-on-surface-variant" />}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold text-white mb-1">
+                                                {isSaved ? 'Endpoint Active & Encrypted' : 'Awaiting Configuration'}
+                                            </div>
+                                            <div className="text-xs text-on-surface-variant leading-relaxed">
+                                                {isSaved 
+                                                    ? 'Your Claude Desktop app can now connect to this workspace. All traffic is AES-256 encrypted end-to-end.' 
+                                                    : 'Fill out your Odoo credentials and click save to generate a secure connection URL for this workspace.'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }

@@ -96,11 +96,11 @@ const SalesMockup = () => (
           <span>Amount</span>
         </div>
         <div className="flex justify-between text-sm font-medium">
-          <span>Consulting Services</span>
+          <span>Odoo Implementation</span>
           <span>$12,500.00</span>
         </div>
         <div className="flex justify-between text-sm font-medium text-gray-400">
-          <span>Server Setup</span>
+          <span>MCP Connector Setup</span>
           <span>$3,200.00</span>
         </div>
       </div>
@@ -191,7 +191,7 @@ const DiscussMockup = () => (
     <div className="relative w-full max-w-[400px] h-[450px] bg-[#0d0d0d] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
       <div className="p-4 border-b border-white/10 bg-white/5">
         <div className="text-sm font-bold text-white">Chatter: crm.lead #1042</div>
-        <div className="text-xs text-white/40">Acme Corp Website Redesign</div>
+        <div className="text-xs text-white/40">Recognate ERP Implementation</div>
       </div>
       <div className="flex-1 p-4 space-y-4 overflow-hidden relative flex flex-col justify-end">
         {/* User Message */}
@@ -385,7 +385,7 @@ export function FeatureShowcaseSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center bg-[#050505] border border-white/5 rounded-[40px] p-6 lg:p-12 shadow-2xl">
           
           {/* Left Column: Text Content */}
-          <div className="lg:col-span-5 h-[400px] flex flex-col justify-center">
+          <div className="lg:col-span-5 h-auto lg:h-[400px] py-8 lg:py-0 flex flex-col justify-center">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={activeTab}

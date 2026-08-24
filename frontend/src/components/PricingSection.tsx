@@ -120,7 +120,7 @@ export function PricingSection({ hasToken, isPaid }: PricingProps) {
                   {[
                     'Unlimited Claude MCP Queries',
                     'Connect 1 Production Database',
-                    'All 13+ Odoo Modules Supported',
+                    '12 Odoo Modules Supported',
                     'End-to-End Encrypted Secure Tunnel',
                     'Free Future Gateway Updates',
                     'Priority Community Support'

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import './dashboard.css';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, LogOut, Plus, Key, Copy, Eye, EyeOff, AlertCircle, Shield, KeyRound, Server } from 'lucide-react';
+import { toast } from 'sonner';
 import WorkspaceCard, { Workspace } from '@/components/WorkspaceCard';
-
-
 
 export default function UserDashboard() {
     const router = useRouter();
@@ -16,12 +16,12 @@ export default function UserDashboard() {
     const [planType, setPlanType] = useState('single');
     const [token, setToken] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [showToast, setShowToast] = useState(false);
-    const [toastMessage, setToastMessage] = useState("");
     
     // API Key State
     const [apiKey, setApiKey] = useState("");
     const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [isRevokingKey, setIsRevokingKey] = useState(false);
     
     // Frontend URL for SSE
     const [frontendUrl, setFrontendUrl] = useState("");
@@ -43,6 +43,7 @@ export default function UserDashboard() {
             }
         } catch (err) {
             console.error("Failed to load workspace", err);
+            toast.error("Failed to load workspace data.");
         } finally {
             setIsLoading(false);
         }
@@ -61,7 +62,7 @@ export default function UserDashboard() {
 
     const handleAddWorkspace = () => {
         if (workspaces.length >= limit) {
-            alert(`Plan limit reached. Your ${planType} plan allows up to ${limit} connected database(s).`);
+            toast.error(`Plan limit reached. Your ${planType} plan allows up to ${limit} connected database(s).`);
             return;
         }
         setWorkspaces([...workspaces, {
@@ -96,17 +97,15 @@ export default function UserDashboard() {
             const data = await res.json();
             
             if (data.status === 'success') {
-                setToastMessage("Workspace saved successfully!");
-                setShowToast(true);
+                toast.success("Workspace saved successfully!");
                 setApiKey("");
                 localStorage.removeItem('workspace_api_key');
-                setTimeout(() => setShowToast(false), 3000);
                 fetchWorkspaces(); // Refresh to get proper ID and URL
             } else {
-                alert("Error: " + data.message);
+                toast.error("Error: " + data.message);
             }
         } catch (err) {
-            alert("Connection failed.");
+            toast.error("Connection failed.");
         }
     };
 
@@ -131,17 +130,15 @@ export default function UserDashboard() {
             const data = await res.json();
             
             if (data.status === 'success') {
-                setToastMessage("Workspace deleted.");
-                setShowToast(true);
+                toast.success("Workspace deleted.");
                 setApiKey("");
                 localStorage.removeItem('workspace_api_key');
-                setTimeout(() => setShowToast(false), 3000);
                 fetchWorkspaces();
             } else {
-                alert("Error: " + data.message);
+                toast.error("Error: " + data.message);
             }
         } catch (err) {
-            alert("Deletion failed.");
+            toast.error("Deletion failed.");
         }
     };
 
@@ -165,14 +162,12 @@ export default function UserDashboard() {
             if (res.ok && data.api_key) {
                 setApiKey(data.api_key);
                 localStorage.setItem('workspace_api_key', data.api_key);
-                setToastMessage("API Key generated successfully.");
-                setShowToast(true);
-                setTimeout(() => setShowToast(false), 3000);
+                toast.success("API Key generated successfully.");
             } else {
-                alert("Failed to generate API key: " + (data.detail || data.message || "Unknown error"));
+                toast.error("Failed to generate API key: " + (data.detail || data.message || "Unknown error"));
             }
         } catch (e) {
-            alert("Error generating API key.");
+            toast.error("Error generating API key.");
         } finally {
             setIsGeneratingKey(false);
         }
@@ -182,6 +177,7 @@ export default function UserDashboard() {
         if (!apiKey) return;
         if (!confirm("Are you sure you want to revoke this API key? Any applications using it will lose access immediately.")) return;
         
+        setIsRevokingKey(true);
         try {
             const formData = new URLSearchParams();
             formData.append('api_key', apiKey);
@@ -195,200 +191,34 @@ export default function UserDashboard() {
             if (res.ok) {
                 setApiKey("");
                 localStorage.removeItem('workspace_api_key');
-                setToastMessage("API Key revoked successfully.");
-                setShowToast(true);
-                setTimeout(() => setShowToast(false), 3000);
+                toast.success("API Key revoked successfully.");
             } else {
-                alert("Failed to revoke API key.");
+                toast.error("Failed to revoke API key.");
             }
         } catch (e) {
-            alert("Error revoking API key.");
+            toast.error("Error revoking API key.");
+        } finally {
+            setIsRevokingKey(false);
         }
+    };
+
+    const copyToClipboard = (text: string, message: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success(message);
     };
 
     if (isLoading) {
         return (
-            <div className="dashboard-theme" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-                <div style={{ color: 'var(--brand-primary)', fontFamily: 'Outfit' }}>Loading Workspace...</div>
+            <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-6">
+                    <div className="w-16 h-16 border-4 border-white/10 border-t-primary-container rounded-full animate-spin" />
+                    <p className="text-on-surface-variant font-medium animate-pulse">Initializing Secure Gateway...</p>
+                </div>
             </div>
         );
     }
 
-    return (
-        <div className="dashboard-theme">
-            <div className="bg-grid"></div>
-            
-            <div className="content-wrapper">
-                <div className="dashboard-layout">
-                    {/* Sidebar */}
-                    <aside className="sidebar">
-                        <div className="sidebar-brand">
-                            <div className="brand-text">
-                                <Link href="/">
-                                    <img src="/logo.png" alt="OdooX Logo" style={{ height: '40px', width: 'auto' }} />
-                                </Link>
-                            </div>
-                            <div className="brand-sub">WORKSPACE</div>
-                        </div>
-                        <nav>
-                            <Link href="/userdashboard" className="nav-link active">
-                                <span className="nav-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                </span> Integration
-                            </Link>
-                        </nav>
-                        
-                        <div style={{ padding: '1.5rem', marginTop: 'auto' }}>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                                Plan: <strong style={{color: 'var(--text-primary)', textTransform: 'capitalize'}}>{planType}</strong>
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                Usage: {workspaces.length} / {limit} Databases
-                            </div>
-                        </div>
-
-                        <div className="sidebar-footer">
-                            <a href="#" onClick={handleLogout} className="nav-link" style={{ color: 'var(--accent-red)' }}>
-                                <span className="nav-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                                </span> Log Out
-                            </a>
-                        </div>
-                    </aside>
-                    
-                    {/* Main Content */}
-                    <main className="main-content">
-                        <header className="page-header animate-fade-in-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h1>Odoo Integration</h1>
-                                <p>Configure your secure connections to enable the Claude MCP endpoint.</p>
-                            </div>
-                            <button 
-                                className="btn btn-primary"
-                                onClick={handleAddWorkspace}
-                                disabled={workspaces.length >= limit}
-                            >
-                                + Connect Database
-                            </button>
-                        </header>
-                        
-                        <div className="content-grid" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                            {workspaces.length === 0 && (
-                                <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>No databases connected yet.</p>
-                                    <button className="btn btn-outline" onClick={handleAddWorkspace}>Add your first Odoo Database</button>
-                                </div>
-                            )}
-
-                            {workspaces.map((ws, index) => (
-                                <WorkspaceCard 
-                                    key={ws.id || `new-${index}`}
-                                    workspace={ws}
-                                    index={index}
-                                    token={token}
-                                    onChange={handleChange}
-                                    onSave={handleSave}
-                                    onDelete={handleDelete}
-                                />
-                            ))}
-
-                            {workspaces.length > 0 && (
-                                <div className="glass-card" style={{ padding: '2rem', marginTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                                    <h3 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>API Integrations</h3>
-                                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                                        Generate a permanent API Key to connect external tools like Claude Desktop directly to your Odoo environment. Keep this key safe.
-                                    </p>
-                                    
-                                    {!apiKey ? (
-                                        <button 
-                                            className="btn btn-primary" 
-                                            onClick={handleGenerateApiKey}
-                                            disabled={isGeneratingKey}
-                                        >
-                                            {isGeneratingKey ? "Generating..." : "Generate Permanent API Key"}
-                                        </button>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Raw API Key</label>
-                                                <div style={{ display: 'flex', gap: '1rem' }}>
-                                                    <input 
-                                                        type="text" 
-                                                        value={apiKey} 
-                                                        readOnly 
-                                                        className="form-input" 
-                                                        style={{ flex: 1, fontFamily: 'monospace' }}
-                                                    />
-                                                    <button 
-                                                        className="btn btn-outline"
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(apiKey);
-                                                            setToastMessage("API Key copied!");
-                                                            setShowToast(true);
-                                                            setTimeout(() => setShowToast(false), 3000);
-                                                        }}
-                                                    >
-                                                        Copy Key
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Claude Web Custom Connector URL</label>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                                                    Paste this into the <strong>Remote MCP server URL</strong> field in Claude Web. <br/>
-                                                    <em>Note: Claude Web requires HTTPS. If running locally, you must proxy localhost:3000 through ngrok (e.g. `ngrok http 3000`) and replace localhost below with your ngrok HTTPS URL.</em>
-                                                </p>
-                                                <div style={{ display: 'flex', gap: '1rem' }}>
-                                                    <input 
-                                                        type="text" 
-                                                        value={`${frontendUrl}/sse?token=${apiKey}`}
-                                                        readOnly 
-                                                        className="form-input" 
-                                                        style={{ flex: 1, fontFamily: 'monospace' }}
-                                                    />
-                                                    <button 
-                                                        className="btn btn-primary"
-                                                        onClick={() => {
-                                                            const fullUrl = `${frontendUrl}/sse?token=${apiKey}`;
-                                                            navigator.clipboard.writeText(fullUrl);
-                                                            setToastMessage("Full URL copied!");
-                                                            setShowToast(true);
-                                                            setTimeout(() => setShowToast(false), 3000);
-                                                        }}
-                                                    >
-                                                        Copy URL
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ marginTop: '1rem' }}>
-                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Claude Desktop Configuration (claude_desktop_config.json)</label>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>For local Claude Desktop app usage, bypassing HTTPS requirements.</p>
-                                                <div style={{ position: 'relative', marginTop: '0.5rem' }}>
-                                                    <textarea 
-                                                        value={`{
-  "mcpServers": {
-    "odoox-cloud": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "odoox-mcp-connector",
-        "--url",
-        "${frontendUrl}/sse?token=${apiKey}"
-      ]
-    }
-  }
-}`}
-                                                        readOnly 
-                                                        className="form-input" 
-                                                        style={{ width: '100%', fontFamily: 'monospace', minHeight: '220px', resize: 'none', padding: '1rem', background: '#000', color: '#a3e635' }}
-                                                    />
-                                                    <button 
-                                                        className="btn btn-primary"
-                                                        style={{ position: 'absolute', top: '10px', right: '10px', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                                                        onClick={() => {
-                                                            const configStr = `{
+    const claudeConfigString = `{
   "mcpServers": {
     "odoox-cloud": {
       "command": "npx",
@@ -401,35 +231,214 @@ export default function UserDashboard() {
     }
   }
 }`;
-                                                            navigator.clipboard.writeText(configStr);
-                                                            setToastMessage("Configuration copied!");
-                                                            setShowToast(true);
-                                                            setTimeout(() => setShowToast(false), 3000);
-                                                        }}
+
+    return (
+        <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-primary-container/30">
+            {/* Background Effects */}
+            <div className="fixed inset-0 z-0 bg-grid-pattern opacity-30 pointer-events-none" />
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary-container/5 blur-[120px] z-0 pointer-events-none" />
+            
+            <div className="flex flex-col md:flex-row min-h-screen relative z-10">
+                {/* Sidebar */}
+                <aside className="w-full md:w-72 bg-black/50 backdrop-blur-2xl border-b md:border-b-0 md:border-r border-white/10 flex flex-col shrink-0 sticky top-0 md:h-screen z-20">
+                    <div className="p-8 pb-4">
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <img src="/logo.png" alt="OdooX Logo" className="h-8 w-auto object-contain transition-transform group-hover:scale-105" />
+                        </Link>
+                        <div className="mt-2 text-[10px] font-bold text-primary-container uppercase tracking-[0.2em]">Workspace</div>
+                    </div>
+                    
+                    <nav className="px-4 flex-1 mt-4">
+                        <Link href="/userdashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-container text-black font-semibold shadow-[0_0_20px_rgba(132,204,22,0.2)]">
+                            <LayoutDashboard className="w-5 h-5" /> Integration
+                        </Link>
+                    </nav>
+                    
+                    <div className="p-6 mt-auto">
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-4">
+                            <div className="text-xs text-on-surface-variant mb-1">Current Plan</div>
+                            <div className="font-semibold text-white capitalize flex items-center justify-between">
+                                {planType}
+                                <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{workspaces.length} / {limit} DBs</span>
+                            </div>
+                        </div>
+                        
+                        <button 
+                            onClick={handleLogout} 
+                            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-error hover:bg-error/10 transition-colors font-medium"
+                        >
+                            <LogOut className="w-5 h-5" /> Log Out
+                        </button>
+                    </div>
+                </aside>
+                
+                {/* Main Content */}
+                <main className="flex-1 p-6 md:p-12 overflow-y-auto w-full">
+                    <div className="max-w-4xl mx-auto space-y-12">
+                        
+                        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in-up">
+                            <div>
+                                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">Odoo Gateway</h1>
+                                <p className="text-on-surface-variant text-lg">Configure your secure connections to enable the Claude MCP endpoint.</p>
+                            </div>
+                            <button 
+                                className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                onClick={handleAddWorkspace}
+                                disabled={workspaces.length >= limit}
+                            >
+                                <Plus className="w-5 h-5" /> Connect Database
+                            </button>
+                        </header>
+                        
+                        <div className="space-y-8">
+                            {workspaces.length === 0 && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                                    className="p-12 border border-dashed border-white/20 rounded-3xl bg-white/5 backdrop-blur-sm text-center"
+                                >
+                                    <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                        <Server className="w-8 h-8 text-on-surface-variant" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold mb-2">No Databases Connected</h3>
+                                    <p className="text-on-surface-variant mb-6">Add your first Odoo ERP database to start generating secure AI endpoints.</p>
+                                    <button className="px-6 py-3 border border-white/20 bg-white/5 hover:bg-white/10 rounded-xl font-medium transition-colors" onClick={handleAddWorkspace}>
+                                        Add your first Odoo Database
+                                    </button>
+                                </motion.div>
+                            )}
+
+                            <div className="space-y-6">
+                                {workspaces.map((ws, index) => (
+                                    <WorkspaceCard 
+                                        key={ws.id || `new-${index}`}
+                                        workspace={ws}
+                                        index={index}
+                                        token={token}
+                                        onChange={handleChange}
+                                        onSave={handleSave}
+                                        onDelete={handleDelete}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* API Key Section */}
+                            <AnimatePresence>
+                                {workspaces.length > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                                        className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl p-8 relative overflow-hidden group mt-12"
+                                    >
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/5 rounded-full blur-[100px] pointer-events-none" />
+                                        
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="p-3 bg-primary-container/10 border border-primary-container/20 rounded-xl">
+                                                <KeyRound className="w-6 h-6 text-primary-container" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-2xl font-bold tracking-tight">API Integration</h3>
+                                                <p className="text-on-surface-variant">Generate a permanent API Key for Claude Desktop or custom agents.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {!apiKey ? (
+                                            <div className="p-8 border border-white/10 bg-white/5 rounded-2xl text-center">
+                                                <Shield className="w-10 h-10 text-on-surface-variant mx-auto mb-4" />
+                                                <h4 className="text-lg font-semibold mb-2">Secure API Access</h4>
+                                                <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto">Generate a cryptographic key to securely connect external LLMs to your verified Odoo databases.</p>
+                                                <button 
+                                                    className="px-6 py-3 bg-primary-container text-black font-bold rounded-xl hover:bg-primary-fixed transition-all hover:shadow-[0_0_20px_rgba(132,204,22,0.4)] disabled:opacity-50"
+                                                    onClick={handleGenerateApiKey}
+                                                    disabled={isGeneratingKey}
+                                                >
+                                                    {isGeneratingKey ? "Generating Key..." : "Generate Permanent API Key"}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-8">
+                                                {/* Raw API Key */}
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Secret API Key</label>
+                                                    <div className="flex flex-col sm:flex-row gap-3">
+                                                        <div className="relative flex-1 group/input">
+                                                            <input 
+                                                                type={showApiKey ? "text" : "password"}
+                                                                value={apiKey}
+                                                                readOnly 
+                                                                className="w-full bg-black/60 border border-white/10 rounded-xl pl-4 pr-12 py-3.5 text-sm text-primary-container font-mono focus:outline-none"
+                                                            />
+                                                            <button 
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-on-surface-variant hover:text-white rounded-md transition-colors"
+                                                                onClick={() => setShowApiKey(!showApiKey)}
+                                                            >
+                                                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                            </button>
+                                                        </div>
+                                                        <button 
+                                                            className="px-5 py-3 sm:py-0 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0"
+                                                            onClick={() => copyToClipboard(apiKey, "API Key copied!")}
+                                                        >
+                                                            <Copy className="w-4 h-4" /> Copy
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Claude Custom Connector URL */}
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Web Endpoint</label>
+                                                    <p className="text-sm text-on-surface-variant mb-2">Paste this into the <strong>Remote MCP server URL</strong> field in Claude Web (requires HTTPS).</p>
+                                                    <div className="flex flex-col sm:flex-row gap-3">
+                                                        <input 
+                                                            type="text" 
+                                                            value={`${frontendUrl}/sse?token=${apiKey}`}
+                                                            readOnly 
+                                                            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-primary-container font-mono focus:outline-none select-all"
+                                                        />
+                                                        <button 
+                                                            className="px-5 py-3 sm:py-0 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0"
+                                                            onClick={() => copyToClipboard(`${frontendUrl}/sse?token=${apiKey}`, "URL copied!")}
+                                                        >
+                                                            <Copy className="w-4 h-4" /> Copy
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Claude Desktop Config */}
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Claude Desktop Configuration</label>
+                                                    <p className="text-sm text-on-surface-variant mb-2">For local Claude Desktop app usage (bypasses HTTPS requirements).</p>
+                                                    <div className="relative">
+                                                        <textarea 
+                                                            value={claudeConfigString}
+                                                            readOnly 
+                                                            className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl p-5 text-sm text-primary-container font-mono focus:outline-none min-h-[200px] resize-none"
+                                                        />
+                                                        <button 
+                                                            className="absolute top-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2"
+                                                            onClick={() => copyToClipboard(claudeConfigString, "Configuration copied!")}
+                                                        >
+                                                            <Copy className="w-4 h-4" /> Copy Config
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-4 border-t border-white/10">
+                                                    <button 
+                                                        className="px-6 py-2.5 text-sm font-semibold text-error border border-error/30 hover:bg-error/10 rounded-xl transition-colors flex items-center gap-2"
+                                                        onClick={handleRevokeApiKey}
+                                                        disabled={isRevokingKey}
                                                     >
-                                                        Copy Config
+                                                        <AlertCircle className="w-4 h-4" /> {isRevokingKey ? "Revoking..." : "Revoke Key"}
                                                     </button>
                                                 </div>
                                             </div>
-
-                                            <div style={{ marginTop: '0.5rem' }}>
-                                                <button className="btn btn-outline" style={{ color: 'var(--accent-red)', borderColor: 'rgba(239, 68, 68, 0.3)' }} onClick={handleRevokeApiKey}>
-                                                    Revoke Key
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
-                    </main>
-                </div>
-                
-                <div id="toast" className={showToast ? 'show' : ''}>
-                    {toastMessage}
-                </div>
+                    </div>
+                </main>
             </div>
         </div>
     );
 }
-

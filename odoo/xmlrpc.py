@@ -328,6 +328,8 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                     "UserError",  # Business-rule violation
                     "except_orm",  # Legacy Odoo ORM exception
                     "null value in column",  # PostgreSQL NOT NULL constraint
+                    "KeyError",  # Model not found in registry
+                    "AccessError",  # Strict model-level access denied
                 )
                 if any(marker in fault_str for marker in permanent_markers):
                     from core.exceptions import OdooValidationError
