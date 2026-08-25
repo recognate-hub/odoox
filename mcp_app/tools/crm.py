@@ -103,8 +103,26 @@ def get_lead_funnel_metrics() -> list[dict[str, Any]]:
     try:
         domain = [["type", "=", "opportunity"]]
         fields = ["stage_id", "expected_revenue"]
-        groupby = ["stage_id"]
-        return odoo_repo.read_group("crm.lead", domain, fields, groupby)
+        leads = odoo_repo.search_read_records("crm.lead", domain, fields, limit=5000)
+        
+        summary = {}
+        for lead in leads:
+            stage = lead.get("stage_id")
+            if not stage:
+                continue
+            stage_id = stage[0] if isinstance(stage, (list, tuple)) else stage
+            stage_name = stage[1] if isinstance(stage, (list, tuple)) and len(stage) > 1 else str(stage)
+            
+            if stage_id not in summary:
+                summary[stage_id] = {
+                    "stage_id": stage,
+                    "stage_id_count": 0,
+                    "expected_revenue": 0.0
+                }
+            summary[stage_id]["stage_id_count"] += 1
+            summary[stage_id]["expected_revenue"] += lead.get("expected_revenue", 0.0)
+            
+        return list(summary.values())
     except Exception as e:
         logger.error("get_lead_funnel_metrics error", error=str(e))
         return [{"status": "error", "message": str(e)}]

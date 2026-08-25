@@ -59,22 +59,51 @@ class AnalyzerService:
     def analyze_pipeline_metrics(self) -> dict[str, Any]:
         """Aggregates CRM leads and Sales orders."""
         try:
-            crm_pipeline = self.odoo.read_group(
+            crm_leads = self.odoo.search_read_records(
                 "crm.lead",
                 domain=[("active", "=", True)],
                 fields=["stage_id", "expected_revenue"],
-                groupby=["stage_id"]
+                limit=5000
             )
+            crm_summary = {}
+            for lead in crm_leads:
+                stage = lead.get("stage_id")
+                if not stage:
+                    continue
+                stage_id = stage[0] if isinstance(stage, (list, tuple)) else stage
+                if stage_id not in crm_summary:
+                    crm_summary[stage_id] = {
+                        "stage_id": stage,
+                        "stage_id_count": 0,
+                        "expected_revenue": 0.0
+                    }
+                crm_summary[stage_id]["stage_id_count"] += 1
+                crm_summary[stage_id]["expected_revenue"] += lead.get("expected_revenue", 0.0)
+            crm_pipeline = list(crm_summary.values())
         except Exception:
             crm_pipeline = {"error": "CRM module not installed or accessible"}
 
         try:
-            sales_pipeline = self.odoo.read_group(
+            sales_orders = self.odoo.search_read_records(
                 "sale.order",
                 domain=[],
                 fields=["state", "amount_total"],
-                groupby=["state"]
+                limit=5000
             )
+            sales_summary = {}
+            for so in sales_orders:
+                state = so.get("state")
+                if not state:
+                    continue
+                if state not in sales_summary:
+                    sales_summary[state] = {
+                        "state": state,
+                        "state_count": 0,
+                        "amount_total": 0.0
+                    }
+                sales_summary[state]["state_count"] += 1
+                sales_summary[state]["amount_total"] += so.get("amount_total", 0.0)
+            sales_pipeline = list(sales_summary.values())
         except Exception:
             sales_pipeline = {"error": "Sales module not installed or accessible"}
 
@@ -87,23 +116,52 @@ class AnalyzerService:
         """Aggregates active Work Orders and MOs."""
         try:
             # Active MOs by state
-            mo_by_state = self.odoo.read_group(
+            mos = self.odoo.search_read_records(
                 "mrp.production",
                 domain=[("state", "not in", ["cancel", "done"])],
                 fields=["state", "product_qty"],
-                groupby=["state"]
+                limit=5000
             )
+            mo_summary = {}
+            for mo in mos:
+                state = mo.get("state")
+                if not state:
+                    continue
+                if state not in mo_summary:
+                    mo_summary[state] = {
+                        "state": state,
+                        "state_count": 0,
+                        "product_qty": 0.0
+                    }
+                mo_summary[state]["state_count"] += 1
+                mo_summary[state]["product_qty"] += mo.get("product_qty", 0.0)
+            mo_by_state = list(mo_summary.values())
         except Exception:
             mo_by_state = {"error": "MRP module not installed or accessible"}
 
         try:
             # WIP by Workcenter
-            wip_by_workcenter = self.odoo.read_group(
+            wos = self.odoo.search_read_records(
                 "mrp.workorder",
                 domain=[("state", "in", ["pending", "waiting", "ready", "progress"])],
                 fields=["workcenter_id", "qty_production"],
-                groupby=["workcenter_id"]
+                limit=5000
             )
+            wip_summary = {}
+            for wo in wos:
+                wc = wo.get("workcenter_id")
+                if not wc:
+                    continue
+                wc_id = wc[0] if isinstance(wc, (list, tuple)) else wc
+                if wc_id not in wip_summary:
+                    wip_summary[wc_id] = {
+                        "workcenter_id": wc,
+                        "workcenter_id_count": 0,
+                        "qty_production": 0.0
+                    }
+                wip_summary[wc_id]["workcenter_id_count"] += 1
+                wip_summary[wc_id]["qty_production"] += wo.get("qty_production", 0.0)
+            wip_by_workcenter = list(wip_summary.values())
         except Exception:
             wip_by_workcenter = {"error": "MRP module not installed or accessible"}
 
@@ -116,23 +174,39 @@ class AnalyzerService:
         """Aggregates stock valuation and invoicing metrics."""
         try:
             # Total Stock Valuation
-            valuation_total = self.odoo.read_group(
+            layers = self.odoo.search_read_records(
                 "stock.valuation.layer",
                 domain=[],
                 fields=["value"],
-                groupby=[]
+                limit=5000
             )
+            total_value = sum(layer.get("value", 0.0) for layer in layers)
+            valuation_total = [{"value": total_value, "value_count": len(layers)}]
         except Exception:
             valuation_total = {"error": "Stock valuation not accessible"}
 
         try:
             # Invoicing by state
-            invoicing_by_state = self.odoo.read_group(
+            invoices = self.odoo.search_read_records(
                 "account.move",
                 domain=[("move_type", "in", ["out_invoice", "in_invoice"])],
                 fields=["state", "amount_total"],
-                groupby=["state"]
+                limit=5000
             )
+            inv_summary = {}
+            for inv in invoices:
+                state = inv.get("state")
+                if not state:
+                    continue
+                if state not in inv_summary:
+                    inv_summary[state] = {
+                        "state": state,
+                        "state_count": 0,
+                        "amount_total": 0.0
+                    }
+                inv_summary[state]["state_count"] += 1
+                inv_summary[state]["amount_total"] += inv.get("amount_total", 0.0)
+            invoicing_by_state = list(inv_summary.values())
         except Exception:
             invoicing_by_state = {"error": "Account module not installed or accessible"}
 

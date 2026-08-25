@@ -40,7 +40,7 @@ def get_employee_directory(
         if department_id:
             domain.append(["department_id", "=", department_id])
             
-        fields = ["name", "job_title", "department_id", "work_email", "work_phone", "manager_id"]
+        fields = ["name", "job_title", "department_id", "work_email", "work_phone"]
         
         try:
             return odoo_repo.search_read_records("hr.employee", domain, fields, limit=limit)
