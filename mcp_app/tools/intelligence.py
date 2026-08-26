@@ -10,29 +10,68 @@ logger = get_logger(__name__)
 @secure_tool()
 def search_odoo_universe(query: str, limit_per_module: int = 5) -> dict[str, Any]:
     """
-    Performs a global search across Contacts, Products, Sales, Leads, Invoices, Manufacturing, and Projects.
+    Performs a global search across Contacts, Products, Sales, Leads, and Invoices.
     Use this tool when the user gives a generic search term (e.g., "Find Azure" or "Search for Office Chair")
-    and you need to find where that entity exists across the entire Odoo system.
+    and you need to quickly locate entities across the entire Odoo system.
     """
     with _span("mcp.search_odoo_universe"):
         odoo_repo, _ = server._get_tenant_service()
-        results = {}
+        results: dict[str, Any] = {
+            "status": "success",
+            "query": query,
+            "contacts": [],
+            "products": [],
+            "sales_orders": [],
+            "leads": []
+        }
         
-        # 1. Contacts
-        contacts = odoo_repo.search_read_records("res.partner", domain=[["name", "ilike", query]], limit=limit_per_module)
-        if contacts: results["contacts"] = contacts
+        # 1. Contacts (Trimmed)
+        try:
+            contacts = odoo_repo.search_read_records(
+                "res.partner",
+                domain=[["name", "ilike", query]],
+                fields=["id", "name", "email", "phone", "is_company", "city"],
+                limit=limit_per_module
+            )
+            if contacts: results["contacts"] = contacts
+        except Exception:
+            pass
             
-        # 2. Products
-        products = odoo_repo.search_read_records("product.product", domain=[["name", "ilike", query]], limit=limit_per_module)
-        if products: results["products"] = products
+        # 2. Products (Trimmed)
+        try:
+            products = odoo_repo.search_read_records(
+                "product.product",
+                domain=[["name", "ilike", query]],
+                fields=["id", "name", "default_code", "list_price", "qty_available"],
+                limit=limit_per_module
+            )
+            if products: results["products"] = products
+        except Exception:
+            pass
             
-        # 3. Sales / Quotes
-        sales = odoo_repo.search_read_records("sale.order", domain=[["name", "ilike", query]], limit=limit_per_module)
-        if sales: results["sales"] = sales
+        # 3. Sales / Quotes (Trimmed)
+        try:
+            sales = odoo_repo.search_read_records(
+                "sale.order",
+                domain=[["name", "ilike", query]],
+                fields=["id", "name", "partner_id", "amount_total", "state", "date_order"],
+                limit=limit_per_module
+            )
+            if sales: results["sales_orders"] = sales
+        except Exception:
+            pass
             
-        # 4. Leads / Opportunities
-        leads = odoo_repo.search_read_records("crm.lead", domain=[["name", "ilike", query]], limit=limit_per_module)
-        if leads: results["leads"] = leads
+        # 4. Leads / Opportunities (Trimmed)
+        try:
+            leads = odoo_repo.search_read_records(
+                "crm.lead",
+                domain=[["name", "ilike", query]],
+                fields=["id", "name", "partner_id", "stage_id", "expected_revenue", "probability"],
+                limit=limit_per_module
+            )
+            if leads: results["leads"] = leads
+        except Exception:
+            pass
 
         return results
 

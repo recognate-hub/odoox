@@ -669,6 +669,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         attributes = ["string", "type", "help", "selection", "relation"]
         fields_info = self._execute(model, "fields_get", [], attributes)
 
+        # Truncate giant selection lists (e.g. 400-entry timezones/languages) to prevent context explosion
+        if isinstance(fields_info, dict):
+            for finfo in fields_info.values():
+                if isinstance(finfo, dict) and "selection" in finfo and isinstance(finfo["selection"], list):
+                    sel = finfo["selection"]
+                    if len(sel) > 8:
+                        finfo["selection"] = sel[:8] + [[f"... (+{len(sel)-8} more options)", f"... (+{len(sel)-8} more options)"]]
+
         set_cached_value(cache_key, json.dumps(fields_info), ttl=86400)  # 24 hours
         return fields_info
 
@@ -682,16 +690,25 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return bool(result)
 
     def get_attachment(self, attachment_id: int) -> dict[str, Any]:
+        fields = ["name", "mimetype", "res_model", "res_id", "file_size", "type", "url"]
         records = self._execute(
             "ir.attachment",
             "search_read",
             [["id", "=", attachment_id]],
-            fields=["name", "datas", "mimetype", "res_model", "res_id"],
+            fields=fields,
             limit=1,
         )
         if not records:
             raise OdooConnectorError(f"Attachment {attachment_id} not found.")
-        return records[0]
+        att = records[0]
+        # Attempt to read binary data safely without breaking on schema variations
+        try:
+            datas_rec = self._execute("ir.attachment", "read", [attachment_id], ["datas"])
+            if datas_rec and datas_rec[0].get("datas"):
+                att["datas"] = datas_rec[0]["datas"]
+        except Exception:
+            pass
+        return att
 
     def create_attachment(self, data: dict[str, Any]) -> int:
         workspace = self._get_workspace()

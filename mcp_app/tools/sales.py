@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 @mcp.tool()
 @secure_tool()
 def get_recent_quotes(
-    partner_id: int | None = None, limit: int = 50
+    partner_id: int | None = None, limit: int = 50, expand_lines: bool = False
 ) -> list[dict[str, Any]]:
     """
     Retrieve a list of recent quotes and sales orders.
@@ -24,15 +24,17 @@ def get_recent_quotes(
     Args:
         partner_id (Optional[int]): Filter by a specific customer/partner ID. Leave empty for all recent quotes.
         limit (int): The maximum number of quotes to return.
+        expand_lines (bool): Set to True if detailed nested order lines are needed. Default is False for fast, trimmed responses.
 
     Returns:
-        List[Dict[str, Any]]: A list of quotes with amount, status, and partner_id.
+        List[Dict[str, Any]]: A list of quotes with amount, status, date, and customer.
     """
     logger.info(
         "MCP Tool Called: get_recent_quotes", partner_id=partner_id, limit=limit
     )
     odoo_repo, _ = server._get_tenant_service()
-    quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit, expand_fields=["order_line", "partner_id"])
+    expand_fields = ["order_line"] if expand_lines else None
+    quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit, expand_fields=expand_fields)
     return [quote.model_dump(exclude_none=True) for quote in quotes]
 
 

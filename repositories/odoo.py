@@ -982,10 +982,51 @@ class OdooRepository:
         groupby: list[str] | None = None,
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
-        return self.connector.read_group(
-            model=model,
-            domain=domain or [],
-            fields=fields or [],
-            groupby=groupby or [],
-            **kwargs,
-        )
+        domain = domain or []
+        fields = fields or []
+        groupby = groupby or []
+        try:
+            return self.connector.read_group(
+                model=model,
+                domain=domain,
+                fields=fields,
+                groupby=groupby,
+                **kwargs,
+            )
+        except Exception as e:
+            logger.warning(f"Odoo read_group failed on {model}: {e}. Attempting in-memory aggregation fallback.")
+            try:
+                # Python in-memory aggregation fallback
+                all_fields = list(set(fields + groupby + ["id"]))
+                records = self.connector.search_read_records(model, domain=domain, fields=all_fields, limit=500)
+                if not groupby:
+                    return [{"__count": len(records), "records": records}]
+                
+                gb_key = groupby[0]
+                grouped: dict[Any, dict[str, Any]] = {}
+                for rec in records:
+                    raw_val = rec.get(gb_key)
+                    if isinstance(raw_val, (list, tuple)) and len(raw_val) > 1:
+                        val_key = raw_val[1]
+                    else:
+                        val_key = str(raw_val or "Undefined")
+                    
+                    if val_key not in grouped:
+                        grouped[val_key] = {gb_key: raw_val, f"{gb_key}_count": 0, "__count": 0}
+                        # Initialize numeric sums
+                        for f in fields:
+                            if f != gb_key and f != "id":
+                                grouped[val_key][f] = 0.0
+                    
+                    grouped[val_key][f"{gb_key}_count"] += 1
+                    grouped[val_key]["__count"] += 1
+                    for f in fields:
+                        if f != gb_key and f != "id":
+                            try:
+                                grouped[val_key][f] += float(rec.get(f) or 0.0)
+                            except (ValueError, TypeError):
+                                pass
+                return list(grouped.values())
+            except Exception as fallback_err:
+                logger.error(f"In-memory read_group fallback also failed: {fallback_err}")
+                return [{"status": "error", "message": f"read_group on {model} failed: {e}"}]

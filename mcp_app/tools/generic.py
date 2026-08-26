@@ -266,7 +266,7 @@ def read_group_records(
         )
     except Exception as e:
         logger.error("read_group_records error", error=str(e))
-        raise RuntimeError(f"Odoo read_group_records failed: {e!s}") from e
+        return [{"status": "error", "message": f"read_group on {model} failed: {e}"}]
 
 
 @mcp.tool()
