@@ -3,35 +3,34 @@
     "Admin": [
       "*"
     ],
-    "Sales": [
-      "get_leads",
-      "create_lead",
-      "update_lead",
-      "search_contacts",
-      "get_products",
-      "get_sales_dashboard",
-      "get_customer_details",
-      "schedule_meeting",
-      "get_lead_context"
-    ],
     "Manager": [
-      "get_leads",
-      "search_contacts",
-      "get_products",
-      "revenue_report",
-      "get_sales_dashboard",
-      "get_customer_details",
-      "get_lead_context"
+      "search_read_records", "read_group_records", "get_model_fields",
+      "get_leads", "search_contacts", "get_products", "revenue_report", "get_sales_dashboard", "get_customer_details", "get_lead_context",
+      "analyze_pipeline_metrics", "analyze_hr_metrics", "get_employee_directory", "get_department_structure",
+      "get_active_projects", "analyze_task_bottlenecks", "get_project_burn_rate",
+      "get_manufacturing_orders", "get_work_orders", "analyze_workcenter_bottlenecks", "analyze_component_shortages", "analyze_oee_losses", "predict_production_delays", "get_mps_forecast",
+      "get_quality_checks", "get_quality_alerts", "get_quality_metrics", "analyze_quality_trends", "analyze_defect_root_causes",
+      "get_inventory_valuation", "analyze_inventory_health", "get_purchase_plan",
+      "get_aged_receivables", "get_profit_and_loss_summary", "analyze_expense_trends", "predict_cashflow_shortages", "analyze_inventory_financials",
+      "get_recent_alerts", "acknowledge_alerts", "get_messages", "post_message", "get_calendar_events"
+    ],
+    "Sales": [
+      "search_read_records", "read_group_records",
+      "get_leads", "create_lead", "update_lead", "search_contacts", "create_contact", "get_products", "get_sales_dashboard", "get_customer_details", "schedule_meeting", "get_lead_context",
+      "get_recent_quotes", "quote_to_cash_automation", "get_ready_to_ship_orders",
+      "get_invoices", "get_payment_journals",
+      "get_messages", "post_message", "get_calendar_events"
     ],
     "Support": [
-      "search_contacts",
-      "get_customer_details"
+      "search_read_records",
+      "search_contacts", "get_customer_details", "get_messages", "post_message", "get_recent_alerts", "acknowledge_alerts",
+      "get_quality_alerts", "raise_quality_alert", "log_quality_result"
     ]
   },
   "allowed_models": {
     "Admin": ["*"],
-    "Sales": ["res.partner", "crm.lead", "sale.order", "product.template"],
-    "Manager": ["res.partner", "crm.lead", "sale.order", "product.template", "hr.employee"],
-    "Support": ["res.partner", "helpdesk.ticket"]
+    "Manager": ["*"],
+    "Sales": ["res.partner", "crm.lead", "sale.order", "sale.order.line", "product.template", "product.product", "account.move"],
+    "Support": ["res.partner", "helpdesk.ticket", "quality.alert", "quality.check"]
   }
 }

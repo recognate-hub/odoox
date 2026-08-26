@@ -209,7 +209,11 @@ def secure_tool(action: str | None = None):
                 audit_logger.warning(
                     f"Odoo error: {e}", tool=func.__name__, user_id=user.user_id
                 )
-                return {"status": "error", "message": str(e)}
+                return {
+                    "status": "error", 
+                    "message": str(e), 
+                    "suggestion": "Verify the record ID and make sure it has not been deleted or archived."
+                }
             except Exception as e:
                 try:
                     from opentelemetry import trace
@@ -230,17 +234,48 @@ def secure_tool(action: str | None = None):
                 )
 
                 from core.exceptions import OdooConnectionError, OdooAuthError
+                from core.schema_engine import OdooSchemaMismatchError
                 
                 if isinstance(e, (OdooConnectionError, OdooAuthError)):
                     return {
                         "status": "error",
+                        "error_type": "ConnectionError",
                         "message": "Failed to connect to Odoo ERP. Please verify your credentials and connection URL in the Dashboard.",
+                        "diagnostics": {
+                            "actionable_hint": "Check if the Odoo instance is running and reachable.",
+                            "resolution_command": "Run a basic ping or check the integration configuration."
+                        }
+                    }
+                    
+                if isinstance(e, OdooSchemaMismatchError):
+                    return {
+                        "status": "error",
+                        "error_type": "SchemaMismatch",
+                        "message": str(e),
+                        "diagnostics": {
+                            "actionable_hint": "The module schema on this Odoo instance differs from expectations.",
+                            "resolution_command": "Use get_model_fields to inspect the actual schema for this model and adjust your query."
+                        }
                     }
 
-                return {
+                error_str = str(e)
+                hint = "Use get_installed_apps or get_model_fields to understand the current environment."
+                if "AccessError" in error_str or "Access Denied" in error_str:
+                    hint = "Check if the record was archived or if your user role lacks necessary permissions."
+                elif "KeyError" in error_str or "missing" in error_str.lower():
+                    hint = "A required field or related model is missing. Fetch the schema using get_model_fields."
+                elif "Object" in error_str and "doesn't exist" in error_str:
+                    hint = "The requested Odoo module is likely not installed. Please gracefully downgrade or inform the user."
+
+                response = {
                     "status": "error",
-                    "message": f"Unexpected error during tool execution: {e!s}",
+                    "error_type": "UnexpectedError",
+                    "message": f"Unexpected error during tool execution: {error_str}",
+                    "diagnostics": {
+                        "actionable_hint": hint
+                    }
                 }
+                return response
 
         return wrapper
 

@@ -64,6 +64,10 @@ class Settings(BaseSettings):
     ODOO_TIMEOUT: int = Field(
         default=45, description="Timeout for Odoo XML-RPC requests in seconds"
     )
+    READ_ONLY_MODE: bool = Field(
+        default=True,
+        description="When True, blocks all mutating Odoo operations (create/write/unlink)."
+    )
 
     # Client/Tenant Identification
     COMPANY_NAME: str = Field(default="ODOOX", min_length=1, description="Company name")

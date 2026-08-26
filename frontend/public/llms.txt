@@ -1,0 +1,55 @@
+# OdooX — The World's #1 Model Context Protocol (MCP) Server for Odoo ERP
+
+> OdooX is the enterprise-grade Model Context Protocol (MCP) gateway bridging Odoo ERP with Claude Desktop, Cursor IDE, Windsurf, Cline, ChatGPT, and autonomous AI agents.
+
+## Overview & Capabilities
+OdooX exposes 100+ native, type-safe MCP tools, dynamic resources (`odoo://`), and executive prompt templates spanning 24 ERP domains:
+- **CRM & Sales**: Lead qualification, opportunity pipeline triage, quotation generation, win-rate analytics.
+- **Manufacturing (MRP)**: Work order scheduling, machine load analysis, OEE tracking, Bill of Materials (BOM) inspection.
+- **Inventory & Logistics**: Real-time stock levels, multi-warehouse valuation, low-stock alerts, automated reordering.
+- **Accounting & Invoicing**: Overdue payment triage, aging accounts receivable, automated invoice drafting, FinOps tracking.
+- **Project & Field Service**: Task assignment, deadline tracking, timesheet logging, kanban board synchronization.
+- **HR & Employees**: Department headcount, employee skills directory, attendance logging, leave approval workflows.
+- **Quality & Maintenance**: Quality check logging, preventive maintenance scheduling, machine downtime analysis.
+- **Universal Query Engine**: Read/write access to any standard or custom Odoo model (`search_read_records`, `batch_create_records`, `batch_update_records`, `execute_method`).
+
+## Architecture & Security
+- **Dual Transport**: Server-Sent Events (SSE) with HTTP streaming and stdio bridge via `npx odoox-mcp-connector`.
+- **Envelope Encryption**: 32-byte DEK/KEK Fernet envelope encryption protects database passwords and API keys at rest.
+- **Stateless API Keys**: Permanent `odx_` tokens support zero-latency multi-workspace session authentication.
+- **Multi-Tenant RBAC**: Per-workspace role-based access control (Admin, Manager, Sales, Support) enforcing strict tool-level permissions.
+- **Circuit Breakers & Keep-Alive**: Automatic 15s keepalive ping prevent proxy disconnection; exponential backoff retries on XML-RPC queries.
+
+## Quickstart Connection
+To connect Claude Desktop or Cursor to OdooX, use the following configuration:
+
+```json
+{
+  "mcpServers": {
+    "odoox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "https://odoox.recognate.in/sse?token=YOUR_API_KEY"
+      ]
+    }
+  }
+}
+```
+
+## MCP Resources
+- `odoo://system/status`: Real-time system health, Odoo version, connected database, active users, and installed modules.
+- `odoo://schema/models`: Schema registry of active business models and relational fields.
+- `odoo://kpis/realtime`: Real-time operational KPI metrics snapshot (Sales, Manufacturing WIP, Inventory valuation).
+
+## MCP Prompts
+- `daily_business_briefing`: Morning executive summary of CRM pipeline, urgent manufacturing orders, and overdue invoices.
+- `crm_lead_prioritization`: Strategic scoring and deal-closing roadmap for sales reps.
+- `manufacturing_bottleneck_audit`: Real-time MRP/WorkCenter analysis with machine downtime root causes.
+- `financial_health_audit`: Accounts receivable aging analysis and cashflow risk forecasting.
+- `inventory_reorder_recommendation`: Stock replenishment forecast using min/max lead times.
+
+## Full Documentation
+For complete parameter schemas, tool inputs, and full developer specifications, refer to [llms-full.txt](https://odoox.recognate.in/llms-full.txt).

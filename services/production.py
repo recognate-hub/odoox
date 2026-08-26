@@ -16,8 +16,8 @@ class ProductionService:
         mo_id = self.odoo.create_manufacturing_order(product_id, product_qty)
         return {"status": "success", "manufacturing_order_id": mo_id}
 
-    def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None) -> list[dict[str, Any]]:
-        return self.odoo.get_manufacturing_orders(limit, offset, date_from, date_to)
+    def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None, product_name_query: str | None = None) -> list[dict[str, Any]]:
+        return self.odoo.get_manufacturing_orders(limit, offset, date_from, date_to, product_name_query)
 
     def update_manufacturing_order(
         self, mo_id: int, data: dict[str, Any]

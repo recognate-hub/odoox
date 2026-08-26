@@ -1,8 +1,10 @@
 from typing import Any
 from core.logger import get_logger
 from mcp_app import server
+from mcp_app.schemas import *
 from mcp_app.security import secure_tool
 from mcp_app.server import _span, mcp
+from mcp_app.validation import validate_write_input
 
 logger = get_logger(__name__)
 
@@ -58,7 +60,6 @@ def analyze_task_bottlenecks(project_id: int | None = None) -> list[dict[str, An
             domain.append(["project_id", "=", project_id])
             
         fields = ["stage_id", "project_id"]
-        groupby = ["stage_id"]
         lines = odoo_repo.search_read_records("project.task", domain, fields, limit=5000)
         
         summary = {}
@@ -130,3 +131,112 @@ def get_project_burn_rate(project_id: int) -> dict[str, Any]:
     except Exception as e:
         logger.error("get_project_burn_rate error", error=str(e))
         return {"status": "error", "message": str(e)}
+
+
+@mcp.tool()
+@secure_tool()
+def get_project_tasks(
+    project_id: int | None = None, limit: int = 50, summarize: bool = False
+) -> list[dict[str, Any]] | dict[str, Any]:
+    """
+    Retrieve tasks for a specific project or all open tasks.
+
+    Use this tool when:
+    - The user asks for a list of tasks.
+    - The user wants to see what needs to be done on a project.
+    """
+    logger.info("MCP Tool Called: get_project_tasks", project_id=project_id, limit=limit)
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        domain = [["is_closed", "=", False]]
+        if project_id:
+            domain.append(["project_id", "=", project_id])
+            
+        fields = ["name", "project_id", "user_ids", "stage_id", "date_deadline", "priority"]
+        tasks = odoo_repo.search_read_records("project.task", domain, fields, limit=limit)
+        
+        if summarize:
+            return {
+                "metadata": {"total_returned": len(tasks), "project_id": project_id},
+                "data": tasks,
+                "summary": f"Found {len(tasks)} open tasks."
+            }
+        return tasks
+    except Exception as e:
+        logger.error("get_project_tasks error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+@validate_write_input(CreateProjectTaskInput)
+def create_project_task(
+    name: str, 
+    project_id: int, 
+    description: str | None = None, 
+    user_ids: list[int] | None = None,
+    date_deadline: str | None = None
+) -> dict[str, Any]:
+    """
+    Create a new task in a specific project.
+    
+    Use this tool when:
+    - The user explicitly asks to create a task or add something to a project board.
+    """
+    logger.info("MCP Tool Called: create_project_task", name=name, project_id=project_id)
+    odoo_repo, _ = server._get_tenant_service()
+    
+    # ID Validation Step (as per user request)
+    projects = odoo_repo.search_read_records("project.project", [["id", "=", project_id]], ["name"], limit=1)
+    if not projects:
+        return {"status": "error", "message": f"Project with ID {project_id} does not exist. Please use get_active_projects to find a valid project ID."}
+        
+    data = {
+        "name": name,
+        "project_id": project_id,
+    }
+    if description:
+        data["description"] = description
+    if user_ids:
+        data["user_ids"] = [(6, 0, user_ids)]
+    if date_deadline:
+        data["date_deadline"] = date_deadline
+        
+    try:
+        task_id = odoo_repo.create_record("project.task", data)
+        return {"status": "success", "task_id": task_id, "project": projects[0]["name"]}
+    except Exception as e:
+        logger.error("create_project_task error", error=str(e))
+        return {"status": "error", "message": str(e)}
+
+
+@mcp.tool()
+@secure_tool()
+def get_timesheet_entries(project_id: int | None = None, employee_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    """
+    Retrieve employee timesheets and logged hours for tasks/projects.
+    """
+    logger.info("MCP Tool Called: get_timesheet_entries")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        domain = []
+        if project_id: domain.append(["project_id", "=", project_id])
+        if employee_id: domain.append(["employee_id", "=", employee_id])
+        return odoo_repo.search_read_records("account.analytic.line", domain, ["name", "date", "employee_id", "project_id", "task_id", "unit_amount"], limit=limit)
+    except Exception as e:
+        return [{"status": "error", "message": "Module missing or error: " + str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_milestones(project_id: int | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Retrieve project milestones.
+    """
+    logger.info("MCP Tool Called: get_milestones")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        domain = [["project_id", "=", project_id]] if project_id else []
+        return odoo_repo.search_read_records("project.milestone", domain, ["name", "project_id", "deadline", "is_reached", "reached_date"], limit=limit)
+    except Exception as e:
+        return [{"status": "error", "message": "Module missing or error: " + str(e)}]

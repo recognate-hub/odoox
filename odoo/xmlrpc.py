@@ -30,6 +30,8 @@ from schemas.odoo import (
     OdooQuote,
     OdooSalesDashboard,
 )
+from core.schema_engine import SchemaEngine
+from core.expansion import RelationExpander
 
 try:
     from opentelemetry import trace
@@ -113,10 +115,13 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     """
 
     def __init__(self, settings: Settings | None = None):
+        self.settings = settings or get_settings()
         # Cache for authenticated uids to avoid redundant auth calls: {token: uid}
         self._uids: dict[str, int] = {}
         # Circuit Breaker state: {tenant_db: (failures, last_failure_time)}
         self._circuit_breakers: dict[str, tuple[int, float]] = {}
+        self.schema_engine = SchemaEngine(self)
+        self.expander = RelationExpander(self)
 
     def _get_workspace(self, force_refresh: bool = False) -> WorkspaceContext:
         token = get_current_token()
@@ -236,7 +241,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 del self._circuit_breakers[db_name]
 
     @retry(
-        stop=stop_after_attempt(1),
+        stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type(
             (OSError, xmlrpc.client.ProtocolError, OdooConnectionError)
@@ -252,16 +257,17 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         """
         
         # --- PHASE 1: ISOLATION LAYER (READ-ONLY) ---
-        ALLOWED_METHODS = {
-            "search", "read", "search_read", "search_count", 
-            "fields_get", "name_search", "default_get", "read_group", "web_read_group"
-        }
-        if method not in ALLOWED_METHODS:
-            logger.warning(f"Blocked mutating method '{method}' on model '{model}' due to strict Isolation Layer.")
-            from core.exceptions import OdooReadOnlyError
-            raise OdooReadOnlyError(
-                f"Odoox MCP operates in a strict Read-Only Isolation Layer. Modification method '{method}' on '{model}' is blocked for enterprise data safety."
-            )
+        if self.settings.READ_ONLY_MODE:
+            ALLOWED_METHODS = {
+                "search", "read", "search_read", "search_count", 
+                "fields_get", "name_search", "default_get", "read_group", "web_read_group"
+            }
+            if method not in ALLOWED_METHODS:
+                logger.warning(f"Blocked mutating method '{method}' on model '{model}' due to strict Isolation Layer.")
+                from core.exceptions import OdooReadOnlyError
+                raise OdooReadOnlyError(
+                    f"Odoox MCP operates in a strict Read-Only Isolation Layer. Modification method '{method}' on '{model}' is blocked for enterprise data safety."
+                )
         # ---------------------------------------------
         
         workspace = self._get_workspace()
@@ -366,20 +372,23 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         self, domain: list[Any] | None = None, limit: int = 100
     ) -> list[OdooLead]:
         domain = domain or []
+        requested_fields = [
+            "name",
+            "email_from",
+            "phone",
+            "partner_id",
+            "stage_id",
+            "expected_revenue",
+            "probability",
+            "description",
+        ]
+        fields = self.schema_engine.filter_and_alias_fields("crm.lead", requested_fields)
+        self.schema_engine.validate_domain("crm.lead", domain)
         records = self._execute(
             "crm.lead",
             "search_read",
             domain,
-            fields=[
-                "name",
-                "email_from",
-                "phone",
-                "partner_id",
-                "stage_id",
-                "expected_revenue",
-                "probability",
-                "description",
-            ],
+            fields=fields,
             limit=limit,
         )
         return [OdooLead(**record) for record in records]
@@ -395,7 +404,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
 
     def update_lead(self, lead_id: int, data: dict[str, Any]) -> bool:
-        result = self._execute("crm.lead", "write", [lead_id], data)
+        result = self._execute("crm.lead", "write", [[lead_id], data])
         return bool(result)
 
     def delete_lead(self, lead_id: int) -> bool:
@@ -406,11 +415,14 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         self, domain: list[Any] | None = None, limit: int = 100
     ) -> list[OdooContact]:
         domain = domain or []
+        requested_fields = ["name", "email", "phone", "is_company", "company_id"]
+        fields = self.schema_engine.filter_and_alias_fields("res.partner", requested_fields)
+        self.schema_engine.validate_domain("res.partner", domain)
         records = self._execute(
             "res.partner",
             "search_read",
             domain,
-            fields=["name", "email", "phone", "is_company", "company_id"],
+            fields=fields,
             limit=limit,
         )
         return [OdooContact(**record) for record in records]
@@ -429,12 +441,16 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         self, domain: list[Any] | None = None, limit: int = 100
     ) -> list[OdooProduct]:
         domain = domain or []
+        requested_fields = ["name", "list_price", "default_code", "qty_available"]
+        aliases = {"list_price": ["lst_price", "standard_price"]}
+        fields = self.schema_engine.filter_and_alias_fields("product.product", requested_fields, aliases)
+        self.schema_engine.validate_domain("product.product", domain)
         try:
             records = self._execute(
                 "product.product",
                 "search_read",
                 domain,
-                fields=["name", "list_price", "default_code", "qty_available"],
+                fields=fields,
                 limit=limit,
             )
             return [OdooProduct(**record) for record in records]
@@ -457,18 +473,23 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         )
 
     def get_quotes(
-        self, domain: list[Any] | None = None, limit: int = 100
+        self, domain: list[Any] | None = None, limit: int = 100, expand_fields: list[str] | None = None
     ) -> list[OdooQuote]:
         domain = domain or []
         # In Odoo, sale.order handles both quotes and confirmed orders
+        requested_fields = ["name", "partner_id", "state", "amount_total", "date_order"]
+        fields = self.schema_engine.filter_and_alias_fields("sale.order", requested_fields)
+        self.schema_engine.validate_domain("sale.order", domain)
         try:
             records = self._execute(
                 "sale.order",
                 "search_read",
                 domain,
-                fields=["name", "partner_id", "state", "amount_total", "date_order"],
+                fields=fields,
                 limit=limit,
             )
+            if expand_fields and records:
+                records = self.expander.expand_records("sale.order", records, expand_fields)
             return [OdooQuote(**record) for record in records]
         except OdooConnectorError as e:
             if "sale.order" in str(e):
@@ -523,6 +544,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
                 "search_read",
                 [["state", "in", ["sale", "done"]]],
                 fields=["amount_total"],
+                limit=10000,
             )
             total_revenue = sum(order.get("amount_total", 0.0) for order in won_orders)
 
@@ -606,7 +628,7 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
         return _exec()
 
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
-        result = self._execute(model, "write", [record_id], data)
+        result = self._execute(model, "write", [[record_id], data])
         return bool(result)
 
     def get_installed_apps(self) -> list[dict[str, Any]]:
@@ -653,17 +675,10 @@ class XmlRpcOdooConnector(OdooConnectorInterface):
     def read_group(
         self, model: str, domain: list[Any], fields: list[str], groupby: list[str], **kwargs
     ) -> list[dict[str, Any]]:
-        # Add web_read_group to allowed methods for Odoo 18+ support
-        try:
-            return self._execute(model, "read_group", domain, fields, groupby, **kwargs)
-        except Exception as e:
-            if "method doesn't exist" in str(e) or "method not found" in str(e).lower():
-                # Odoo 18 removes read_group from the public API, so we use web_read_group
-                return self._execute(model, "web_read_group", domain, fields, groupby, **kwargs)
-            raise e
+        return self._execute(model, "read_group", domain, fields, groupby, **kwargs)
 
     def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
-        result = self._execute(model, "write", [record_id], {"active": not archive})
+        result = self._execute(model, "write", [[record_id], {"active": not archive}])
         return bool(result)
 
     def get_attachment(self, attachment_id: int) -> dict[str, Any]:

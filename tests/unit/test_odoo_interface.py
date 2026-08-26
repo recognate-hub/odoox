@@ -62,6 +62,24 @@ class DummyConnector(OdooConnectorInterface):
     def get_model_fields(self, model):
         return super().get_model_fields(model)
 
+    def read_group(self, model, domain, fields, groupby, **kwargs):
+        return super().read_group(model, domain, fields, groupby, **kwargs)
+
+    def archive_record(self, model, record_id, archive=True):
+        return super().archive_record(model, record_id, archive)
+
+    def get_attachment(self, attachment_id):
+        return super().get_attachment(attachment_id)
+
+    def create_attachment(self, data):
+        return super().create_attachment(data)
+
+    def execute_method(self, model, method, args=None, kwargs=None):
+        return super().execute_method(model, method, args, kwargs)
+
+    def create_records(self, model, data_list):
+        return super().create_records(model, data_list)
+
 
 def test_interface_methods():
     dummy = DummyConnector()
@@ -93,3 +111,9 @@ def test_interface_methods():
 
     assert dummy.get_installed_apps() is None
     assert dummy.get_model_fields("model") is None
+    assert dummy.read_group("model", [], [], []) is None
+    assert dummy.archive_record("model", 1) is None
+    assert dummy.get_attachment(1) is None
+    assert dummy.create_attachment({}) is None
+    assert dummy.execute_method("model", "method") is None
+    assert dummy.create_records("model", [{}]) is None

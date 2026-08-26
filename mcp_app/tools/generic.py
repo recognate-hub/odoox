@@ -33,10 +33,15 @@ def search_read_records(
     fields: list[str] | None = None,
     limit: int = 50,
     offset: int = 0,
-) -> list[dict[str, Any]]:
+    summarize: bool = False,
+    expand_fields: list[str] | None = None,
+) -> list[dict[str, Any]] | dict[str, Any]:
     """
     Generic tool to read records from ANY Odoo module or model.
-    Use this to interact with HR, Project, Manufacturing, or other Odoo apps not explicitly covered by other tools.
+    
+    Use this tool when:
+    - The data needed is not covered by a specialized tool (like HR, Project, Manufacturing).
+    - The user asks for data from a specific Odoo table/model.
 
     Args:
         model (str): The name of the Odoo model (e.g., 'hr.employee', 'project.task', 'mrp.production').
@@ -44,6 +49,7 @@ def search_read_records(
         fields (list): A list of fields to return. If omitted, returns all fields.
         limit (int): The maximum number of records to return (max 200).
         offset (int): The number of records to skip for pagination.
+        expand_fields (list): Optional list of relational field paths to expand (e.g., ["order_line", "partner_id"]). 
 
     Returns:
         list: A list of dictionaries representing the records matching the domain.
@@ -69,12 +75,46 @@ def search_read_records(
         )
         limit = 5
     try:
-        return odoo_repo.search_read_records(
-            model, domain=domain, fields=fields, limit=limit, offset=offset
+        results = odoo_repo.search_read_records(
+            model, domain=domain, fields=fields, limit=limit, offset=offset, expand_fields=expand_fields
         )
+        if summarize:
+            return {
+                "metadata": {
+                    "total_returned": len(results),
+                    "model": model,
+                    "domain": domain,
+                },
+                "data": results,
+                "summary": f"Found {len(results)} records for model {model}.",
+            }
+        return results
     except Exception as e:
         logger.error("search_read_records error", error=str(e))
         raise RuntimeError(f"Odoo search_read_records failed: {e!s}") from e
+
+
+@mcp.tool()
+@secure_tool()
+def count_records(model: str, domain: list[list[Any]] | None = None) -> dict[str, Any]:
+    """
+    Count records matching a domain without fetching them.
+
+    Args:
+        model (str): The name of the Odoo model.
+        domain (list): A list of search criteria to filter records.
+
+    Returns:
+        dict: A dictionary containing the count of matching records.
+    """
+    logger.info("MCP Tool Called: count_records", model=model, domain=domain)
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        count = odoo_repo.execute_method(model, "search_count", [domain or []])
+        return {"status": "success", "count": count}
+    except Exception as e:
+        logger.error("count_records error", error=str(e))
+        return {"status": "error", "message": str(e)}
 
 
 @mcp.tool()
@@ -177,7 +217,10 @@ def check_stock_availability(product_id: int) -> list[dict[str, Any]]:
 def get_model_fields(model: str) -> dict[str, Any]:
     """
     Get the schema and all available fields for a specific Odoo model (e.g., 'stock.lot', 'hr.employee').
-    Use this to discover custom fields (like 'x_metric_1', 'x_return_reason') before querying a model.
+    
+    Use this tool when:
+    - You need to know the correct field names before writing a domain filter or executing search_read_records.
+    - The user asks what data fields are available for a given module.
 
     Args:
         model (str): The Odoo model name to inspect.
@@ -305,6 +348,33 @@ def batch_import_csv(model: str, csv_data: str) -> dict[str, Any]:
     except Exception as e:
         logger.error("batch_import_csv error", error=str(e))
         return {"status": "error", "message": str(e)}
+
+
+@mcp.tool()
+@secure_tool()
+def get_tool_guide() -> dict[str, Any]:
+    """
+    Retrieve the exact tool guide and prompt instructions for this MCP server.
+    
+    Use this tool when you need a refresher on how to chain tools together,
+    which tools to use for specific scenarios, or how to handle module errors.
+    """
+    import os
+    from config.settings import get_settings
+    
+    logger.info("MCP Tool Called: get_tool_guide")
+    try:
+        # Resolve the root directory (where claude_prompt.txt is located)
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        prompt_path = os.path.join(base_dir, "claude_prompt.txt")
+        
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        return {"status": "success", "content": content}
+    except Exception as e:
+        logger.error("get_tool_guide error", error=str(e))
+        return {"status": "error", "message": "Failed to read tool guide: " + str(e)}
 
 
 if __name__ == "__main__":

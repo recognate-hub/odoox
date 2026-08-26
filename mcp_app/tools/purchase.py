@@ -17,6 +17,10 @@ def get_purchase_orders(
     """
     List purchase orders, optionally filtered by vendor.
 
+    Use this tool when:
+    - The user asks for a list of purchase orders.
+    - The user asks what orders were placed with a specific vendor/supplier.
+
     Args:
         partner_id (int, optional): Filter by vendor partner ID.
         limit (int): Maximum results to return.
@@ -62,6 +66,10 @@ def get_vendor_bills(
 ) -> list[dict[str, Any]]:
     """
     List vendor bills (incoming invoices from suppliers).
+    
+    Use this tool when:
+    - The user asks for a list of bills or expenses from vendors.
+    - The user wants to see what money is owed to suppliers.
 
     Args:
         partner_id (int, optional): Filter by vendor partner ID.
@@ -79,7 +87,6 @@ def get_vendor_bills(
         return service.get_vendor_bills(partner_id, limit)
 
 
-from services.operations import OperationsService
 
 
 @mcp.tool()
@@ -91,5 +98,6 @@ def get_purchase_plan() -> list[dict[str, Any]]:
     """
     with _span("mcp.get_purchase_plan"):
         odoo_repo, _ = server._get_tenant_service()
+        from services.operations import OperationsService
         service = OperationsService(odoo_repo)
         return service.get_purchase_plan()

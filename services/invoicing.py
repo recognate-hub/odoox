@@ -17,9 +17,9 @@ class InvoicingService:
         return {"status": "success", "invoice_id": invoice_id}
 
     def get_invoices(
-        self, partner_id: int | None = None, state: str | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None
+        self, partner_id: int | None = None, state: str | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None, overdue_only: bool = False
     ) -> list[dict[str, Any]]:
-        return self.odoo.get_invoices(partner_id, state, limit, offset, date_from, date_to)
+        return self.odoo.get_invoices(partner_id, state, limit, offset, date_from, date_to, overdue_only=overdue_only)
 
     def post_invoice(self, invoice_id: int) -> dict[str, Any]:
         self.odoo.post_invoice(invoice_id)

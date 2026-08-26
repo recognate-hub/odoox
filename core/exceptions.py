@@ -3,6 +3,14 @@ class BaseAppError(Exception):
 
 
 # --- Configuration Errors ---
+class OdooSchemaMismatchError(Exception):
+    """Raised when a queried field or domain condition does not exist on the connected database schema."""
+
+
+class OdooMissingModuleError(Exception):
+    """Raised when a requested model belongs to an Odoo module that is not installed."""
+
+
 class ConfigurationError(BaseAppError):
     """Raised when application configuration is invalid or missing."""
 

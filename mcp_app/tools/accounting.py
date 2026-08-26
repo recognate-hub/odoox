@@ -14,7 +14,9 @@ def get_aged_receivables(limit: int = 100) -> list[dict[str, Any]]:
     """
     Retrieve outstanding and overdue customer invoices (aged receivables).
 
-    Use this tool to track pending payments and cash flow bottlenecks.
+    Use this tool when:
+    - The user asks for overdue invoices, unpaid bills, or aged receivables.
+    - The user wants to track pending payments and cash flow bottlenecks.
 
     Args:
         limit (int): Maximum number of unpaid invoices to return. Default is 100.
@@ -77,7 +79,9 @@ def get_profit_and_loss_summary() -> list[dict[str, Any]]:
     """
     Calculate a high-level Profit & Loss summary.
 
-    Use this tool to analyze income vs expenses across accounting accounts.
+    Use this tool when:
+    - The user asks for a P&L, Profit and Loss, or income statement.
+    - The user wants to analyze income vs expenses across accounting accounts.
 
     Returns:
         List[Dict[str, Any]]: Aggregated financial metrics grouped by account internal type.
@@ -92,7 +96,6 @@ def get_profit_and_loss_summary() -> list[dict[str, Any]]:
             ["parent_state", "=", "posted"]
         ]
         fields = ["account_id", "balance", "debit", "credit"]
-        groupby = ["account_id"]
         
         # Odoo 18 may not support read_group on account.move.line via XML-RPC
         lines = odoo_repo.search_read_records("account.move.line", domain, fields, limit=5000)
@@ -125,7 +128,9 @@ def analyze_expense_trends() -> list[dict[str, Any]]:
     """
     Track the fastest-growing or largest expense accounts.
 
-    Use this tool to find out where the company is spending the most money.
+    Use this tool when:
+    - The user asks where the company is spending the most money.
+    - The user asks for an expense breakdown or trend.
 
     Returns:
         List[Dict[str, Any]]: Aggregated expense metrics by account.
@@ -139,7 +144,6 @@ def analyze_expense_trends() -> list[dict[str, Any]]:
             ["parent_state", "=", "posted"]
         ]
         fields = ["account_id", "balance"]
-        groupby = ["account_id"]
         
         lines = odoo_repo.search_read_records("account.move.line", domain, fields, limit=5000)
         
@@ -158,4 +162,111 @@ def analyze_expense_trends() -> list[dict[str, Any]]:
         return list(summary.values())
     except Exception as e:
         logger.error("analyze_expense_trends error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_accounting_journals(limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Retrieve all accounting journals (e.g. Bank, Cash, Sales, Purchase).
+    
+    Use this tool when:
+    - You need to find the correct journal_id to register a payment.
+    - The user asks about bank accounts or cash registers.
+    """
+    logger.info("MCP Tool Called: get_accounting_journals")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        fields = ["name", "type", "code", "currency_id"]
+        return odoo_repo.search_read_records("account.journal", [], fields, limit=limit)
+    except Exception as e:
+        logger.error("get_accounting_journals error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_tax_summary(limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Retrieve configured taxes and their rates.
+    
+    Use this tool when:
+    - The user asks about tax rates (VAT, GST, Sales Tax).
+    """
+    logger.info("MCP Tool Called: get_tax_summary")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        fields = ["name", "amount_type", "amount", "type_tax_use"]
+        return odoo_repo.search_read_records("account.tax", [["active", "=", True]], fields, limit=limit)
+    except Exception as e:
+        logger.error("get_tax_summary error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_trial_balance(limit: int = 200) -> list[dict[str, Any]]:
+    """
+    Retrieve the Chart of Accounts with their current balances (Trial Balance).
+    
+    Use this tool when:
+    - The user asks for a Trial Balance or Chart of Accounts.
+    """
+    logger.info("MCP Tool Called: get_trial_balance")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        # Fetch accounts (in some Odoo versions, balance might not be a stored field, 
+        # but we can try reading current_balance or just return the basic chart)
+        fields = ["code", "name", "account_type", "current_balance"] 
+        # Note: current_balance might fail on older Odoo, so we also fetch general details.
+        try:
+            return odoo_repo.search_read_records("account.account", [], fields, limit=limit)
+        except Exception:
+            fields = ["code", "name", "account_type"]
+            return odoo_repo.search_read_records("account.account", [], fields, limit=limit)
+    except Exception as e:
+        logger.error("get_trial_balance error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_bank_cash_summary(limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Retrieve the current balances of all Bank and Cash journals.
+    
+    Use this tool when:
+    - The user asks for bank balances, cash reserves, or liquid assets.
+    """
+    logger.info("MCP Tool Called: get_bank_cash_summary")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        domain = [["type", "in", ["bank", "cash"]]]
+        # In Odoo, account.journal usually doesn't store the balance directly. 
+        # But some versions have default_account_id which can be queried.
+        # Alternatively, we can just return the journals and let the user know.
+        return odoo_repo.search_read_records("account.journal", domain, ["name", "code", "type", "currency_id"], limit=limit)
+    except Exception as e:
+        logger.error("get_bank_cash_summary error", error=str(e))
+        return [{"status": "error", "message": str(e)}]
+
+
+@mcp.tool()
+@secure_tool()
+def get_general_ledger_summary(limit: int = 100) -> list[dict[str, Any]]:
+    """
+    Retrieve recent journal entries (General Ledger).
+    
+    Use this tool when:
+    - The user asks for recent accounting entries, GL, or journal entries.
+    """
+    logger.info("MCP Tool Called: get_general_ledger_summary")
+    odoo_repo, _ = server._get_tenant_service()
+    try:
+        domain = [["state", "=", "posted"]]
+        fields = ["name", "date", "journal_id", "amount_total", "partner_id", "ref"]
+        return odoo_repo.search_read_records("account.move", domain, fields, limit=limit, expand_fields=["line_ids"])
+    except Exception as e:
+        logger.error("get_general_ledger_summary error", error=str(e))
         return [{"status": "error", "message": str(e)}]

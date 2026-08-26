@@ -16,6 +16,10 @@ def get_quality_checks(
 ) -> list[dict[str, Any]]:
     """
     List quality checks, optionally filtered by product and date.
+    
+    Use this tool when:
+    - The user asks for a list of quality inspections or checks.
+    - The user asks whether a product passed or failed quality control.
 
     Args:
         product_id (int, optional): Filter by product ID.
@@ -43,7 +47,9 @@ def get_quality_alerts(
     """
     List quality alerts, optionally filtered by product and date.
 
-    Use this to monitor open quality issues and their current stages.
+    Use this tool when:
+    - The user wants to monitor open quality issues and their current stages.
+    - The user asks about defects, problems, or alerts raised for a product.
 
     Args:
         product_id (int, optional): Filter by product ID.
@@ -87,7 +93,6 @@ def get_quality_points(limit: int = 50) -> list[dict[str, Any]]:
         return service.get_quality_points(limit)
 
 
-from services.operations import OperationsService
 
 
 @mcp.tool()
@@ -99,6 +104,7 @@ def get_quality_metrics() -> dict[str, Any]:
     """
     with _span("mcp.get_quality_metrics"):
         odoo_repo, _ = server._get_tenant_service()
+        from services.operations import OperationsService
         service = OperationsService(odoo_repo)
         return service.get_quality_metrics()
 

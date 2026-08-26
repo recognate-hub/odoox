@@ -9,6 +9,8 @@ from schemas.odoo import (
     OdooQuote,
     OdooSalesDashboard,
 )
+from core.schema_engine import SchemaEngine
+from core.expansion import RelationExpander
 
 
 class OdooRepository:
@@ -19,11 +21,16 @@ class OdooRepository:
 
     def __init__(self, connector: OdooConnectorInterface):
         self.connector = connector
+        self.schema_engine = SchemaEngine(connector)
+        self.expander = RelationExpander(connector)
 
     def get_active_leads(
         self,
         name_query: str | None = None,
         stage_id: int | None = None,
+        user_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
         limit: int = 100,
     ) -> list[OdooLead]:
         d = Domain().eq("type", "opportunity")
@@ -31,6 +38,12 @@ class OdooRepository:
             d.ilike("name", name_query)
         if stage_id:
             d.eq("stage_id", stage_id)
+        if user_id:
+            d.eq("user_id", user_id)
+        if date_from:
+            d.gte("create_date", date_from)
+        if date_to:
+            d.lte("create_date", date_to)
         return self.connector.get_leads(domain=d.build(), limit=limit)
 
     def get_lead_by_id(self, lead_id: int) -> OdooLead | None:
@@ -59,15 +72,29 @@ class OdooRepository:
             data["phone"] = phone
         return self.connector.create_contact(data)
 
-    def search_products(self, query: str, limit: int = 20) -> list[OdooProduct]:
+    def search_products(
+        self, 
+        query: str, 
+        limit: int = 20,
+        category_id: int | None = None,
+        active: bool | None = None,
+        min_stock: float | None = None
+    ) -> list[OdooProduct]:
+        d = Domain()
         if query:
-            domain = Domain.or_(
+            d = Domain.or_(
                 Domain().ilike("name", query),
                 Domain().ilike("default_code", query),
-            ).build()
-        else:
-            domain = Domain().build()
-        return self.connector.get_products(domain=domain, limit=limit)
+            )
+            
+        if category_id:
+            d.eq("categ_id", category_id)
+        if active is not None:
+            d.eq("active", active)
+        if min_stock is not None:
+            d.gte("qty_available", min_stock)
+            
+        return self.connector.get_products(domain=d.build(), limit=limit)
 
     def create_product(
         self,
@@ -82,12 +109,12 @@ class OdooRepository:
         return self.connector.create_product(data)
 
     def get_recent_quotes(
-        self, partner_id: int | None = None, limit: int = 10
+        self, partner_id: int | None = None, limit: int = 10, expand_fields: list[str] | None = None
     ) -> list[OdooQuote]:
         d = Domain()
         if partner_id:
             d.eq("partner_id", partner_id)
-        return self.connector.get_quotes(domain=d.build(), limit=limit)
+        return self.connector.get_quotes(domain=d.build(), limit=limit, expand_fields=expand_fields)
 
     def create_quote(self, partner_id: int, order_lines: list[dict]) -> int:
         formatted_lines = []
@@ -194,23 +221,38 @@ class OdooRepository:
         fields: list[str] | None = None,
         limit: int = 100,
         offset: int = 0,
+        expand_fields: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        return self.connector.search_read_records(
+        domain = domain or []
+        self.schema_engine.validate_domain(model, domain)
+        if fields:
+            fields = self.schema_engine.filter_and_alias_fields(model, fields)
+        records = self.connector.search_read_records(
             model, domain=domain, fields=fields, limit=limit, offset=offset
         )
+        if expand_fields and records:
+            records = self.expander.expand_records(model, records, expand_fields)
+        return records
 
     def read_group(
         self, model: str, domain: list[Any], fields: list[str], groupby: list[str]
     ) -> list[dict[str, Any]]:
+        self.schema_engine.validate_domain(model, domain)
+        fields = self.schema_engine.filter_and_alias_fields(model, fields)
+        groupby = self.schema_engine.filter_and_alias_fields(model, groupby)
         return self.connector.read_group(model, domain, fields, groupby, lazy=False)
 
     def create_record(self, model: str, data: dict[str, Any]) -> int:
+        self.schema_engine.validate_write_data(model, data)
         return self.connector.create_record(model, data)
 
     def create_records(self, model: str, data_list: list[dict[str, Any]]) -> list[int]:
+        for data in data_list:
+            self.schema_engine.validate_write_data(model, data)
         return self.connector.create_records(model, data_list)
 
     def update_record(self, model: str, record_id: int, data: dict[str, Any]) -> bool:
+        self.schema_engine.validate_write_data(model, data)
         return self.connector.update_record(model, record_id, data)
 
     def get_installed_apps(self) -> list[dict[str, Any]]:
@@ -312,7 +354,7 @@ class OdooRepository:
         }
         return self.connector.create_record("mrp.production", data)
 
-    def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None) -> list[dict[str, Any]]:
+    def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None, product_name_query: str | None = None) -> list[dict[str, Any]]:
         fields = [
             "name",
             "product_id",
@@ -327,6 +369,14 @@ class OdooRepository:
             d.gte("create_date", date_from)
         if date_to:
             d.lte("create_date", date_to)
+            
+        if product_name_query:
+            products = self.search_products(product_name_query, limit=100)
+            if products:
+                product_ids = [p.id for p in products]
+                d.in_("product_id", product_ids)
+            else:
+                return []
             
         return self.connector.search_read_records(
             "mrp.production", domain=d.build(), fields=fields, limit=limit, offset=offset
@@ -648,7 +698,7 @@ class OdooRepository:
 
     # ── Invoicing ──────────────────────────────────────────────────────
     def get_invoices(
-        self, partner_id: int | None = None, state: str | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None
+        self, partner_id: int | None = None, state: str | None = None, limit: int = 50, offset: int = 0, date_from: str | None = None, date_to: str | None = None, overdue_only: bool = False
     ) -> list[dict[str, Any]]:
         d = Domain().eq("move_type", "out_invoice")
         if partner_id:
@@ -659,6 +709,12 @@ class OdooRepository:
             d.gte("invoice_date", date_from)
         if date_to:
             d.lte("invoice_date", date_to)
+        if overdue_only:
+            from datetime import datetime, UTC
+            today = datetime.now(UTC).date().isoformat()
+            d.lt("invoice_date_due", today)
+            d.not_in("payment_state", ["paid", "in_payment"])
+            d.eq("state", "posted")
         fields = [
             "name",
             "partner_id",

@@ -11,22 +11,6 @@ logger = get_logger(__name__)
 
 @mcp.tool()
 @secure_tool()
-def revenue_report() -> dict[str, Any]:
-    """
-    Get the current sales dashboard and revenue report.
-    (Note: This tool provides identical data to get_sales_dashboard).
-
-    Returns:
-        Dict[str, Any]: A dictionary containing total_revenue, active_leads_count, quotes_count, and win_rate_percentage.
-    """
-    logger.info("MCP Tool Called: revenue_report")
-    odoo_repo, _ = server._get_tenant_service()
-    dashboard = odoo_repo.get_dashboard()
-    return dashboard.model_dump()
-
-
-@mcp.tool()
-@secure_tool()
 def get_pipeline_forecast_data() -> list[dict[str, Any]]:
     """
     Fetch active leads and pipeline data for sales forecasting.

@@ -17,7 +17,9 @@ def get_meetings(
     """
     List calendar events/meetings from Odoo.
 
-    Use this to check upcoming meetings, filter by attendee, or review schedule from a given date.
+    Use this tool when:
+    - The user wants to check upcoming meetings or calendar schedule.
+    - The user wants to filter meetings by an attendee or starting date.
 
     Args:
         partner_id (int, optional): Filter meetings by a specific attendee's partner ID.

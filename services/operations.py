@@ -170,12 +170,31 @@ class OperationsService:
         """
         Analyzes active Workorders to find which Workcenters have the largest backlog.
         """
-        wip_by_wc = self.odoo.read_group(
+        wip_records = self.odoo.search_read_records(
             "mrp.workorder",
             domain=[("state", "not in", ["done", "cancel"])],
             fields=["workcenter_id", "qty_production"],
-            groupby=["workcenter_id"]
+            limit=10000
         )
+        
+        # Manual grouping
+        wip_by_wc_dict = defaultdict(float)
+        wc_meta = {}
+        for rec in wip_records:
+            wc = rec.get("workcenter_id")
+            if wc:
+                wc_id = wc[0] if isinstance(wc, list) else wc
+                wc_name = wc[1] if isinstance(wc, list) else str(wc)
+                wc_meta[wc_id] = wc_name
+                qty = rec.get("qty_production") or 0.0
+                wip_by_wc_dict[wc_id] += qty
+
+        wip_by_wc = []
+        for wc_id, qty in wip_by_wc_dict.items():
+            wip_by_wc.append({
+                "workcenter_id": [wc_id, wc_meta[wc_id]],
+                "qty_production": qty
+            })
         
         bottlenecks = []
         for wc in wip_by_wc:
@@ -196,20 +215,40 @@ class OperationsService:
         Aggregates recent Quality Alerts and Checks.
         """
         # Quality Alerts by Product
-        alerts = self.odoo.read_group(
+        alert_records = self.odoo.search_read_records(
             "quality.alert",
             domain=[],
-            fields=["product_id", "id:count"],
-            groupby=["product_id"]
+            fields=["product_id"],
+            limit=10000
         )
         
+        alert_dict = defaultdict(int)
+        alert_meta = {}
+        for rec in alert_records:
+            pid = rec.get("product_id")
+            if pid:
+                p_id = pid[0] if isinstance(pid, list) else pid
+                p_name = pid[1] if isinstance(pid, list) else str(pid)
+                alert_meta[p_id] = p_name
+                alert_dict[p_id] += 1
+                
+        alerts = [{"product_id": [pid, alert_meta[pid]], "id_count": count} for pid, count in alert_dict.items()]
+        
         # Quality Checks by State
-        checks = self.odoo.read_group(
+        check_records = self.odoo.search_read_records(
             "quality.check",
             domain=[],
-            fields=["quality_state", "id:count"],
-            groupby=["quality_state"]
+            fields=["quality_state"],
+            limit=10000
         )
+        
+        check_dict = defaultdict(int)
+        for rec in check_records:
+            state = rec.get("quality_state")
+            if state:
+                check_dict[state] += 1
+                
+        checks = [{"quality_state": state, "id_count": count} for state, count in check_dict.items()]
         
         alerts_formatted = []
         for a in alerts:

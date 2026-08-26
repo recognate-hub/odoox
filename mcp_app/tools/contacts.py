@@ -15,7 +15,9 @@ def search_customer(name: str, limit: int = 20) -> list[dict[str, Any]]:
     """
     Search for contacts/customers in Odoo by name.
 
-    Use this tool to find a partner's ID or basic contact info.
+    Use this tool when:
+    - The user asks to find a customer, vendor, or contact by name.
+    - You need to find a partner_id to use in another tool (like creating an invoice or quote).
 
     Args:
         name (str): The name query to search for (case-insensitive partial match).
@@ -36,7 +38,12 @@ def get_customer_details(partner_id: int) -> dict[str, Any]:
     """
     Fetch comprehensive customer details and recent quotes.
 
-    Use this tool to generate a 360-degree view of a customer.
+    Use this tool when:
+    - The user asks for a 360-degree view of a specific customer.
+    - The user asks for recent quotes or orders for a specific customer.
+    
+    Do NOT use this tool when:
+    - You are searching by name (use search_customer first to get the partner_id).
 
     Args:
         partner_id (int): The exact Odoo ID of the partner/customer.

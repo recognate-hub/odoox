@@ -11,9 +11,14 @@ logger = get_logger(__name__)
 
 @mcp.tool()
 @secure_tool()
-def get_manufacturing_orders(limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None) -> list[dict[str, Any]]:
+def get_manufacturing_orders(limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None, product_name_query: str | None = None) -> list[dict[str, Any]]:
     """
     List manufacturing orders.
+
+    Use this tool when:
+    - The user asks for a list of production orders.
+    - The user wants to see the status of manufacturing orders.
+    - The user asks what is currently being built in the factory.
 
     Args:
         limit (int): Maximum results to return.
@@ -29,7 +34,7 @@ def get_manufacturing_orders(limit: int = 20, offset: int = 0, date_from: str | 
         from services.production import ProductionService
 
         service = ProductionService(odoo_repo)
-        return service.get_manufacturing_orders(limit, offset, date_from, date_to)
+        return service.get_manufacturing_orders(limit, offset, date_from, date_to, product_name_query)
 
 
 @mcp.tool()
@@ -39,6 +44,10 @@ def get_bill_of_materials(
 ) -> list[dict[str, Any]]:
     """
     List Bills of Materials (BOM) — the recipes/formulas for manufacturing products.
+
+    Use this tool when:
+    - The user asks what components are needed to build a product.
+    - The user asks for the recipe, formula, or BOM of an item.
 
     Args:
         product_id (int, optional): Filter by product template ID.
@@ -62,6 +71,10 @@ def get_work_orders(mo_id: int | None = None, limit: int = 50) -> list[dict[str,
     """
     List work orders (individual production steps) within manufacturing orders.
 
+    Use this tool when:
+    - The user asks about specific operations or steps for a manufacturing order.
+    - The user asks what work is happening at a workcenter.
+
     Args:
         mo_id (int, optional): Filter by manufacturing order ID.
         limit (int): Maximum results to return.
@@ -84,6 +97,10 @@ def get_wip_stock_by_stage(product_id: int) -> list[dict[str, Any]]:
     """
     Fetch the stage-wise WIP (Work In Progress) stock for a product.
     This aggregates active work orders grouped by their stage/workcenter.
+
+    Use this tool when:
+    - The user asks where stock is currently sitting on the factory floor.
+    - The user asks for WIP totals for a specific product.
 
     Args:
         product_id (int): The ID of the product.
@@ -160,16 +177,7 @@ def get_bom_hierarchy(
         return service.get_bom_hierarchy(bom_id, limit)
 
 
-@mcp.tool()
-@secure_tool()
-def get_work_center_capacity(limit: int = 50) -> list[dict[str, Any]]:
-    """Check the current load and capacity on work centers."""
-    with _span("mcp.get_work_center_capacity"):
-        odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
 
-        service = ProductionService(odoo_repo)
-        return service.get_workcenters(limit)
 
 
 @mcp.tool()
@@ -207,6 +215,10 @@ def analyze_component_shortages() -> dict[str, Any]:
     """
     Analyze active manufacturing orders against current live inventory to identify 
     exact missing components and blocked orders.
+    
+    Use this tool when:
+    - The user asks what parts they are missing to complete production.
+    - The user asks why an order is waiting for components.
     """
     with _span("mcp.analyze_component_shortages"):
         odoo_repo, _ = server._get_tenant_service()
@@ -301,9 +313,6 @@ def log_work_order_time(
         return service.log_work_order_time(workorder_id, duration_minutes, loss_id)
 
 
-from services.operations import OperationsService
-
-
 @mcp.tool()
 @secure_tool()
 def analyze_workcenter_bottlenecks() -> list[dict[str, Any]]:
@@ -313,5 +322,6 @@ def analyze_workcenter_bottlenecks() -> list[dict[str, Any]]:
     """
     with _span("mcp.analyze_workcenter_bottlenecks"):
         odoo_repo, _ = server._get_tenant_service()
+        from services.operations import OperationsService
         service = OperationsService(odoo_repo)
         return service.analyze_workcenter_bottlenecks()

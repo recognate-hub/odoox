@@ -61,7 +61,7 @@ def test_get_lead_by_id_found(repo, mock_connector):
     assert lead is not None
     assert lead.id == 42
     assert lead.name == "<untrusted_crm_data>Found Lead</untrusted_crm_data>"
-    mock_connector.get_leads.assert_called_once_with(domain=[["id", "=", 42]], limit=1)
+    mock_connector.get_leads.assert_called_once_with(domain=[["id", "=", 42], ["active", "in", [True, False]]], limit=1)
 
 
 def test_get_lead_by_id_not_found(repo, mock_connector):
@@ -100,7 +100,7 @@ def test_search_contacts_by_name_custom_limit(repo, mock_connector):
 
 def test_search_products(repo, mock_connector):
     mock_connector.get_products.return_value = [
-        OdooProduct(id=3, name="Product A", list_price=49.99, qty_available=100)
+        OdooProduct(id=3, name="Product A", list_price=100.0)
     ]
     products = repo.search_products("Prod")
 
@@ -124,14 +124,14 @@ def test_get_recent_quotes_no_partner(repo, mock_connector):
 
     assert len(quotes) == 1
     assert quotes[0].name == "<untrusted_crm_data>S00001</untrusted_crm_data>"
-    mock_connector.get_quotes.assert_called_once_with(domain=[], limit=10)
+    mock_connector.get_quotes.assert_called_once_with(domain=[], limit=10, expand_fields=None)
 
 
 def test_get_recent_quotes_with_partner(repo, mock_connector):
     mock_connector.get_quotes.return_value = []
     repo.get_recent_quotes(partner_id=5, limit=3)
     mock_connector.get_quotes.assert_called_once_with(
-        domain=[["partner_id", "=", 5]], limit=3
+        domain=[["partner_id", "=", 5]], limit=3, expand_fields=None
     )
 
 

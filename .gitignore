@@ -67,3 +67,13 @@ manual_test.py
 db.sqlite3
 node_modules/
 cloudflared.exe
+out*.txt
+out*.json
+err*.txt
+output.txt
+routes.txt
+connect_sse.txt
+scratch/
+scratch_*.py
+*.png
+*.html

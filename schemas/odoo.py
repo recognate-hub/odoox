@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class OdooBaseModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -37,7 +37,7 @@ class OdooContact(OdooBaseModel):
     email: str | None = None
     phone: str | None = None
     is_company: bool = False
-    company_id: list | None = None  # Odoo returns [id, name] for Many2one
+    company_id: Any = None  # Odoo returns [id, name] for Many2one, or expanded dict
 
 
 class OdooLead(OdooBaseModel):
@@ -45,8 +45,8 @@ class OdooLead(OdooBaseModel):
     name: str
     email_from: str | None = None
     phone: str | None = None
-    partner_id: list | None = None
-    stage_id: list | None = None
+    partner_id: Any = None
+    stage_id: Any = None
     expected_revenue: float = 0.0
     probability: float = 0.0
     description: str | None = None
@@ -63,20 +63,21 @@ class OdooProduct(OdooBaseModel):
 class OdooQuote(OdooBaseModel):
     id: int
     name: str
-    partner_id: list | None = None
+    partner_id: Any = None
     state: str
     amount_total: float = 0.0
     date_order: str | None = None
+    order_line: Any = None
 
 
 class OdooActivity(OdooBaseModel):
     id: int
     res_model: str
     res_id: int
-    activity_type_id: list | None = None
+    activity_type_id: Any = None
     summary: str | None = None
     date_deadline: str | None = None
-    user_id: list | None = None
+    user_id: Any = None
 
 
 class OdooMeeting(OdooBaseModel):
@@ -84,7 +85,7 @@ class OdooMeeting(OdooBaseModel):
     name: str
     start: str | None = None
     stop: str | None = None
-    partner_ids: list[int] = Field(default_factory=list)
+    partner_ids: Any = Field(default_factory=list)
 
 
 class OdooSalesDashboard(OdooBaseModel):
@@ -98,7 +99,7 @@ class OdooMessage(OdooBaseModel):
     id: int
     body: str | None = None
     date: str | None = None
-    author_id: list | None = None
+    author_id: Any = None
     res_id: int | None = None
     model: str | None = None
 
@@ -112,36 +113,40 @@ class OdooChannel(OdooBaseModel):
 class OdooPurchaseOrder(OdooBaseModel):
     id: int
     name: str
-    partner_id: list | None = None
+    partner_id: Any = None
     state: str
     amount_total: float = 0.0
     date_order: str | None = None
+    order_line: Any = None
 
 
 class OdooManufacturingOrder(OdooBaseModel):
     id: int
     name: str
-    product_id: list | None = None
+    product_id: Any = None
     product_qty: float = 0.0
     state: str
     date_planned_start: str | None = None
+    bom_id: Any = None
+    workorder_ids: Any = None
+    move_raw_ids: Any = None
 
 
 class OdooStockMove(OdooBaseModel):
     id: int
     name: str
-    product_id: list | None = None
+    product_id: Any = None
     product_uom_qty: float = 0.0
-    location_id: list | None = None
-    location_dest_id: list | None = None
+    location_id: Any = None
+    location_dest_id: Any = None
     state: str
 
 
 class OdooQualityAlert(OdooBaseModel):
     id: int
     name: str
-    product_id: list | None = None
-    team_id: list | None = None
+    product_id: Any = None
+    team_id: Any = None
     priority: str | None = None
 
 

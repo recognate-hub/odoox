@@ -61,48 +61,6 @@ class UpdateLeadInput(BaseModel):
     lead_id: int = Field(..., gt=0, description="The ID of the lead to update.")
     data: dict[str, Any] = Field(..., description="Dictionary of fields to update.")
 
-    # Whitelist of CRM lead fields safe to update via this tool
-    _ALLOWED_FIELDS: frozenset[str] = frozenset(
-        {
-            "name",
-            "email_from",
-            "phone",
-            "mobile",
-            "description",
-            "expected_revenue",
-            "probability",
-            "priority",
-            "stage_id",
-            "partner_id",
-            "user_id",
-            "team_id",
-            "date_deadline",
-            "tag_ids",
-            "source_id",
-            "medium_id",
-            "campaign_id",
-            "street",
-            "city",
-            "state_id",
-            "country_id",
-            "zip",
-            "website",
-            "contact_name",
-            "function",
-        }
-    )
-
-    @model_validator(mode="after")
-    def validate_data_keys(self) -> "UpdateLeadInput":
-        """Reject writes to unknown or dangerous fields."""
-        bad_keys = set(self.data.keys()) - self._ALLOWED_FIELDS
-        if bad_keys:
-            raise ValueError(
-                f"Cannot update disallowed CRM fields: {', '.join(sorted(bad_keys))}. "
-                f"Allowed fields: {', '.join(sorted(self._ALLOWED_FIELDS))}"
-            )
-        return self
-
 
 class ScheduleMeetingInput(BaseModel):
     name: str = Field(..., max_length=100, description="The title of the meeting.")
@@ -229,6 +187,10 @@ class SearchReadInput(BaseModel):
     offset: int = Field(
         0, ge=0, description="The number of records to skip for pagination."
     )
+    expand_fields: list[str] | None = Field(
+        None,
+        description="Optional list of relational field paths to expand (e.g. ['order_line', 'partner_id']). Fetches full nested objects instead of raw IDs.",
+    )
 
     @field_validator("model")
     @classmethod
@@ -298,6 +260,11 @@ class GetModelFieldsInput(BaseModel):
     model_config = {"protected_namespaces": ()}
     model: str = Field(..., description="The Odoo model name to get fields for.")
 
+    @field_validator("model")
+    @classmethod
+    def validate_model_name(cls, v: str) -> str:
+        return _validate_model_name(v)
+
 
 class ReadGroupInput(BaseModel):
     model_config = {"protected_namespaces": ()}
@@ -346,6 +313,11 @@ class ExecuteMethodInput(BaseModel):
     kwargs: dict[str, Any] = Field(
         default_factory=dict, description="Keyword arguments."
     )
+
+    @field_validator("model")
+    @classmethod
+    def validate_model_name(cls, v: str) -> str:
+        return _validate_model_name(v)
 
 
 class PostMessageInput(BaseModel):
@@ -550,3 +522,13 @@ class RaiseQualityAlertInput(BaseModel):
     name: str = Field(..., description="The name/title of the quality alert.")
     team_id: int | None = Field(None, description="The ID of the quality team to assign.")
     priority: str = Field("0", description="Priority level (e.g. '0', '1', '2', '3').")
+
+
+# ── Project Schemas ───────────────────────────────────────────────────
+class CreateProjectTaskInput(BaseModel):
+    name: str = Field(..., description="The title of the task.")
+    project_id: int = Field(..., description="The ID of the project this task belongs to.")
+    description: str | None = Field(None, description="Detailed description of the task.")
+    user_ids: list[int] | None = Field(None, description="List of user IDs to assign the task to.")
+    date_deadline: str | None = Field(None, description="Deadline for the task (YYYY-MM-DD).")
+

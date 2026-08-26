@@ -17,7 +17,9 @@ def get_recent_quotes(
     """
     Retrieve a list of recent quotes and sales orders.
 
-    Use this tool to check the status of orders or look up quotes for the entire company or a specific customer.
+    Use this tool when:
+    - The user asks for a list of recent quotes or sales.
+    - The user wants to check the status of orders for the entire company or a specific customer.
 
     Args:
         partner_id (Optional[int]): Filter by a specific customer/partner ID. Leave empty for all recent quotes.
@@ -30,8 +32,8 @@ def get_recent_quotes(
         "MCP Tool Called: get_recent_quotes", partner_id=partner_id, limit=limit
     )
     odoo_repo, _ = server._get_tenant_service()
-    quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit)
-    return [quote.model_dump() for quote in quotes]
+    quotes = odoo_repo.get_recent_quotes(partner_id=partner_id, limit=limit, expand_fields=["order_line", "partner_id"])
+    return [quote.model_dump(exclude_none=True) for quote in quotes]
 
 
 @mcp.tool()
@@ -62,7 +64,6 @@ def quote_to_cash_automation(
         return {"status": "error", "message": str(e)}
 
 
-from services.operations import OperationsService
 
 
 @mcp.tool()
@@ -71,8 +72,13 @@ def get_ready_to_ship_orders() -> list[dict[str, Any]]:
     """
     Analyzes all pending sales orders and checks them against current Finished Goods stock.
     Returns a list of Sales Orders that can be 100% fulfilled immediately.
+    
+    Use this tool when:
+    - The user asks what orders are ready to ship.
+    - The user wants to know which sales can be fulfilled from existing inventory.
     """
     with _span("mcp.get_ready_to_ship_orders"):
         odoo_repo, _ = server._get_tenant_service()
+        from services.operations import OperationsService
         service = OperationsService(odoo_repo)
         return service.get_ready_to_ship_orders()

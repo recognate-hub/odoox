@@ -56,8 +56,9 @@ class OdooConnectorInterface(ABC):
 
     @abstractmethod
     def get_quotes(
-        self, domain: list[Any] | None = None, limit: int = 100
+        self, domain: list[Any] | None = None, limit: int = 100, expand_fields: list[str] | None = None
     ) -> list[OdooQuote]:
+        """Fetch quotes and sales orders matching a given domain."""
         pass
 
     @abstractmethod
@@ -109,3 +110,32 @@ class OdooConnectorInterface(ABC):
     @abstractmethod
     def get_model_fields(self, model: str) -> dict[str, Any]:
         pass
+
+    @abstractmethod
+    def read_group(
+        self, model: str, domain: list[Any], fields: list[str], groupby: list[str], **kwargs
+    ) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def archive_record(self, model: str, record_id: int, archive: bool = True) -> bool:
+        pass
+
+    @abstractmethod
+    def get_attachment(self, attachment_id: int) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def create_attachment(self, data: dict[str, Any]) -> int:
+        pass
+
+    @abstractmethod
+    def execute_method(
+        self, model: str, method: str, args: list[Any] | None = None, kwargs: dict[str, Any] | None = None
+    ) -> Any:
+        pass
+
+    @abstractmethod
+    def create_records(self, model: str, data_list: list[dict[str, Any]]) -> list[int]:
+        pass
+

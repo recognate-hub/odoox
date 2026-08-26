@@ -17,7 +17,9 @@ def get_messages(
     """
     Retrieve messages from Odoo's chatter/mail system.
 
-    Use this to read conversation history on any record, or browse all recent messages.
+    Use this tool when:
+    - The user wants to read conversation history or chatter on any record.
+    - The user wants to browse all recent messages across the system.
 
     Args:
         res_model (str, optional): Filter by Odoo model (e.g., 'crm.lead'). Leave empty for all.
@@ -40,6 +42,10 @@ def get_messages(
 def get_channels(limit: int = 50) -> list[dict[str, Any]]:
     """
     List all Discuss channels available in the Odoo instance.
+    
+    Use this tool when:
+    - The user wants to see what discussion channels exist.
+    - You need to find a channel_id to use in other discuss tools.
 
     Args:
         limit (int): Maximum number of channels to return.
@@ -60,6 +66,9 @@ def get_channels(limit: int = 50) -> list[dict[str, Any]]:
 def get_channel_messages(channel_id: int, limit: int = 50) -> list[dict[str, Any]]:
     """
     Read messages from a specific Discuss channel.
+    
+    Use this tool when:
+    - The user asks to read messages from a specific chat or channel.
 
     Args:
         channel_id (int): The ID of the Discuss channel.

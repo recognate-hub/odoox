@@ -26,18 +26,25 @@ def _span(name: str):
     return nullcontext()
 
 
+_tenant_services = {}
+
 def _get_tenant_service() -> tuple[OdooRepository, CRMService]:
     """
-    Lazily create an OdooConnector using the current tenant's credentials.
-    This is called per-request so each tenant gets their own connection.
+    Lazily create or retrieve an OdooConnector using the current tenant's credentials.
     """
-    # The XmlRpcOdooConnector automatically reads the credentials from the
-    # current_token and get_workspace_credentials context when making calls.
-    settings = get_settings()
-    connector = XmlRpcOdooConnector(settings)
-    repo = OdooRepository(connector)
-    service = CRMService(repo)
-    return repo, service
+    from core.context import get_current_token, current_workspace_id
+    token = get_current_token()
+    workspace_id = current_workspace_id.get()
+    cache_key = f"{token}:{workspace_id}"
+    
+    if cache_key not in _tenant_services:
+        settings = get_settings()
+        connector = XmlRpcOdooConnector(settings)
+        repo = OdooRepository(connector)
+        service = CRMService(repo)
+        _tenant_services[cache_key] = (repo, service)
+        
+    return _tenant_services[cache_key]
 
 
 # Initialize FastMCP Server
@@ -73,4 +80,11 @@ import mcp_app.tools.projects
 import mcp_app.tools.purchase
 import mcp_app.tools.quality
 import mcp_app.tools.reports
+import mcp_app.tools.finops
 import mcp_app.tools.sales  # noqa: F401
+import mcp_app.tools.schema
+import mcp_app.tools.intelligence
+
+# Register Prompts and Resources
+import mcp_app.prompts
+import mcp_app.resources

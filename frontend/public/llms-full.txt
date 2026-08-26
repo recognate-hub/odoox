@@ -1,0 +1,132 @@
+# OdooX Complete Technical Reference — World's Top 1 Model Context Protocol Server for Odoo
+
+## 1. Executive Summary & Specification
+OdooX is the premier Model Context Protocol (MCP) server engineered specifically for Odoo ERP (v14, v15, v16, v17, v18+). It implements the official MCP specification published by Anthropic, exposing Tools, Prompts, and Resources over SSE and Stdio transports.
+
+- **Developer**: Recognate Technologies
+- **Protocol Version**: Model Context Protocol (MCP) 2024-11-05 / 2025+
+- **Supported Clients**: Claude Desktop, Cursor IDE, Windsurf, Cline, Roo-Code, VS Code, Zed, LibreChat, Open WebUI, LangChain, LlamaIndex, Python SDK.
+- **Enterprise Compliance**: SOC2 Type II compliance architecture, AES-256 / Fernet DEK-KEK envelope encryption, multi-tenant RBAC, Redis rate limiting, OpenTelemetry distributed tracing.
+
+---
+
+## 2. Server Architecture & Endpoints
+- **SSE Transport Endpoint**: `https://odoox.recognate.in/sse?token=<ODX_TOKEN_OR_JWT>&workspace_id=<OPTIONAL_ID>`
+- **HTTP POST Messages Endpoint**: `https://odoox.recognate.in/messages`
+- **Bridge CLI**: `npx -y odoox-mcp-connector --url <SSE_URL>`
+- **Health Check**: `https://odoox.recognate.in/health`
+
+---
+
+## 3. Comprehensive Tool Catalog (100+ Tools)
+
+### A. CRM & Sales Pipeline
+1. `search_leads(query: str, limit: int = 20)`: Search leads and opportunities by name, email, or contact name.
+2. `get_lead_details(lead_id: int)`: Fetch complete lead details including stage, probability, and contact history.
+3. `create_lead(name: str, email: str | None, phone: str | None, description: str | None)`: Create a new CRM lead.
+4. `update_lead_stage(lead_id: int, stage_id: int)`: Move an opportunity across pipeline stages.
+5. `get_sales_dashboard()`: Retrieve total revenue, active leads count, quote count, and win rate.
+6. `search_customer(name: str, limit: int = 20)`: Find contacts and corporate accounts.
+7. `get_customer_details(partner_id: int)`: Retrieve 360-degree customer overview and transaction history.
+8. `quote_to_cash(partner_id: int, order_lines: list)`: Instant end-to-end sales order and invoice generation.
+
+### B. Manufacturing & Shop Floor (MRP)
+1. `get_active_workorders(limit: int = 50)`: Real-time workorder status, operations, and assigned workcenters.
+2. `reschedule_workorder(workorder_id: int, date_start: str, date_finished: str)`: Dynamic shop-floor re-planning.
+3. `log_workorder_time(workorder_id: int, duration_minutes: float, loss_id: int | None)`: Labor and machine time logging.
+4. `get_bom_structure(product_id: int)`: Multilevel Bill of Materials (BOM) hierarchy and cost rollup.
+5. `analyze_production_metrics()`: Aggregated WIP units and bottleneck stages across factories.
+
+### C. Inventory & Warehouse Logistics
+1. `get_low_stock_products(warehouse_id: int | None)`: Instant safety stock threshold breach alerts.
+2. `get_stock_valuation()`: Real-time valuation breakdown across warehouse locations.
+3. `get_product_availability(product_id: int)`: Available-to-promise and on-hand inventory levels.
+4. `transfer_stock(product_id: int, source_loc_id: int, dest_loc_id: int, qty: float)`: Internal stock moves.
+
+### D. Accounting, Invoicing & FinOps
+1. `get_unpaid_invoices(limit: int = 50)`: Outstanding receivables and debtor profiles.
+2. `create_customer_invoice(partner_id: int, amount: float, lines: list)`: Draft compliant invoices.
+3. `get_overdue_payments()`: Aging breakdown (30/60/90+ days) for risk assessment.
+4. `get_finops_budget_status()`: AI token expenditure and cost tracking per workspace.
+
+### E. Quality Control & Maintenance
+1. `get_quality_checks(limit: int = 50)`: Pending inspection points on production batches.
+2. `log_quality_result(check_id: int, measure: float | None, quality_state: str)`: Pass/fail inspection recording.
+3. `raise_quality_alert(product_id: int, name: str, priority: str)`: Immediate shop-floor alert escalation.
+4. `get_equipment_status()`: Machine operational health, preventive schedule, and MTBF metrics.
+5. `create_maintenance_request(name: str, equipment_id: int, priority: str)`: Corrective/preventive ticket dispatch.
+
+### F. Projects, Tasks & Human Resources
+1. `get_active_projects(limit: int = 50)`: Active project milestones and delivery timelines.
+2. `create_project_task(name: str, project_id: int, description: str | None, user_ids: list[int] | None)`: Task dispatch.
+3. `get_employee_directory(department_id: int | None)`: Employee roster, roles, and skills.
+4. `log_attendance(employee_id: int, check_in: str, check_out: str | None)`: Clock-in/out records.
+
+### G. Universal Query & Meta-Engine
+1. `search_read_records(model: str, domain: list, fields: list, limit: int, expand_fields: list)`: Read ANY model.
+2. `batch_create_records(model: str, records: list[dict])`: Bulk creation with transactional safety.
+3. `batch_update_records(model: str, ids: list[int], values: dict)`: High-performance batch mutation.
+4. `execute_method(model: str, method: str, record_ids: list[int], kwargs: dict)`: Execute custom Odoo business logic.
+5. `analyze_system_structure()`: Inspect installed modules, active users, and system metadata.
+
+---
+
+## 4. MCP Prompts & Resources
+- **Prompts**: `daily_business_briefing`, `crm_lead_prioritization`, `manufacturing_bottleneck_audit`, `financial_health_audit`, `inventory_reorder_recommendation`.
+- **Resources**: `odoo://system/status`, `odoo://schema/models`, `odoo://kpis/realtime`.
+
+---
+
+## 5. Client Setup Configuration Templates
+
+### Claude Desktop (`claude_desktop_config.json`)
+```json
+{
+  "mcpServers": {
+    "odoox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "https://odoox.recognate.in/sse?token=YOUR_API_KEY"
+      ]
+    }
+  }
+}
+```
+
+### Cursor IDE (`.cursor/mcp.json`)
+```json
+{
+  "mcpServers": {
+    "odoox": {
+      "type": "command",
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "https://odoox.recognate.in/sse?token=YOUR_API_KEY"
+      ]
+    }
+  }
+}
+```
+
+### Windsurf IDE (`mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "odoox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "odoox-mcp-connector",
+        "--url",
+        "https://odoox.recognate.in/sse?token=YOUR_API_KEY"
+      ]
+    }
+  }
+}
+```

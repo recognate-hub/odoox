@@ -59,12 +59,20 @@ class AnalyzerService:
     def analyze_pipeline_metrics(self) -> dict[str, Any]:
         """Aggregates CRM leads and Sales orders."""
         try:
-            crm_leads = self.odoo.search_read_records(
-                "crm.lead",
-                domain=[("active", "=", True)],
-                fields=["stage_id", "expected_revenue"],
-                limit=5000
-            )
+            crm_leads = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "crm.lead",
+                    domain=[("active", "=", True)],
+                    fields=["stage_id", "expected_revenue"],
+                    limit=1000,
+                    offset=offset
+                )
+                crm_leads.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             crm_summary = {}
             for lead in crm_leads:
                 stage = lead.get("stage_id")
@@ -84,12 +92,20 @@ class AnalyzerService:
             crm_pipeline = {"error": "CRM module not installed or accessible"}
 
         try:
-            sales_orders = self.odoo.search_read_records(
-                "sale.order",
-                domain=[],
-                fields=["state", "amount_total"],
-                limit=5000
-            )
+            sales_orders = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "sale.order",
+                    domain=[],
+                    fields=["state", "amount_total"],
+                    limit=1000,
+                    offset=offset
+                )
+                sales_orders.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             sales_summary = {}
             for so in sales_orders:
                 state = so.get("state")
@@ -116,12 +132,20 @@ class AnalyzerService:
         """Aggregates active Work Orders and MOs."""
         try:
             # Active MOs by state
-            mos = self.odoo.search_read_records(
-                "mrp.production",
-                domain=[("state", "not in", ["cancel", "done"])],
-                fields=["state", "product_qty"],
-                limit=5000
-            )
+            mos = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "mrp.production",
+                    domain=[("state", "not in", ["cancel", "done"])],
+                    fields=["state", "product_qty"],
+                    limit=1000,
+                    offset=offset
+                )
+                mos.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             mo_summary = {}
             for mo in mos:
                 state = mo.get("state")
@@ -141,12 +165,20 @@ class AnalyzerService:
 
         try:
             # WIP by Workcenter
-            wos = self.odoo.search_read_records(
-                "mrp.workorder",
-                domain=[("state", "in", ["pending", "waiting", "ready", "progress"])],
-                fields=["workcenter_id", "qty_production"],
-                limit=5000
-            )
+            wos = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "mrp.workorder",
+                    domain=[("state", "in", ["pending", "waiting", "ready", "progress"])],
+                    fields=["workcenter_id", "qty_production"],
+                    limit=1000,
+                    offset=offset
+                )
+                wos.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             wip_summary = {}
             for wo in wos:
                 wc = wo.get("workcenter_id")
@@ -174,12 +206,20 @@ class AnalyzerService:
         """Aggregates stock valuation and invoicing metrics."""
         try:
             # Total Stock Valuation
-            layers = self.odoo.search_read_records(
-                "stock.valuation.layer",
-                domain=[],
-                fields=["value"],
-                limit=5000
-            )
+            layers = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "stock.valuation.layer",
+                    domain=[],
+                    fields=["value"],
+                    limit=1000,
+                    offset=offset
+                )
+                layers.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             total_value = sum(layer.get("value", 0.0) for layer in layers)
             valuation_total = [{"value": total_value, "value_count": len(layers)}]
         except Exception:
@@ -187,12 +227,20 @@ class AnalyzerService:
 
         try:
             # Invoicing by state
-            invoices = self.odoo.search_read_records(
-                "account.move",
-                domain=[("move_type", "in", ["out_invoice", "in_invoice"])],
-                fields=["state", "amount_total"],
-                limit=5000
-            )
+            invoices = []
+            offset = 0
+            while True:
+                batch = self.odoo.search_read_records(
+                    "account.move",
+                    domain=[("move_type", "in", ["out_invoice", "in_invoice"])],
+                    fields=["state", "amount_total"],
+                    limit=1000,
+                    offset=offset
+                )
+                invoices.extend(batch)
+                if len(batch) < 1000 or offset >= 10000:
+                    break
+                offset += 1000
             inv_summary = {}
             for inv in invoices:
                 state = inv.get("state")

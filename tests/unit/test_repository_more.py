@@ -65,7 +65,7 @@ def test_create_product_minimal(repo):
 
 def test_get_recent_quotes_no_partner(repo):
     repo.get_recent_quotes(limit=10)
-    repo.connector.get_quotes.assert_called_once_with(domain=[], limit=10)
+    repo.connector.get_quotes.assert_called_once_with(domain=[], limit=10, expand_fields=None)
 
 
 def test_create_quote(repo):
@@ -120,7 +120,7 @@ def test_send_email(repo):
 def test_search_read_records(repo):
     repo.search_read_records("model")
     repo.connector.search_read_records.assert_called_once_with(
-        "model", domain=None, fields=None, limit=100, offset=0
+        "model", domain=[], fields=None, limit=100, offset=0
     )
 
 
