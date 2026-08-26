@@ -77,29 +77,77 @@ def get_company_health_360() -> dict[str, Any]:
     """
     with _span("mcp.get_company_health_360"):
         odoo_repo, _ = server._get_tenant_service()
-        health = {}
+        health: dict[str, Any] = {
+            "status": "success",
+            "crm": [],
+            "sales": [],
+            "invoices_unpaid": [],
+            "inventory": [],
+            "manufacturing": []
+        }
         
-        # CRM Health
-        crm_stats = odoo_repo.read_group("crm.lead", domain=[], fields=["expected_revenue", "id"], groupby=["stage_id"])
-        health["crm"] = crm_stats
-        
-        # Sales Health
-        sales_stats = odoo_repo.read_group("sale.order", domain=[["state", "in", ["sale", "done"]]], fields=["amount_total", "id"], groupby=["state"])
-        health["sales"] = sales_stats
-        
-        # Invoicing Health (Receivables)
+        # 1. CRM Health
         try:
-            invoice_stats = odoo_repo.read_group("account.move", domain=[["move_type", "=", "out_invoice"], ["state", "=", "posted"], ["payment_state", "in", ["not_paid", "partial"]]], fields=["amount_residual"], groupby=["payment_state"])
-            health["invoices_unpaid"] = invoice_stats
+            health["crm"] = odoo_repo.read_group("crm.lead", domain=[], fields=["expected_revenue", "id"], groupby=["stage_id"])
         except Exception:
-            pass
+            try:
+                leads = odoo_repo.search_read_records("crm.lead", domain=[], fields=["stage_id", "expected_revenue"], limit=200)
+                stages: dict[str, dict[str, Any]] = {}
+                for l in leads:
+                    stg = l.get("stage_id")
+                    stg_name = stg[1] if isinstance(stg, (list, tuple)) else str(stg or "Unassigned")
+                    rev = float(l.get("expected_revenue") or 0.0)
+                    if stg_name not in stages:
+                        stages[stg_name] = {"stage_id_count": 0, "expected_revenue": 0.0, "stage": stg_name}
+                    stages[stg_name]["stage_id_count"] += 1
+                    stages[stg_name]["expected_revenue"] += rev
+                health["crm"] = list(stages.values())
+            except Exception:
+                health["crm"] = []
+        
+        # 2. Sales Health
+        try:
+            health["sales"] = odoo_repo.read_group("sale.order", domain=[["state", "in", ["sale", "done"]]], fields=["amount_total", "id"], groupby=["state"])
+        except Exception:
+            try:
+                orders = odoo_repo.search_read_records("sale.order", domain=[["state", "in", ["sale", "done"]]], fields=["state", "amount_total"], limit=200)
+                total_sales = sum(float(o.get("amount_total") or 0.0) for o in orders)
+                health["sales"] = [{"state": "sale", "order_count": len(orders), "amount_total": round(total_sales, 2)}]
+            except Exception:
+                health["sales"] = []
+        
+        # 3. Invoicing Health (Receivables)
+        try:
+            health["invoices_unpaid"] = odoo_repo.read_group("account.move", domain=[["move_type", "=", "out_invoice"], ["state", "=", "posted"], ["payment_state", "in", ["not_paid", "partial"]]], fields=["amount_residual"], groupby=["payment_state"])
+        except Exception:
+            try:
+                invoices = odoo_repo.search_read_records("account.move", domain=[["move_type", "=", "out_invoice"], ["state", "=", "posted"], ["payment_state", "in", ["not_paid", "partial"]]], fields=["payment_state", "amount_residual"], limit=200)
+                residual = sum(float(inv.get("amount_residual") or 0.0) for inv in invoices)
+                health["invoices_unpaid"] = [{"unpaid_count": len(invoices), "total_residual": round(residual, 2)}]
+            except Exception:
+                health["invoices_unpaid"] = []
             
-        # Manufacturing Health
+        # 4. Inventory Valuation Health
         try:
-            mrp_stats = odoo_repo.read_group("mrp.production", domain=[], fields=["id"], groupby=["state"])
-            health["manufacturing"] = mrp_stats
+            val_items = odoo_repo.get_inventory_valuation(limit=100)
+            tot_val = sum(float(item.get("value") or 0.0) for item in val_items)
+            health["inventory"] = [{"item_count": len(val_items), "total_valuation": round(tot_val, 2)}]
         except Exception:
-            pass
+            health["inventory"] = []
+
+        # 5. Manufacturing Health
+        try:
+            health["manufacturing"] = odoo_repo.read_group("mrp.production", domain=[], fields=["id"], groupby=["state"])
+        except Exception:
+            try:
+                mos = odoo_repo.search_read_records("mrp.production", domain=[], fields=["state"], limit=100)
+                mrp_states: dict[str, int] = {}
+                for mo in mos:
+                    st = mo.get("state", "draft")
+                    mrp_states[st] = mrp_states.get(st, 0) + 1
+                health["manufacturing"] = [{"state": k, "count": v} for k, v in mrp_states.items()]
+            except Exception:
+                health["manufacturing"] = []
             
         return health
 

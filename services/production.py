@@ -58,7 +58,12 @@ class ProductionService:
     def get_bom_hierarchy(
         self, bom_id: int | None = None, limit: int = 200
     ) -> list[dict[str, Any]]:
-        bom_lines = self.odoo.get_bom_lines(bom_id, limit)
+        try:
+            bom_lines = self.odoo.get_bom_lines(bom_id, limit)
+        except Exception as e:
+            logger.warning(f"Failed to fetch BOM lines: {e}")
+            return []
+            
         if not bom_lines:
             return []
 
@@ -68,28 +73,31 @@ class ProductionService:
             pid = line.get("product_id")
             if pid:
                 p_id = pid[0] if isinstance(pid, list) else pid
-                product_ids.append(p_id)
+                if isinstance(p_id, int):
+                    product_ids.append(p_id)
 
         if not product_ids:
             return bom_lines
 
-        # Fetch cost and exact names in bulk
-        products = self.odoo.search_read_records(
-            "product.product",
-            domain=[("id", "in", product_ids)],
-            fields=["name", "standard_price", "default_code"],
-            limit=len(product_ids),
-        )
-
-        # Build mapping
-        prod_map = {
-            p["id"]: {
-                "name": p.get("name", ""),
-                "cost": p.get("standard_price", 0.0),
-                "code": p.get("default_code", ""),
+        # Fetch cost and exact names in bulk with safe domain syntax
+        prod_map = {}
+        try:
+            products = self.odoo.search_read_records(
+                "product.product",
+                domain=[["id", "in", list(set(product_ids))]],
+                fields=["name", "standard_price", "default_code"],
+                limit=len(product_ids),
+            )
+            prod_map = {
+                p["id"]: {
+                    "name": p.get("name", ""),
+                    "cost": p.get("standard_price", 0.0),
+                    "code": p.get("default_code", ""),
+                }
+                for p in products
             }
-            for p in products
-        }
+        except Exception as e:
+            logger.warning(f"Could not enrich BOM line products: {e}")
 
         # Enrich the response
         for line in bom_lines:
@@ -98,8 +106,7 @@ class ProductionService:
                 p_id = pid[0] if isinstance(pid, list) else pid
                 prod_info = prod_map.get(p_id, {})
 
-                # Expand product_id to include full details instead of just [id, name]
-                line["product_name"] = prod_info.get("name", "")
+                line["product_name"] = prod_info.get("name", pid[1] if isinstance(pid, list) else "")
                 line["product_code"] = prod_info.get("code", "")
 
                 qty = float(line.get("product_qty", 0.0))

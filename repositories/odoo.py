@@ -412,9 +412,53 @@ class OdooRepository:
             "value",
             "description",
         ]
-        return self.connector.search_read_records(
-            "stock.valuation.layer", domain=d.build(), fields=fields, limit=limit, offset=offset
-        )
+        try:
+            results = self.connector.search_read_records(
+                "stock.valuation.layer", domain=d.build(), fields=fields, limit=limit, offset=offset
+            )
+            if results:
+                return results
+        except Exception:
+            pass
+
+        # Fallback 1: stock.quant
+        try:
+            quant_domain = [["product_id", "=", product_id]] if product_id else [["quantity", ">", 0]]
+            quants = self.connector.search_read_records(
+                "stock.quant", domain=quant_domain, fields=["product_id", "location_id", "quantity", "value"], limit=limit, offset=offset
+            )
+            if quants:
+                return [
+                    {
+                        "product_id": q.get("product_id"),
+                        "quantity": q.get("quantity", 0.0),
+                        "unit_cost": round(q.get("value", 0.0) / q["quantity"], 2) if q.get("quantity") and q.get("value") else 0.0,
+                        "value": q.get("value", 0.0),
+                        "description": f"Location: {q.get('location_id')}"
+                    }
+                    for q in quants
+                ]
+        except Exception:
+            pass
+
+        # Fallback 2: product.product calculation (qty_available * standard_price)
+        try:
+            prod_domain = [["id", "=", product_id]] if product_id else [["qty_available", ">", 0]]
+            products = self.connector.search_read_records(
+                "product.product", domain=prod_domain, fields=["id", "name", "qty_available", "standard_price"], limit=limit, offset=offset
+            )
+            return [
+                {
+                    "product_id": [p["id"], p.get("name", "")],
+                    "quantity": p.get("qty_available", 0.0),
+                    "unit_cost": p.get("standard_price", 0.0),
+                    "value": round(p.get("qty_available", 0.0) * p.get("standard_price", 0.0), 2),
+                    "description": p.get("name", "")
+                }
+                for p in products
+            ]
+        except Exception:
+            return []
 
     def create_quality_alert(
         self,
@@ -901,4 +945,20 @@ class OdooRepository:
         ]
         return self.connector.search_read_records(
             "maintenance.request", domain=d.build(), fields=fields, limit=limit
+        )
+
+    def read_group(
+        self,
+        model: str,
+        domain: list[Any] | None = None,
+        fields: list[str] | None = None,
+        groupby: list[str] | None = None,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self.connector.read_group(
+            model=model,
+            domain=domain or [],
+            fields=fields or [],
+            groupby=groupby or [],
+            **kwargs,
         )

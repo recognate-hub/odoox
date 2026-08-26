@@ -85,13 +85,30 @@ class RelationExpander:
                 continue
 
             # Batch fetch related records
-            sub_records = self.connector.search_read_records(
+            raw_sub_records = self.connector.search_read_records(
                 model=target_model,
                 domain=[["id", "in", list(target_ids)]],
-                fields=None, # Fetch all available fields for the sub-records
+                fields=None, # Fetch available fields
                 limit=len(target_ids)
             )
             
+            # Prune binary images, giant base64 payloads, and internal noise to keep responses lightweight and fast
+            sub_records = []
+            for r in raw_sub_records:
+                clean_r = {}
+                for k, v in r.items():
+                    if (
+                        k.startswith("image_")
+                        or k.startswith("avatar_")
+                        or k.endswith("_image")
+                        or k in ("datas", "db_datas", "icon_image_base64")
+                    ):
+                        continue
+                    if isinstance(v, str) and len(v) > 2000 and " " not in v:
+                        continue
+                    clean_r[k] = v
+                sub_records.append(clean_r)
+
             # Sub-expand if there are further nodes in the tree
             if sub_tree and sub_records:
                 self._expand_level(target_model, sub_records, sub_tree)

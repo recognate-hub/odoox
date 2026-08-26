@@ -275,3 +275,7 @@ class OperationsService:
             "top_products_with_alerts": alerts_formatted[:10],
             "quality_checks_summary": checks_formatted
         }
+
+    def analyze_inventory_health(self) -> dict[str, Any]:
+        from services.inventory import InventoryService
+        return InventoryService(self.odoo).analyze_inventory_health()

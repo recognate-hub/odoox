@@ -83,8 +83,8 @@ def analyze_inventory_health() -> dict[str, Any]:
     """
     with _span("mcp.analyze_inventory_health"):
         odoo_repo, _ = server._get_tenant_service()
-        from services.operations import OperationsService
-        service = OperationsService(odoo_repo)
+        from services.inventory import InventoryService
+        service = InventoryService(odoo_repo)
         return service.analyze_inventory_health()
 
 

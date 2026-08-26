@@ -186,27 +186,59 @@ def get_crm_team_performance(limit: int = 50) -> list[dict[str, Any]]:
 @secure_tool()
 def analyze_win_loss_ratio() -> dict[str, Any]:
     """
-    Analyze the win/loss ratio of opportunities.
+    Analyze the win/loss ratio of opportunities and sales quotes.
     
     Use this tool when:
-    - The user asks for win rates, lost opportunities, or success rates.
+    - The user asks for win rates, lost opportunities, quotation conversion rates, or success rates.
     """
     logger.info("MCP Tool Called: analyze_win_loss_ratio")
     odoo_repo, _ = server._get_tenant_service()
     try:
-        won_leads = odoo_repo.search_read_records("crm.lead", [["probability", "=", 100]], ["id"], limit=1000)
-        lost_leads = odoo_repo.search_read_records("crm.lead", [["active", "=", False], ["probability", "=", 0]], ["id"], limit=1000)
-        
-        won_count = len(won_leads)
-        lost_count = len(lost_leads)
-        total = won_count + lost_count
-        win_rate = (won_count / total * 100) if total > 0 else 0
-        
+        # 1. CRM Lead Pipeline Win/Loss
+        won_leads = []
+        lost_leads = []
+        try:
+            won_leads = odoo_repo.search_read_records("crm.lead", [["probability", "=", 100]], ["id", "name", "expected_revenue"], limit=1000)
+            lost_leads = odoo_repo.search_read_records("crm.lead", [["active", "=", False], ["probability", "=", 0]], ["id", "name", "expected_revenue"], limit=1000)
+        except Exception:
+            pass
+
+        crm_won = len(won_leads)
+        crm_lost = len(lost_leads)
+        crm_total = crm_won + crm_lost
+        crm_win_rate = (crm_won / crm_total * 100) if crm_total > 0 else 0.0
+
+        # 2. Sales Order / Quotation Conversion Rate
+        sales_won = 0
+        sales_total = 0
+        sales_win_rate = 0.0
+        try:
+            confirmed_orders = odoo_repo.search_read_records("sale.order", [["state", "in", ["sale", "done"]]], ["id", "amount_total"], limit=5000)
+            all_quotes = odoo_repo.search_read_records("sale.order", [], ["id"], limit=5000)
+            sales_won = len(confirmed_orders)
+            sales_total = len(all_quotes)
+            sales_win_rate = (sales_won / sales_total * 100) if sales_total > 0 else 0.0
+        except Exception:
+            pass
+
+        # Primary effective win rate (CRM if active leads exist, else Sales quote conversion rate)
+        primary_win_rate = crm_win_rate if crm_total > 0 else sales_win_rate
+
         return {
             "status": "success",
-            "won_count": won_count,
-            "lost_count": lost_count,
-            "win_rate_percentage": round(win_rate, 2)
+            "win_rate_percentage": round(primary_win_rate, 2),
+            "crm_pipeline": {
+                "won_leads_count": crm_won,
+                "lost_leads_count": crm_lost,
+                "total_closed_leads": crm_total,
+                "win_rate_percentage": round(crm_win_rate, 2)
+            },
+            "sales_order_conversion": {
+                "confirmed_orders_count": sales_won,
+                "total_quotations_count": sales_total,
+                "conversion_rate_percentage": round(sales_win_rate, 2)
+            },
+            "summary": f"CRM Lead Win Rate: {round(crm_win_rate, 2)}% ({crm_won}/{crm_total}). Sales Quotation Conversion Rate: {round(sales_win_rate, 2)}% ({sales_won}/{sales_total} orders confirmed)."
         }
     except Exception as e:
         logger.error("analyze_win_loss_ratio error", error=str(e))
