@@ -118,12 +118,12 @@ export function PricingSection({ hasToken, isPaid }: PricingProps) {
                 {/* Features */}
                 <ul className="space-y-4 pt-2">
                   {[
-                    'Unlimited Claude MCP Queries',
-                    'Connect 1 Production Database',
-                    '12 Odoo Modules Supported',
-                    'End-to-End Encrypted Secure Tunnel',
-                    'Free Future Gateway Updates',
-                    'Priority Community Support'
+                    'Unlimited Claude & Cursor MCP Queries',
+                    'Connect 1 Production Database (Expandable)',
+                    '100+ Tools & 24 Enterprise Modules',
+                    'Fernet KMS Envelope Encrypted Tunnels',
+                    'Free Prompts & Resources Updates',
+                    'Priority Enterprise Support'
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <div className="mt-0.5 bg-primary-container/20 rounded-full p-1 shrink-0">

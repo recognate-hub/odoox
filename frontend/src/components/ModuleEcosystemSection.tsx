@@ -1,39 +1,45 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { 
   Kanban, ShoppingCart, Package, Factory, 
   FileText, Wrench, Users, BarChart2,
-  Database, GitMerge, Globe, ShieldAlert,
-  Activity, ArrowRight, MessageSquare, ScanBarcode, Calendar, Award,
-  Briefcase, Calculator, ShieldCheck
+  Database, ShieldAlert, Activity, MessageSquare, 
+  ScanBarcode, Calendar, Briefcase, Calculator, 
+  ShieldCheck, Sparkles, Zap, Bot, Cpu, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const modules = [
-  // Left Side
-  { id: 'sales', label: 'Sales', icon: ShoppingCart, x: 12, y: 30 },
-  { id: 'crm', label: 'CRM', icon: Kanban, x: 8, y: 55 },
-  { id: 'discuss', label: 'Discuss', icon: MessageSquare, x: 18, y: 80 },
-  { id: 'hr', label: 'HR', icon: Users, x: 28, y: 45 },
-  { id: 'contacts', label: 'Contacts', icon: Users, x: 32, y: 68 },
+  // ── Left Orbit (CRM, Sales, Discuss, Contacts) ───────────────────────
+  { id: 'crm', label: 'CRM & Pipeline', count: '8 tools', icon: Kanban, x: 8, y: 48 },
+  { id: 'sales', label: 'Sales & Quotes', count: '3 tools', icon: ShoppingCart, x: 14, y: 26 },
+  { id: 'discuss', label: 'Discuss & Chatter', count: '4 tools', icon: MessageSquare, x: 14, y: 72 },
+  { id: 'contacts', label: 'Contacts 360', count: '3 tools', icon: Users, x: 26, y: 38 },
+  { id: 'calendar', label: 'Calendar & Meets', count: '2 tools', icon: Calendar, x: 26, y: 62 },
 
-  // Right Side
-  { id: 'manufacturing', label: 'Manufacturing', icon: Factory, x: 88, y: 30 },
-  { id: 'inventory', label: 'Inventory', icon: Package, x: 92, y: 55 },
-  { id: 'invoicing', label: 'Invoicing', icon: FileText, x: 82, y: 80 },
-  { id: 'barcode', label: 'Barcode', icon: ScanBarcode, x: 72, y: 45 },
-  { id: 'calendar', label: 'Calendar', icon: Calendar, x: 68, y: 68 },
+  // ── Right Orbit (Manufacturing, Inventory, Invoicing, Planning) ──────
+  { id: 'manufacturing', label: 'Manufacturing MRP', count: '18 tools', icon: Factory, x: 92, y: 48 },
+  { id: 'inventory', label: 'Inventory & Stock', count: '8 tools', icon: Package, x: 86, y: 26 },
+  { id: 'invoicing', label: 'Invoicing & Pay', count: '4 tools', icon: FileText, x: 86, y: 72 },
+  { id: 'barcode', label: 'Barcode Logistics', count: '2 tools', icon: ScanBarcode, x: 74, y: 38 },
+  { id: 'planning', label: 'Planning & MPS', count: '2 tools', icon: Cpu, x: 74, y: 62 },
 
-  // Bottom Center
-  { id: 'purchase', label: 'Purchase', icon: Wrench, x: 42, y: 85 },
-  { id: 'skills', label: 'Skills', icon: Award, x: 58, y: 85 },
-  
-  // Top Center
-  { id: 'projects', label: 'Projects', icon: Briefcase, x: 45, y: 20 },
-  { id: 'accounting', label: 'Accounting', icon: Calculator, x: 55, y: 20 },
-  { id: 'quality', label: 'Quality', icon: ShieldCheck, x: 25, y: 20 },
+  // ── Top Orbit (Projects, Accounting, Quality, Intelligence) ──────────
+  { id: 'projects', label: 'Projects & Tasks', count: '7 tools', icon: Briefcase, x: 38, y: 16 },
+  { id: 'accounting', label: 'Accounting Core', count: '7 tools', icon: Calculator, x: 50, y: 12 },
+  { id: 'quality', label: 'Quality Control', count: '9 tools', icon: ShieldCheck, x: 62, y: 16 },
+
+  // ── Bottom Orbit (Purchase, Maintenance, HR, FinOps, Meta-Engine) ────
+  { id: 'purchase', label: 'Purchase & POs', count: '4 tools', icon: ShoppingCart, x: 34, y: 84 },
+  { id: 'maintenance', label: 'Equipment & Maint', count: '3 tools', icon: Wrench, x: 44, y: 88 },
+  { id: 'hr', label: 'HR & Employees', count: '10 tools', icon: Users, x: 56, y: 88 },
+  { id: 'finops', label: 'FinOps & Budget', count: '2 tools', icon: TrendingUp, x: 66, y: 84 },
+
+  // ── Inner Satellites (Meta-Engine, Prompts, Schema) ──────────────────
+  { id: 'generic', label: 'Universal Meta-Engine', count: '8 tools', icon: Zap, x: 36, y: 50 },
+  { id: 'prompts', label: 'MCP Prompts & Workflows', count: '5 prompts', icon: Bot, x: 64, y: 50 },
 ];
 
 export function ModuleEcosystemSection() {
@@ -44,22 +50,18 @@ export function ModuleEcosystemSection() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Smooth springs for the parallax movement
   const springConfig = { damping: 25, stiffness: 150 };
   const smoothMouseX = useSpring(mouseX, springConfig);
   const smoothMouseY = useSpring(mouseY, springConfig);
 
-  // Background layer parallax (moves opposite to mouse, softly)
-  const bgX = useTransform(smoothMouseX, [-500, 500], [15, -15]);
-  const bgY = useTransform(smoothMouseY, [-500, 500], [15, -15]);
+  const bgX = useTransform(smoothMouseX, [-500, 500], [12, -12]);
+  const bgY = useTransform(smoothMouseY, [-500, 500], [12, -12]);
 
-  // Foreground layer parallax (moves with mouse, aggressively)
-  const fgX = useTransform(smoothMouseX, [-500, 500], [-30, 30]);
-  const fgY = useTransform(smoothMouseY, [-500, 500], [-30, 30]);
+  const fgX = useTransform(smoothMouseX, [-500, 500], [-20, 20]);
+  const fgY = useTransform(smoothMouseY, [-500, 500], [-20, 20]);
 
-  // SVG lines parallax (middle ground)
-  const svgX = useTransform(smoothMouseX, [-500, 500], [-10, 10]);
-  const svgY = useTransform(smoothMouseY, [-500, 500], [-10, 10]);
+  const svgX = useTransform(smoothMouseX, [-500, 500], [-8, 8]);
+  const svgY = useTransform(smoothMouseY, [-500, 500], [-8, 8]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
@@ -79,30 +81,35 @@ export function ModuleEcosystemSection() {
   return (
     <section 
       id="ecosystem"
-      className="relative w-full h-[700px] flex items-center justify-center bg-black/20"
+      className="relative w-full py-16 flex flex-col items-center justify-center bg-black/20 overflow-hidden"
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Background Deep Glow - Fixed to section */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(132,204,22,0.03)_0%,transparent_70%)] pointer-events-none" />
+      {/* Background Deep Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(132,204,22,0.04)_0%,transparent_70%)] pointer-events-none" />
 
-      {/* Header Info (Stays fixed at top) */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center space-y-4 z-50 pointer-events-none w-full max-w-3xl px-6">
-        <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-          80+ tools across <br className="hidden md:block"/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container to-primary">15 Odoo modules.</span>
+      {/* 1. Header Info (Clean Normal Flow - Zero Overlap) */}
+      <div className="text-center space-y-4 relative z-30 max-w-4xl mx-auto px-6 mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary-container/30 bg-primary-container/10 text-primary-container text-xs font-semibold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5" /> Full Enterprise ERP Coverage
+        </div>
+        <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white">
+          100+ native tools across <br className="hidden sm:block"/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container via-[#acf847] to-primary">
+            24 Odoo modules.
+          </span>
         </h2>
-        <p className="text-white/60 text-sm md:text-base font-mono">
-          Hover over nodes to explore the ecosystem
+        <p className="text-white/60 text-sm md:text-base font-mono max-w-xl mx-auto">
+          Hover over any node to explore tools and live MCP endpoints
         </p>
       </div>
 
-      {/* Scrollable Container for Mobile */}
-      <div className="w-full h-full overflow-x-auto overflow-y-hidden scrollbar-hide cursor-crosshair">
+      {/* 2. Constellation Interactive Canvas */}
+      <div className="w-full h-[620px] relative overflow-x-auto overflow-y-hidden scrollbar-hide cursor-crosshair">
         <div className="min-w-[1000px] w-full h-full relative">
           
-          {/* PARALLAX LAYER 1: The Connecting SVG Lines */}
+          {/* Connecting SVG Lines */}
           <motion.div 
             className="absolute inset-0 z-10 pointer-events-none"
             style={{ x: svgX, y: svgY }}
@@ -110,7 +117,7 @@ export function ModuleEcosystemSection() {
             <svg className="w-full h-full">
               <defs>
                 <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(132,204,22,0.5)" />
+                  <stop offset="0%" stopColor="rgba(132,204,22,0.6)" />
                   <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
                 </linearGradient>
                 <filter id="glow">
@@ -129,13 +136,13 @@ export function ModuleEcosystemSection() {
                     <line 
                       x1="50%" y1="50%" 
                       x2={`${mod.x}%`} y2={`${mod.y}%`}
-                      stroke="rgba(255,255,255,0.05)"
+                      stroke="rgba(255,255,255,0.06)"
                       strokeWidth="1"
                     />
                     
                     {isHovered && (
                       <motion.circle
-                        r="3"
+                        r="3.5"
                         fill="#84cc16"
                         filter="url(#glow)"
                         initial={{ cx: "50%", cy: "50%", opacity: 0 }}
@@ -145,7 +152,7 @@ export function ModuleEcosystemSection() {
                           opacity: [0, 1, 0]
                         }}
                         transition={{
-                          duration: 1.5,
+                          duration: 1.2,
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}
@@ -167,7 +174,7 @@ export function ModuleEcosystemSection() {
             </svg>
           </motion.div>
 
-          {/* PARALLAX LAYER 2: The Orbital Nodes */}
+          {/* Orbital Nodes */}
           <motion.div 
             className="absolute inset-0 z-20 pointer-events-none"
             style={{ x: bgX, y: bgY }}
@@ -186,35 +193,37 @@ export function ModuleEcosystemSection() {
                 >
                   <motion.div 
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-2 transition-all duration-300",
+                      "relative flex flex-col items-center justify-center gap-1.5 transition-all duration-300",
                       isFaded && "opacity-20 scale-95 grayscale"
                     )}
-                    animate={{ y: [0, -5, 0] }}
+                    animate={{ y: [0, -4, 0] }}
                     transition={{ 
-                      duration: 4, 
+                      duration: 3.5, 
                       repeat: Infinity, 
                       ease: "easeInOut",
-                      delay: mod.x * 0.05 
+                      delay: (mod.x + mod.y) * 0.02 
                     }}
                   >
                     <div className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center border backdrop-blur-md transition-all duration-300 relative z-10",
+                      "w-11 h-11 rounded-full flex items-center justify-center border backdrop-blur-md transition-all duration-300 relative z-10",
                       isHovered 
-                        ? "bg-primary-container/20 border-primary-container shadow-[0_0_30px_rgba(132,204,22,0.4)] scale-125" 
+                        ? "bg-primary-container/20 border-primary-container shadow-[0_0_30px_rgba(132,204,22,0.5)] scale-125" 
                         : "bg-white/[0.03] border-white/10 hover:border-white/30"
                     )}>
                       <mod.icon className={cn(
-                        "w-5 h-5 transition-colors duration-300",
-                        isHovered ? "text-primary-container drop-shadow-[0_0_8px_rgba(132,204,22,1)]" : "text-white/40"
+                        "w-4 h-4 transition-colors duration-300",
+                        isHovered ? "text-primary-container drop-shadow-[0_0_8px_rgba(132,204,22,1)]" : "text-white/50"
                       )} />
                     </div>
                     
-                    <span className={cn(
-                      "text-xs font-medium tracking-wide transition-colors duration-300 absolute -bottom-6 whitespace-nowrap",
-                      isHovered ? "text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]" : "text-white/30"
-                    )}>
-                      {mod.label}
-                    </span>
+                    <div className="flex flex-col items-center absolute -bottom-8 whitespace-nowrap pointer-events-none">
+                      <span className={cn(
+                        "text-[11px] font-medium tracking-wide transition-colors duration-300",
+                        isHovered ? "text-white font-semibold drop-shadow-[0_0_5px_rgba(255,255,255,0.6)]" : "text-white/40"
+                      )}>
+                        {mod.label}
+                      </span>
+                    </div>
 
                     <AnimatePresence>
                       {isHovered && (
@@ -222,14 +231,17 @@ export function ModuleEcosystemSection() {
                           initial={{ opacity: 0, y: 10, scale: 0.9 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 mt-8 w-48 bg-black/80 backdrop-blur-2xl border border-primary-container/30 rounded-xl p-4 shadow-2xl z-50 pointer-events-none"
+                          className="absolute top-full left-1/2 -translate-x-1/2 mt-10 w-52 bg-black/90 backdrop-blur-2xl border border-primary-container/40 rounded-xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 pointer-events-none"
                         >
-                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-black/80 border-t border-l border-primary-container/30 rotate-45" />
-                          <div className="relative z-10">
-                            <h4 className="text-primary-container font-bold text-sm mb-1">{mod.label} Tools</h4>
-                            <p className="text-white/60 text-xs">Access endpoints, run workflows, and aggregate {mod.label.toLowerCase()} records securely.</p>
-                            <div className="mt-3 flex items-center gap-1 text-[10px] text-white/40 uppercase tracking-widest font-mono">
-                              <Activity className="w-3 h-3" /> System Ready
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-black/90 border-t border-l border-primary-container/40 rotate-45" />
+                          <div className="relative z-10 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-primary-container font-bold text-xs">{mod.label}</h4>
+                              <span className="text-[9px] bg-primary-container/20 text-primary-container px-1.5 py-0.5 rounded font-mono font-bold">{mod.count}</span>
+                            </div>
+                            <p className="text-white/60 text-[11px] leading-relaxed">Type-safe FastMCP endpoints with multi-tenant RBAC and XML-RPC integration.</p>
+                            <div className="pt-2 flex items-center gap-1 text-[9px] text-white/40 uppercase tracking-widest font-mono">
+                              <Activity className="w-3 h-3 text-primary-container" /> System Operational
                             </div>
                           </div>
                         </motion.div>
@@ -241,7 +253,7 @@ export function ModuleEcosystemSection() {
             })}
           </motion.div>
 
-          {/* PARALLAX LAYER 3: The Central Gateway Nexus */}
+          {/* Central Gateway Nexus */}
           <motion.div 
             className="absolute top-1/2 left-1/2 z-30 pointer-events-none"
             style={{ 
@@ -265,17 +277,17 @@ export function ModuleEcosystemSection() {
               
               <div className="absolute w-32 h-32 rounded-full bg-primary-container/20 blur-[30px]" />
               
-              <div className="w-24 h-24 rounded-full bg-black/90 backdrop-blur-3xl border border-primary-container/50 shadow-[0_0_50px_rgba(132,204,22,0.3),inset_0_0_20px_rgba(132,204,22,0.2)] flex items-center justify-center relative z-10">
+              <div className="w-24 h-24 rounded-full bg-black/90 backdrop-blur-3xl border border-primary-container/50 shadow-[0_0_50px_rgba(132,204,22,0.4),inset_0_0_20px_rgba(132,204,22,0.2)] flex items-center justify-center relative z-10">
                 <motion.div 
                   className="w-12 h-12 rounded-full bg-primary-container blur-[10px] absolute"
-                  animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.8, 1.2, 0.8] }}
+                  animate={{ opacity: [0.4, 0.9, 0.4], scale: [0.8, 1.2, 0.8] }}
                   transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                 />
                 <Activity className="w-8 h-8 text-white relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
               </div>
               
-              <div className="absolute -bottom-12 text-center whitespace-nowrap">
-                <span className="text-primary-container font-bold tracking-widest uppercase text-sm drop-shadow-[0_0_8px_rgba(132,204,22,0.5)]">OdooX Gateway</span>
+              <div className="absolute -bottom-10 text-center whitespace-nowrap">
+                <span className="text-primary-container font-bold tracking-widest uppercase text-xs drop-shadow-[0_0_8px_rgba(132,204,22,0.6)]">ODOOX GATEWAY</span>
               </div>
             </div>
           </motion.div>

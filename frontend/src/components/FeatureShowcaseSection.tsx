@@ -347,7 +347,7 @@ export function FeatureShowcaseSection() {
             A module for <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container to-blue-400">every workflow.</span>
           </h2>
           <p className="text-white/50 text-lg md:text-xl max-w-2xl mx-auto">
-            OdooX securely connects Claude to 14 different Odoo applications, giving you an end-to-end ERP copilot.
+            OdooX securely connects Claude to 24 enterprise Odoo applications with 100+ native tools, giving you an end-to-end ERP copilot.
           </p>
         </div>
 
