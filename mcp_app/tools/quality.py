@@ -33,10 +33,17 @@ def get_quality_checks(
     """
     with _span("mcp.get_quality_checks"):
         odoo_repo, _ = server._get_tenant_service()
-        from services.quality import QualityService
-
-        service = QualityService(odoo_repo)
-        return service.get_quality_checks(product_id, limit, offset, date_from, date_to)
+        try:
+            from services.quality import QualityService
+            service = QualityService(odoo_repo)
+            return service.get_quality_checks(product_id, limit, offset, date_from, date_to)
+        except Exception as e:
+            return [{
+                "status": "module_not_installed",
+                "module_required": "quality_control",
+                "message": f"Quality Control module error or not installed: {e}",
+                "suggestion": "Install the Enterprise 'quality_control' module from Odoo Apps to track quality checks."
+            }]
 
 
 @mcp.tool()
@@ -64,10 +71,17 @@ def get_quality_alerts(
     with _span("mcp.get_quality_alerts"):
         logger.info("MCP Tool Called: get_quality_alerts", product_id=product_id)
         odoo_repo, _ = server._get_tenant_service()
-        from services.quality import QualityService
-
-        service = QualityService(odoo_repo)
-        return service.get_quality_alerts(product_id, limit, offset, date_from, date_to)
+        try:
+            from services.quality import QualityService
+            service = QualityService(odoo_repo)
+            return service.get_quality_alerts(product_id, limit, offset, date_from, date_to)
+        except Exception as e:
+            return [{
+                "status": "module_not_installed",
+                "module_required": "quality_control",
+                "message": f"Quality Control module error or not installed: {e}",
+                "suggestion": "Install the Enterprise 'quality_control' module from Odoo Apps to manage quality alerts."
+            }]
 
 
 @mcp.tool()
@@ -87,10 +101,17 @@ def get_quality_points(limit: int = 50) -> list[dict[str, Any]]:
     with _span("mcp.get_quality_points"):
         logger.info("MCP Tool Called: get_quality_points")
         odoo_repo, _ = server._get_tenant_service()
-        from services.quality import QualityService
-
-        service = QualityService(odoo_repo)
-        return service.get_quality_points(limit)
+        try:
+            from services.quality import QualityService
+            service = QualityService(odoo_repo)
+            return service.get_quality_points(limit)
+        except Exception as e:
+            return [{
+                "status": "module_not_installed",
+                "module_required": "quality_control",
+                "message": f"Quality Control module error or not installed: {e}",
+                "suggestion": "Install the Enterprise 'quality_control' module from Odoo Apps to configure inspection rules."
+            }]
 
 
 

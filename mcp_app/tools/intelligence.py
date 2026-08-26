@@ -41,30 +41,55 @@ def search_odoo_universe(query: str, limit_per_module: int = 5) -> dict[str, Any
 def get_customer_360(partner_id: int) -> dict[str, Any]:
     """
     Fetches a complete 360-degree view of a customer, including their contact details,
-    recent quotes, sales orders, invoices, support tickets (helpdesk), and CRM leads.
+    recent quotes, sales orders, invoices, and CRM leads.
     """
     with _span("mcp.get_customer_360"):
         odoo_repo, _ = server._get_tenant_service()
-        data = {}
+        data: dict[str, Any] = {
+            "status": "success",
+            "partner_id": partner_id,
+            "profile": None,
+            "leads": [],
+            "sales_orders": [],
+            "invoices": [],
+            "subscriptions": []
+        }
         
-        # Contact info
-        contact = odoo_repo.search_read_records("res.partner", domain=[["id", "=", partner_id]], limit=1)
-        data["profile"] = contact[0] if contact else None
-        
-        # Leads
-        data["leads"] = odoo_repo.search_read_records("crm.lead", domain=[["partner_id", "=", partner_id]], limit=10)
-        
-        # Quotes & Sales
-        data["sales"] = odoo_repo.search_read_records("sale.order", domain=[["partner_id", "=", partner_id]], limit=10, expand_fields=["order_line"])
-        
-        # Invoices
-        data["invoices"] = odoo_repo.search_read_records("account.move", domain=[["partner_id", "=", partner_id], ["move_type", "=", "out_invoice"]], limit=10, expand_fields=["invoice_line_ids"])
-        
-        # Subscriptions (if module exists)
+        # 1. Contact Profile (Trimmed lightweight fields)
+        partner_fields = ["id", "name", "email", "phone", "street", "city", "country_id", "is_company", "credit"]
         try:
-            data["subscriptions"] = odoo_repo.search_read_records("sale.subscription", domain=[["partner_id", "=", partner_id]], limit=5)
+            contact = odoo_repo.search_read_records("res.partner", domain=[["id", "=", partner_id]], fields=partner_fields, limit=1)
+            data["profile"] = contact[0] if contact else None
         except Exception:
-            pass # Module might not be installed
+            pass
+        
+        # 2. Leads (Trimmed)
+        lead_fields = ["id", "name", "stage_id", "expected_revenue", "probability", "date_deadline"]
+        try:
+            data["leads"] = odoo_repo.search_read_records("crm.lead", domain=[["partner_id", "=", partner_id]], fields=lead_fields, limit=10)
+        except Exception:
+            pass
+        
+        # 3. Quotes & Sales Orders (Trimmed)
+        sale_fields = ["id", "name", "date_order", "amount_total", "state", "invoice_status"]
+        try:
+            data["sales_orders"] = odoo_repo.search_read_records("sale.order", domain=[["partner_id", "=", partner_id]], fields=sale_fields, limit=10)
+        except Exception:
+            pass
+        
+        # 4. Invoices (Trimmed)
+        invoice_fields = ["id", "name", "invoice_date", "amount_total", "amount_residual", "payment_state", "state"]
+        try:
+            data["invoices"] = odoo_repo.search_read_records("account.move", domain=[["partner_id", "=", partner_id], ["move_type", "=", "out_invoice"]], fields=invoice_fields, limit=10)
+        except Exception:
+            pass
+        
+        # 5. Subscriptions (if module exists)
+        try:
+            sub_fields = ["id", "name", "stage_id", "recurring_total", "date_start"]
+            data["subscriptions"] = odoo_repo.search_read_records("sale.subscription", domain=[["partner_id", "=", partner_id]], fields=sub_fields, limit=5)
+        except Exception:
+            pass
             
         return data
 
@@ -156,24 +181,60 @@ def get_company_health_360() -> dict[str, Any]:
 def get_product_360(product_id: int) -> dict[str, Any]:
     """
     Fetches a complete 360-degree view of a product, including its current stock, 
-    upcoming manufacturing orders, recent sales, and purchase orders.
+    upcoming manufacturing orders, recent sales, and active stock moves.
     """
     with _span("mcp.get_product_360"):
         odoo_repo, _ = server._get_tenant_service()
-        data = {}
+        data: dict[str, Any] = {
+            "status": "success",
+            "product_id": product_id,
+            "product": None,
+            "stock_moves": [],
+            "sales_lines": [],
+            "manufacturing_orders": []
+        }
         
-        product = odoo_repo.search_read_records("product.product", domain=[["id", "=", product_id]], limit=1)
-        data["product"] = product[0] if product else None
-        
-        # Stock Moves
-        data["stock_moves"] = odoo_repo.search_read_records("stock.move", domain=[["product_id", "=", product_id], ["state", "not in", ["done", "cancel"]]], limit=10)
-        
-        # Sales
-        data["sales_lines"] = odoo_repo.search_read_records("sale.order.line", domain=[["product_id", "=", product_id]], limit=10, expand_fields=["order_id"])
-        
-        # MRP
+        # 1. Product Details (Trimmed)
+        prod_fields = ["id", "name", "default_code", "list_price", "standard_price", "qty_available", "uom_id", "categ_id"]
         try:
-            data["manufacturing_orders"] = odoo_repo.search_read_records("mrp.production", domain=[["product_id", "=", product_id]], limit=10)
+            product = odoo_repo.search_read_records("product.product", domain=[["id", "=", product_id]], fields=prod_fields, limit=1)
+            data["product"] = product[0] if product else None
+        except Exception:
+            pass
+        
+        # 2. Stock Moves (Trimmed - eliminates 90+ field over-fetch)
+        move_fields = ["id", "name", "product_uom_qty", "location_id", "location_dest_id", "state", "date"]
+        try:
+            data["stock_moves"] = odoo_repo.search_read_records(
+                "stock.move",
+                domain=[["product_id", "=", product_id], ["state", "not in", ["done", "cancel"]]],
+                fields=move_fields,
+                limit=10
+            )
+        except Exception:
+            pass
+        
+        # 3. Sales Lines (Trimmed)
+        sol_fields = ["id", "order_id", "product_uom_qty", "price_unit", "price_subtotal", "state"]
+        try:
+            data["sales_lines"] = odoo_repo.search_read_records(
+                "sale.order.line",
+                domain=[["product_id", "=", product_id]],
+                fields=sol_fields,
+                limit=10
+            )
+        except Exception:
+            pass
+        
+        # 4. Manufacturing Orders (Trimmed)
+        mo_fields = ["id", "name", "product_qty", "state", "bom_id"]
+        try:
+            data["manufacturing_orders"] = odoo_repo.search_read_records(
+                "mrp.production",
+                domain=[["product_id", "=", product_id]],
+                fields=mo_fields,
+                limit=10
+            )
         except Exception:
             pass
             

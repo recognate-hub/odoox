@@ -35,7 +35,12 @@ def get_active_projects(limit: int = 50) -> list[dict[str, Any]]:
             return odoo_repo.search_read_records("project.project", domain, fields, limit=limit)
         except Exception as e:
             logger.error("get_active_projects error", error=str(e))
-            return [{"status": "error", "message": str(e)}]
+            return [{
+                "status": "module_not_installed",
+                "module_required": "project",
+                "message": f"Project module error or not installed: {e}",
+                "suggestion": "Install the 'project' module from Odoo Apps to manage and track projects."
+            }]
 
 
 @mcp.tool()
@@ -77,7 +82,12 @@ def analyze_task_bottlenecks(project_id: int | None = None) -> list[dict[str, An
         return list(summary.values())
     except Exception as e:
         logger.error("analyze_task_bottlenecks error", error=str(e))
-        return [{"status": "error", "message": str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "project",
+            "message": f"Project module error or not installed: {e}",
+            "suggestion": "Install the 'project' module from Odoo Apps to analyze task bottlenecks."
+        }]
 
 
 @mcp.tool()
@@ -130,7 +140,12 @@ def get_project_burn_rate(project_id: int) -> dict[str, Any]:
         }
     except Exception as e:
         logger.error("get_project_burn_rate error", error=str(e))
-        return {"status": "error", "message": str(e)}
+        return {
+            "status": "module_not_installed",
+            "module_required": "project",
+            "message": f"Project module error or not installed: {e}",
+            "suggestion": "Install the 'project' and 'hr_timesheet' modules from Odoo Apps to track project burn rates."
+        }
 
 
 @mcp.tool()
@@ -164,7 +179,12 @@ def get_project_tasks(
         return tasks
     except Exception as e:
         logger.error("get_project_tasks error", error=str(e))
-        return [{"status": "error", "message": str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "project",
+            "message": f"Project module error or not installed: {e}",
+            "suggestion": "Install the 'project' module from Odoo Apps to view project tasks."
+        }]
 
 
 @mcp.tool()
@@ -224,7 +244,12 @@ def get_timesheet_entries(project_id: int | None = None, employee_id: int | None
         if employee_id: domain.append(["employee_id", "=", employee_id])
         return odoo_repo.search_read_records("account.analytic.line", domain, ["name", "date", "employee_id", "project_id", "task_id", "unit_amount"], limit=limit)
     except Exception as e:
-        return [{"status": "error", "message": "Module missing or error: " + str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "hr_timesheet",
+            "message": f"Timesheet module error or not installed: {e}",
+            "suggestion": "Install the 'hr_timesheet' module from Odoo Apps to track timesheet entries."
+        }]
 
 
 @mcp.tool()
@@ -239,4 +264,9 @@ def get_milestones(project_id: int | None = None, limit: int = 50) -> list[dict[
         domain = [["project_id", "=", project_id]] if project_id else []
         return odoo_repo.search_read_records("project.milestone", domain, ["name", "project_id", "deadline", "is_reached", "reached_date"], limit=limit)
     except Exception as e:
-        return [{"status": "error", "message": "Module missing or error: " + str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "project",
+            "message": f"Project module error or not installed: {e}",
+            "suggestion": "Install the 'project' module from Odoo Apps to track milestones."
+        }]

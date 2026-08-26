@@ -17,10 +17,12 @@ def get_equipment_status(
     """Check the status of manufacturing equipment and machines."""
     with _span("mcp.get_equipment_status"):
         odoo_repo, _ = server._get_tenant_service()
-        from services.maintenance import MaintenanceService
-
-        service = MaintenanceService(odoo_repo)
-        return service.get_equipment_status(equipment_id, limit)
+        try:
+            from services.maintenance import MaintenanceService
+            service = MaintenanceService(odoo_repo)
+            return service.get_equipment_status(equipment_id, limit)
+        except Exception as e:
+            return [{"status": "module_not_installed", "module_required": "maintenance", "message": f"Maintenance module error: {e}", "suggestion": "Install the 'maintenance' module from Odoo Apps to manage equipment and machinery."}]
 
 
 @mcp.tool()

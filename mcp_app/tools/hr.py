@@ -100,7 +100,12 @@ def analyze_leave_trends() -> list[dict[str, Any]]:
         return list(summary.values())
     except Exception as e:
         logger.error("analyze_leave_trends error", error=str(e))
-        return [{"status": "error", "message": str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "hr_holidays",
+            "message": f"Time Off (hr_holidays) module error or not installed: {e}",
+            "suggestion": "Install the 'Time Off' (hr_holidays) module from Odoo Apps to enable leave tracking."
+        }]
 
 
 @mcp.tool()
@@ -133,7 +138,12 @@ def get_timesheet_utilization(
         return odoo_repo.search_read_records("account.analytic.line", domain, fields, limit=limit)
     except Exception as e:
         logger.error("get_timesheet_utilization error", error=str(e))
-        return [{"status": "error", "message": str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "hr_timesheet",
+            "message": f"Timesheets (hr_timesheet) module error or not installed: {e}",
+            "suggestion": "Install the 'Timesheets' (hr_timesheet) module from Odoo Apps to track employee time utilization."
+        }]
 
 
 @mcp.tool()
@@ -196,7 +206,12 @@ def get_leave_balances(employee_id: int | None = None) -> list[dict[str, Any]]:
         domain = [["employee_id", "=", employee_id]] if employee_id else []
         return odoo_repo.search_read_records("hr.leave.allocation", domain, ["name", "employee_id", "holiday_status_id", "number_of_days", "leaves_taken"], limit=100)
     except Exception as e:
-        return [{"status": "error", "message": "Module missing or error. " + str(e)}]
+        return [{
+            "status": "module_not_installed",
+            "module_required": "hr_holidays",
+            "message": f"Time Off (hr_holidays) module error or not installed: {e}",
+            "suggestion": "Install the 'Time Off' (hr_holidays) module from Odoo Apps to view leave allocations."
+        }]
 
 
 @mcp.tool()

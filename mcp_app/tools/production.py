@@ -266,10 +266,17 @@ def get_mps_forecast(limit: int = 50) -> list[dict[str, Any]]:
     """Pull the Master Production Schedule (MPS) forecast."""
     with _span("mcp.get_mps_forecast"):
         odoo_repo, _ = server._get_tenant_service()
-        from services.production import ProductionService
-
-        service = ProductionService(odoo_repo)
-        return service.get_mps_forecast(limit)
+        try:
+            from services.production import ProductionService
+            service = ProductionService(odoo_repo)
+            return service.get_mps_forecast(limit)
+        except Exception as e:
+            return [{
+                "status": "module_not_installed",
+                "module_required": "mrp_mps",
+                "message": f"Master Production Schedule (mrp_mps) error or module missing: {e}",
+                "suggestion": "Install the Enterprise 'mrp_mps' module from Odoo Apps if Master Production Scheduling is required."
+            }]
 
 
 @mcp.tool()

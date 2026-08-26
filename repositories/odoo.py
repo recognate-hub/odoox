@@ -355,15 +355,6 @@ class OdooRepository:
         return self.connector.create_record("mrp.production", data)
 
     def get_manufacturing_orders(self, limit: int = 20, offset: int = 0, date_from: str | None = None, date_to: str | None = None, product_name_query: str | None = None) -> list[dict[str, Any]]:
-        fields = [
-            "name",
-            "product_id",
-            "product_qty",
-            "state",
-            "date_planned_start",
-            "date_planned_finished",
-            "bom_id",
-        ]
         d = Domain()
         if date_from:
             d.gte("create_date", date_from)
@@ -378,9 +369,38 @@ class OdooRepository:
             else:
                 return []
             
-        return self.connector.search_read_records(
-            "mrp.production", domain=d.build(), fields=fields, limit=limit, offset=offset
-        )
+        # Odoo 17+ uses date_start/date_finished; Odoo <=16 uses date_planned_start
+        fields = [
+            "name",
+            "product_id",
+            "product_qty",
+            "state",
+            "bom_id",
+            "date_start",
+            "date_finished",
+        ]
+        try:
+            return self.connector.search_read_records(
+                "mrp.production", domain=d.build(), fields=fields, limit=limit, offset=offset
+            )
+        except Exception:
+            legacy_fields = [
+                "name",
+                "product_id",
+                "product_qty",
+                "state",
+                "bom_id",
+                "date_planned_start",
+                "date_planned_finished",
+            ]
+            try:
+                return self.connector.search_read_records(
+                    "mrp.production", domain=d.build(), fields=legacy_fields, limit=limit, offset=offset
+                )
+            except Exception:
+                return self.connector.search_read_records(
+                    "mrp.production", domain=d.build(), fields=["name", "product_id", "product_qty", "state", "bom_id"], limit=limit, offset=offset
+                )
 
     def create_stock_move(
         self,
@@ -492,7 +512,6 @@ class OdooRepository:
             "test_type",
             "quality_state",
             "control_date",
-            "measure",
             "norm",
             "tolerance_min",
             "tolerance_max",
@@ -500,9 +519,14 @@ class OdooRepository:
             "point_id",
             "note",
         ]
-        return self.connector.search_read_records(
-            "quality.check", domain=d.build(), fields=fields, limit=limit, offset=offset
-        )
+        try:
+            return self.connector.search_read_records(
+                "quality.check", domain=d.build(), fields=fields, limit=limit, offset=offset
+            )
+        except Exception:
+            return self.connector.search_read_records(
+                "quality.check", domain=d.build(), fields=["name", "product_id", "quality_state", "workorder_id", "note"], limit=limit, offset=offset
+            )
 
     def update_quality_check_result(
         self, check_id: int, measure: float | None = None, quality_state: str | None = None
@@ -614,15 +638,17 @@ class OdooRepository:
     def get_quality_points(self, limit: int = 50) -> list[dict[str, Any]]:
         fields = [
             "name",
-            "product_ids",
-            "picking_type_ids",
-            "measure_on",
             "test_type_id",
             "team_id",
         ]
-        return self.connector.search_read_records(
-            "quality.point", domain=[], fields=fields, limit=limit
-        )
+        try:
+            return self.connector.search_read_records(
+                "quality.point", domain=[], fields=fields, limit=limit
+            )
+        except Exception:
+            return self.connector.search_read_records(
+                "quality.point", domain=[], fields=["name", "team_id"], limit=limit
+            )
 
     # ── Production / Manufacturing ─────────────────────────────────────
     def update_manufacturing_order(self, mo_id: int, data: dict[str, Any]) -> bool:
@@ -684,9 +710,7 @@ class OdooRepository:
             "name",
             "code",
             "active",
-            "capacity",
             "time_efficiency",
-            "working_state",
         ]
         return self.connector.search_read_records(
             "mrp.workcenter", domain=[], fields=fields, limit=limit
@@ -921,13 +945,16 @@ class OdooRepository:
             "name",
             "category_id",
             "active",
-            "next_action_date",
-            "cost",
             "location",
         ]
-        return self.connector.search_read_records(
-            "maintenance.equipment", domain=d.build(), fields=fields, limit=limit
-        )
+        try:
+            return self.connector.search_read_records(
+                "maintenance.equipment", domain=d.build(), fields=fields, limit=limit
+            )
+        except Exception:
+            return self.connector.search_read_records(
+                "maintenance.equipment", domain=d.build(), fields=["name", "active"], limit=limit
+            )
 
     def get_maintenance_requests(
         self, equipment_id: int | None = None, limit: int = 50

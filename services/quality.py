@@ -48,16 +48,24 @@ class QualityService:
         Fetches quality checks for a product and groups the measurements
         (e.g., diameter, radius) by their manufacturing stage (work order).
         """
-        checks = self.odoo.get_quality_checks(product_id=product_id, limit=500)
-        
+        try:
+            checks = self.odoo.get_quality_checks(product_id=product_id, limit=500)
+        except Exception as e:
+            return {"status": "error", "message": f"Could not fetch quality checks: {e}", "product_id": product_id, "stages": []}
+            
+        if not checks:
+            return {"status": "success", "product_id": product_id, "stages": [], "message": "No quality checks logged for this product."}
+
         # Group by workorder_id
         stages = {}
         for check in checks:
             wo_data = check.get("workorder_id")
             if not wo_data:
-                continue
-            
-            wo_id, wo_name = wo_data[0], wo_data[1] if isinstance(wo_data, list) else (wo_data, f"Work Order {wo_data}")
+                wo_name = "General Quality Inspection"
+                wo_id = 0
+            else:
+                wo_id, wo_name = wo_data[0], wo_data[1] if isinstance(wo_data, list) else (wo_data, f"Work Order {wo_data}")
+                
             stage_key = f"{wo_name} (ID: {wo_id})"
             
             if stage_key not in stages:
@@ -65,12 +73,14 @@ class QualityService:
                 
             # Extract metric label (from point_id or name)
             point_data = check.get("point_id")
-            label = point_data[1] if isinstance(point_data, list) and len(point_data) > 1 else check.get("name", "Unknown Metric")
+            label = point_data[1] if isinstance(point_data, list) and len(point_data) > 1 else check.get("name", "Quality Inspection")
             
-            # Extract value
-            test_type = check.get("test_type")
+            # Extract value safely across Odoo versions
+            test_type = check.get("test_type", "passfail")
+            norm_val = check.get("norm", 0.0)
             if test_type == "measure":
-                value = f"{check.get('measure', 0.0)} (Norm: {check.get('norm', 0.0)})"
+                m_val = check.get("measure", check.get("norm", 0.0))
+                value = f"{m_val} (Norm: {norm_val})"
             elif test_type == "passfail":
                 value = check.get("quality_state", "none")
             else:
@@ -80,10 +90,11 @@ class QualityService:
                 "check_id": check.get("id"),
                 "label": label,
                 "value": value,
-                "date": check.get("control_date")
+                "date": check.get("control_date") or check.get("create_date")
             })
             
         return {
+            "status": "success",
             "product_id": product_id,
             "stages": list(stages.values())
         }
@@ -92,26 +103,33 @@ class QualityService:
         """
         Analyze statistical trends for a specific metric across recent quality checks.
         """
-        checks = self.odoo.get_quality_checks(product_id=product_id, limit=200)
-        
+        try:
+            checks = self.odoo.get_quality_checks(product_id=product_id, limit=200)
+        except Exception as e:
+            return {"status": "error", "message": f"Could not fetch quality checks: {e}"}
+
         values = []
         for check in checks:
             point_data = check.get("point_id")
             label = point_data[1] if isinstance(point_data, list) and len(point_data) > 1 else check.get("name", "")
             
-            if label.lower() == metric_label.lower() and check.get("test_type") == "measure":
-                measure = check.get("measure")
+            if label.lower() == metric_label.lower() or metric_label.lower() in label.lower():
+                measure = check.get("measure") or check.get("norm")
                 if measure is not None:
-                    values.append({
-                        "date": check.get("control_date"),
-                        "measure": measure,
-                        "norm": check.get("norm", 0.0),
-                        "tolerance_min": check.get("tolerance_min", 0.0),
-                        "tolerance_max": check.get("tolerance_max", 0.0)
-                    })
+                    try:
+                        m_float = float(measure)
+                        values.append({
+                            "date": check.get("control_date") or check.get("create_date"),
+                            "measure": m_float,
+                            "norm": float(check.get("norm") or 0.0),
+                            "tolerance_min": float(check.get("tolerance_min") or 0.0),
+                            "tolerance_max": float(check.get("tolerance_max") or 0.0)
+                        })
+                    except (ValueError, TypeError):
+                        pass
                     
         if not values:
-            return {"status": "error", "message": f"No measurable data found for metric '{metric_label}' on this product."}
+            return {"status": "error", "message": f"No numerical data found for metric '{metric_label}' on product {product_id}."}
             
         measures = [v["measure"] for v in values]
         mean = sum(measures) / len(measures)
