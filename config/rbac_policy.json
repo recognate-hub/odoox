@@ -12,14 +12,16 @@
       "get_quality_checks", "get_quality_alerts", "get_quality_metrics", "analyze_quality_trends", "analyze_defect_root_causes",
       "get_inventory_valuation", "analyze_inventory_health", "get_purchase_plan",
       "get_aged_receivables", "get_profit_and_loss_summary", "analyze_expense_trends", "predict_cashflow_shortages", "analyze_inventory_financials",
-      "get_recent_alerts", "acknowledge_alerts", "get_messages", "post_message", "get_calendar_events"
+      "get_recent_alerts", "acknowledge_alerts", "get_messages", "post_message", "get_calendar_events",
+      "notify_ultron_payment_failed", "get_ultron_recovery_opportunities", "get_ultron_recovery_links"
     ],
     "Sales": [
       "search_read_records", "read_group_records",
       "get_leads", "create_lead", "update_lead", "search_contacts", "create_contact", "get_products", "get_sales_dashboard", "get_customer_details", "schedule_meeting", "get_lead_context",
       "get_recent_quotes", "quote_to_cash_automation", "get_ready_to_ship_orders",
       "get_invoices", "get_payment_journals",
-      "get_messages", "post_message", "get_calendar_events"
+      "get_messages", "post_message", "get_calendar_events",
+      "notify_ultron_payment_failed", "get_ultron_recovery_opportunities", "get_ultron_recovery_links"
     ],
     "Support": [
       "search_read_records",

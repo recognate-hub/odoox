@@ -76,6 +76,16 @@ class Settings(BaseSettings):
     )
     COMPANY_PHONE: str = Field(default="", description="Company contact phone")
 
+    # ULTRON Autonomous Payment Recovery
+    ULTRON_API_URL: str = Field(
+        default="http://localhost:3001",
+        description="Base URL for the ULTRON autonomous payment recovery service",
+    )
+    ULTRON_API_KEY: str = Field(
+        default="",
+        description="API Key for authenticating with the ULTRON control plane",
+    )
+
     def validate_config(self) -> None:
         """
         Since Pydantic automatically validates upon instantiation,
