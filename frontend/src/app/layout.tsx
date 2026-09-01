@@ -244,8 +244,9 @@ export default function RootLayout({
 
         {/* ULTRON SDK */}
         <Script
-          src="https://ultron-v6qe.onrender.com/sdk/ultron.js"
+          src="/sdk/ultron.js"
           data-api-key="ul_live_6864e09cfb4d.bf7167e42544c20db697fe25670b9ae1"
+          data-api-url="https://ultron-v6qe.onrender.com"
           strategy="afterInteractive"
         />
       </head>
