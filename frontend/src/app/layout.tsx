@@ -241,6 +241,13 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+
+        {/* ULTRON SDK */}
+        <Script
+          src="https://ultron-v6qe.onrender.com/sdk/ultron.js"
+          data-api-key="ul_live_6864e09cfb4d.bf7167e42544c20db697fe25670b9ae1"
+          strategy="afterInteractive"
+        />
       </head>
       <body>
         {children}
